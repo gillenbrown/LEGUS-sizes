@@ -7,6 +7,7 @@ the data. I want to fix that, and merge the two to create nicely formatted catal
 from pathlib import Path
 import sys
 
+import numpy as np
 from astropy import table
 
 # The big thing here is to use the header files to get actual column names. I'll have
@@ -150,5 +151,12 @@ with open(header_name, "r") as header:
 # Then we can use these column names to replace the ones given originally
 catalog = table.Table.read(catalog_name, format="ascii")
 catalog.rename_columns(old_colnames, new_colnames)
+
+# Then restrict to classes 1 and 2, which are the more normal ones
+idxs_1 = np.where(catalog["class_mode"] == 1)
+idxs_2 = np.where(catalog["class_mode"] == 2)
+idxs = np.union1d(idxs_1, idxs_2)
+catalog = catalog[idxs]
+
 # then write this catalog to the desired output file. Astropy recommends ECSV
 catalog.write(final_catalog, format="ascii.ecsv")
