@@ -3,6 +3,9 @@ format_catalogs.py
 
 The LEGUS cluster catalogs aren't in the greatest format. The headers are separate from
 the data. I want to fix that, and merge the two to create nicely formatted catalogs.
+
+This assumes a few things about the directory structure. Each galaxy has its own
+directory that contains the header and data files there, not in any subdirectory.
 """
 from pathlib import Path
 import sys
@@ -117,8 +120,6 @@ def find_catalogs(home_dir):
 # start by getting the catalog and header files
 final_catalog = Path(sys.argv[1])
 home_dir = final_catalog.parent
-galaxy_name = home_dir.name
-base_cat_ = f"hlsp_legus_hst_wfc3_{galaxy_name}_multiband_v1_padagb-mwext-avgapcor"
 catalog_name, header_name = find_catalogs(home_dir)
 
 # Then we can do what we need. First we'll go through the header to get the lists of
@@ -138,7 +139,7 @@ with open(header_name, "r") as header:
             continue
         try:
             int(first_item[:-1])
-        except ValueError:  # unsucccessful type conversion
+        except ValueError:  # unsucccessful type conversion, not an integer
             continue  # go to next line
 
         # if we are here we have an integer followed by a period, so we have the
