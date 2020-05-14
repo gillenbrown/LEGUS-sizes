@@ -6,6 +6,10 @@ the data. I want to fix that, and merge the two to create nicely formatted catal
 
 This assumes a few things about the directory structure. Each galaxy has its own
 directory that contains the header and data files there, not in any subdirectory.
+
+This script should be passed one argument: the name of the catalog to create. This
+should also be located in that same directory, as this looks in that directory for the
+catalogs and header files.
 """
 from pathlib import Path
 import sys
@@ -14,7 +18,7 @@ import numpy as np
 from astropy import table
 
 # The big thing here is to use the header files to get actual column names. I'll have
-# a giant function that will convert the descriptions from the header file into short
+# a giant dictionary that will convert the descriptions from the header file into short
 # column names
 # this variable is short for `description_to_colname`
 dc = {
