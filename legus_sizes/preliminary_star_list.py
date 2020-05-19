@@ -1,24 +1,21 @@
 """
-Makes a list of stars that will be used to make the PSF model.
+Makes a list of stars that will be inspected by the user for creation of the PSF.
 
 This script takes the following command-line arguments:
 1 - Path to the star list that will be created
+2 - Path to the pre-existing cluster list. We use this to check which stars are near
+    existing clusters
 """
 # https://photutils.readthedocs.io/en/stable/epsf.html
 from pathlib import Path
 import sys
 
-from matplotlib.pyplot import show
 from astropy.io import fits
 from astropy import table
 from astropy import stats
-from astropy import nddata
 import photutils
 import numpy as np
-from matplotlib import colors
-import betterplotlib as bpl
 
-bpl.set_style()
 # ======================================================================================
 #
 # Get the parameters the user passed in
@@ -64,9 +61,9 @@ image_data -= median
 #
 # ======================================================================================
 # Then we can find peaks in this image. I try a threshold of 100 sigma, but check if
-# that wasn't enough, and we'll modify. These values were determined via experimenation
+# that wasn't enough, and we'll modify. These values were determined via experimentation
 if instrument == "uvis":
-    fwhm = 2.2  # pixels
+    fwhm = 1.85  # pixels
 else:
     fwhm = 2.2  # TODO: needs to be updated!
 threshold = 100 * std
@@ -75,38 +72,43 @@ star_finder = photutils.detection.IRAFStarFinder(
 )
 peaks_table = star_finder.find_stars(image_data)
 while len(peaks_table) < 1000:
-    print(len(peaks_table))
     threshold /= 2
     star_finder.threshold = threshold
     peaks_table = star_finder.find_stars(image_data)
 
-print(len(peaks_table))
 # Then put the brightest objects first
-peaks_table.sort("flux")
+peaks_table.sort("peak")
 peaks_table.reverse()  # put biggest peaks first
+# then add a column for brightness rank
+peaks_table["peak_rank"] = range(1, len(peaks_table) + 1)
+# delete a few columns that are calculated poorly or useless
+del peaks_table["id"]
+del peaks_table["sky"]
+del peaks_table["flux"]
+del peaks_table["mag"]
 
 # ======================================================================================
 #
-# Automatically throwing out some stars
+# Identifying troublesome stars
 #
 # ======================================================================================
-# I won't bother to exclude stars close to the boundary. The user should be able to
-# figure that out themselves when they do the selection
-# But I will throw out any peaks that are close to one another
+# I want to identify stars that may be problematic, because they're near another star or
+# because they're a cluster.
 # Set the box size that will be used as the size of the PSF image. This is chosen as the
 # size of the Ryon+ 17 fitting region. I'll check for duplicates within this region.
 width = 31
 one_sided_width = int((width - 1) / 2.0)
-# throw out anything within this box. Exclude any stars that have another peak within
-# this box. We'll initially say everything is isolated, then exclude ones that we
-# find to be not isolated. We'll also check that this is true of the clusters in the
-# image
-peaks_table["isolated"] = [True] * len(peaks_table)
+# get duplicates within this box. We initially say that everything has nothing near it,
+# then will modify that as needed. We also track if something is close enough to a
+# cluster to actually be one.
+peaks_table["near_star"] = False
+peaks_table["near_cluster"] = False
+peaks_table["is_cluster"] = False
 # We'll write this up as a function, as we'll use this to check both the stars and
-# clusters, so don't want to have to resuse the same code
-def test_star_isolated(star_x, star_y, all_x, all_y, min_separation):
+# clusters, so don't want to have to reuse the same code
+def test_star_near(star_x, star_y, all_x, all_y, min_separation):
     """
-    Returns whether a given star is isolated.
+    Returns whether a given star is near other objects
 
     :param star_x: X pixel coordinate of this star
     :param star_y: Y pixel coordinate of this star
@@ -120,20 +122,21 @@ def test_star_isolated(star_x, star_y, all_x, all_y, min_separation):
     """
     seps_x = np.abs(all_x - star_x)
     seps_y = np.abs(all_y - star_y)
-    # see which other objects are away from this one
-    isolated_x = seps_x > min_separation
-    isolated_y = seps_y > min_separation
-    # see where either the x or y is too far away
-    isolated = np.logical_or(isolated_x, isolated_y)
-    # for the star to be isolated, all these value must be true
-    return np.all(isolated)
+    # see which other objects are near this one
+    near_x = seps_x < min_separation
+    near_y = seps_y < min_separation
+    # see where both x and y are close
+    near = np.logical_and(near_x, near_y)
+    # for the star to be near something, any of these can be true
+    return np.any(near)
 
 
-# read in the table
+# read in the clusters table
 clusters_table = table.Table.read(cluster_catalog_path, format="ascii.ecsv")
 
 # when iterating through the rows, we do need to throw out the star itself when checking
-# it against other stars. So this changes the loop a bit
+# it against other stars. So this changes the loop a bit. We also get the data
+# beforehand to reduce accesses
 stars_x = peaks_table["xcentroid"].data  # to get as numpy array
 stars_y = peaks_table["ycentroid"].data
 clusters_x = clusters_table["x_pix_single"]
@@ -145,77 +148,16 @@ for idx in range(len(peaks_table)):
     other_x = np.delete(stars_x, idx)  # returns fresh array, stars_x not modified
     other_y = np.delete(stars_y, idx)
 
-    away_from_stars = test_star_isolated(
+    peaks_table["near_star"][idx] = test_star_near(
         star_x, star_y, other_x, other_y, one_sided_width
     )
-    away_from_clusters = test_star_isolated(
+    peaks_table["near_cluster"][idx] = test_star_near(
         star_x, star_y, clusters_x, clusters_y, one_sided_width
     )
-
-    if not (away_from_stars and away_from_clusters):
-        peaks_table["isolated"][idx] = False
-
-print(np.sum(peaks_table["isolated"]))
-isolated_table = peaks_table[np.where(peaks_table["isolated"])]
-
-# ======================================================================================
-#
-# TODO: name this
-#
-# ======================================================================================
-def snapshot(full_image, cen_x, cen_y, width):
-    # get the subset of the data first
-    # get the central pixel
-    cen_x_pix = int(np.floor(cen_x))
-    cen_y_pix = int(np.floor(cen_y))
-    # we'll select a larger subset around that central pixel, then change the plot
-    # limits to be just in the center, so that the object always appears at the center
-    buffer_half_width = int(np.ceil(width / 2) + 3)
-    min_x_pix = cen_x_pix - buffer_half_width
-    max_x_pix = cen_x_pix + buffer_half_width
-    min_y_pix = cen_y_pix - buffer_half_width
-    max_y_pix = cen_y_pix + buffer_half_width
-    # then get this slice of the data
-    snapshot_data = full_image[min_y_pix:max_y_pix, min_x_pix:max_x_pix]
-
-    # When showing the plot I want the star to be in the very center. To do this I need
-    # to get the values for the border in the new pixel coordinates
-    cen_x_new = cen_x - min_x_pix
-    cen_y_new = cen_y - min_y_pix
-    # then make the plot limits
-    min_x_plot = cen_x_new - 0.5 * width
-    max_x_plot = cen_x_new + 0.5 * width
-    min_y_plot = cen_y_new - 0.5 * width
-    max_y_plot = cen_y_new + 0.5 * width
-
-    fig, ax = bpl.subplots(figsize=[6, 5])
-    vmin, vmax = np.percentile(snapshot_data, [1, 99])
-    # TODO: change linear part of colormap, I think that makes plots look funny
-    # TODO: first add the colorbar
-    norm = colors.SymLogNorm(vmin=vmin, vmax=vmax * 2, linthresh=1 * std)
-    ax.imshow(snapshot_data, norm=norm, cmap=bpl.cm.lapaz)
-    ax.set_limits(min_x_plot, max_x_plot, min_y_plot, max_y_plot)
-    # ax.set_title(text_base.format(n_shown, n_selected))
-    show()
+    peaks_table["is_cluster"][idx] = test_star_near(
+        star_x, star_y, clusters_x, clusters_y, 5
+    )
 
 
-# for row in clusters_table[:10]:
-#     snapshot(image_data, row["x_pix_single"], row["y_pix_single"], width)
-
-for row in isolated_table[:10]:
-    snapshot(image_data, row["xcentroid"], row["ycentroid"], width)
-
-
-# We'll then plot all these selected peaks, and have the user select if they're good
-# or not.
-n_shown = 0
-n_selected = 0
-text_base = "Number Shown={}, Number Selected={}"
-
-# TODO: throw out peaks too close to clusters
-# TODO: redo star selection, I have no guarantee that what I've selected are actually
-# stars! I need to know the FWHM somehow. Can use DAOstarfinder:
-# https://photutils.readthedocs.io/en/stable/api/photutils.detection.DAOStarFinder.html
-# but that needs to know the FWHM. Currently find_peaks just finds maximum values, they
-# don't need to be stars!
-# I'll use IRAF star finder, as it reports the FWHM of the object
+# then write the output catalog
+peaks_table.write(final_catalog, format="ascii.ecsv")

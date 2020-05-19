@@ -1,2 +1,5 @@
 #pycharm junk
 *.idea
+
+# temporary images used in PSF selection
+temp.png

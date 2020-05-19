@@ -11,7 +11,7 @@ data_dirs = $(data_home)/data/ngc1313-e
 #
 # ------------------------------------------------------------------------------
 catalog_script = ./legus_sizes/format_catalogs.py
-star_list_script = ./legus_sizes/star_list.py
+v1_star_list_script = ./legus_sizes/preliminary_star_list.py
 
 # ------------------------------------------------------------------------------
 #
@@ -21,9 +21,9 @@ star_list_script = ./legus_sizes/star_list.py
 dir_to_catalog = $(1)/clean_catalog.txt
 all_catalogs = $(foreach dir,$(data_dirs),$(call dir_to_catalog,$(dir)))
 
-dir_to_star_list = $(1)/psf_star_list.txt
-all_star_lists = $(foreach dir,$(data_dirs),$(call dir_to_star_list,$(dir)))
-star_list_to_catalog = $(subst psf_star_list.txt,clean_catalog.txt,$(1))
+dir_to_v1_star_list = $(1)/preliminary_stars.txt
+all_v1_star_lists = $(foreach dir,$(data_dirs),$(call dir_to_v1_star_list,$(dir)))
+v1_star_list_to_catalog = $(subst preliminary_stars.txt,clean_catalog.txt,$(1))
 # ------------------------------------------------------------------------------
 #
 #  Rules
@@ -31,21 +31,24 @@ star_list_to_catalog = $(subst psf_star_list.txt,clean_catalog.txt,$(1))
 # ------------------------------------------------------------------------------
 # https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
 
-all: $(all_catalogs) $(all_star_lists)
+all: $(all_catalogs) $(all_v1_star_lists)
 
 .PHONY: clean
 clean:
-	rm $(all_catalogs) $(all_star_lists)
+	rm $(all_catalogs) $(all_v1_star_lists)
 
 $(all_catalogs): $(catalog_script)
 	python $(catalog_script) $@
 
+# First make a preliminary list of stars, which we'll then give to the user to
+# sort through to make the final list
 # The star lists require the catalogs, as we need to exclude anything that's
-# one of the clusters from our selection of stars
+# one of the clusters from our selection of stars.
 # To do this we use SECONDEXPANSION, and turn the star list into a catalog name
+.SECONDEXPANSION:
+$(all_v1_star_lists): %: $$(call v1_star_list_to_catalog, %) $(v1_star_list_script)
+	python $(v1_star_list_script) $@ $(call v1_star_list_to_catalog, $@)
+
 # note that there's no dependency on the script itself here. That's becuase I
 # don't want any unimportant future changes to make me redo all the star
 # selection. If I need to remake these, just delete the files
-.SECONDEXPANSION:
-$(all_star_lists): %: $$(call star_list_to_catalog, %)
-	python $(star_list_script) $@ $(call star_list_to_catalog, $@)
