@@ -1,10 +1,7 @@
-data_home = /Users/gillenb/google_drive/research/legus
-data_dirs = $(data_home)/data/ngc1313-e
-
-#data_home = /Users/gillenb/google_drive/research/legus/data
-## This directory should have nothing but directories with data
-## We'll do this complicated line that just gets all directories inside data_home
-#data_dirs = $(sort $(dir $(wildcard $(data_home)/*/)))
+data_home = /Users/gillenb/google_drive/research/legus/data
+# This directory should have nothing but directories with data
+# We'll do this complicated line that just gets all directories inside data_home
+data_dirs = $(sort $(dir $(wildcard $(data_home)/*/)))
 # ------------------------------------------------------------------------------
 #
 # Python scripts
@@ -13,6 +10,7 @@ data_dirs = $(data_home)/data/ngc1313-e
 catalog_script = ./legus_sizes/format_catalogs.py
 v1_star_list_script = ./legus_sizes/preliminary_star_list.py
 psf_star_list_script = ./legus_sizes/select_psf_stars.py
+psf_creation_script = ./legus_sizes/make_psf.py
 
 # ------------------------------------------------------------------------------
 #
@@ -42,16 +40,25 @@ psf_star_list_to_v1_list = $(subst psf_stars.txt,preliminary_stars.txt,$(1))
 
 # ------------------------------------------------------------------------------
 #
+# The PSF itself
+#
+# ------------------------------------------------------------------------------
+dir_to_psf = $(1)/psf.png
+all_psfs = $(foreach dir,$(data_dirs),$(call dir_to_psf,$(dir)))
+psf_to_star_list = $(subst psf.png,psf_stars.txt,$(1))
+
+# ------------------------------------------------------------------------------
+#
 #  Rules
 #
 # ------------------------------------------------------------------------------
 # https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
 
-all: $(all_catalogs) $(all_psf_star_lists)
+all: $(all_psfs)
 
 .PHONY: clean
 clean:
-	rm $(all_catalogs) $(all_v1_star_lists) $(all_psf_star_lists)
+	rm $(all_catalogs) $(all_v1_star_lists) $(all_psf_star_lists) $(all_psfs)
 
 $(all_catalogs): $(catalog_script)
 	python $(catalog_script) $@
@@ -73,3 +80,8 @@ $(all_v1_star_lists): %: $$(call v1_star_list_to_catalog, %) $(v1_star_list_scri
 .SECONDEXPANSION:
 $(all_psf_star_lists): %: $$(call psf_star_list_to_v1_list, %)
 	python $(psf_star_list_script) $@ $(call psf_star_list_to_v1_list, $@)
+
+# The PSF creation depends on the PSF star lists
+.SECONDEXPANSION:
+$(all_psfs): %: $$(call psf_to_star_list, %) $(psf_creation_script)
+	python $(psf_creation_script) $@ $(call psf_to_star_list, $@)
