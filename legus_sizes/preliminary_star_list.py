@@ -16,6 +16,8 @@ from astropy import stats
 import photutils
 import numpy as np
 
+import utils
+
 # ======================================================================================
 #
 # Get the parameters the user passed in
@@ -32,28 +34,10 @@ cluster_catalog_path = Path(sys.argv[2]).absolute()
 # Load the image
 #
 # ======================================================================================
-# then we have to find the image we need. This will be in the drc directory, but the
-# exact name is uncertain
-galaxy_name = home_dir.name
-image_dir = home_dir / f"{galaxy_name}_drc"
-# it could be one of two instruments: ACS or UVIS.
-for instrument in ["acs", "uvis"]:
-    image_name = f"hlsp_legus_hst_{instrument}_{galaxy_name}_f555w_v1_drc.fits"
-    try:  # to load the image
-        hdu_list = fits.open(image_dir / image_name)
-        # if it works break out of this
-        break
-    except FileNotFoundError:
-        continue  # go to next band
-else:  # no break, image not found
-    raise FileNotFoundError(f"No f555w image found in directory:\n{str(image_dir)}")
+image_data, instrument = utils.get_f555w_drc_image(home_dir)
 
-# DRC images should have the PRIMARY extension
-image_data = hdu_list["PRIMARY"].data
-
-# Then subtract off the median background
-_, median, std = stats.sigma_clipped_stats(image_data, sigma=2.0)
-image_data -= median
+# get the noise_level, which will be used later
+_, _, noise = stats.sigma_clipped_stats(image_data, sigma=2.0)
 
 # ======================================================================================
 #
@@ -66,7 +50,7 @@ if instrument == "uvis":
     fwhm = 1.85  # pixels
 else:
     fwhm = 2.2  # TODO: needs to be updated!
-threshold = 100 * std
+threshold = 100 * noise
 star_finder = photutils.detection.IRAFStarFinder(
     threshold=threshold, fwhm=fwhm, exclude_border=True
 )

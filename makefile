@@ -12,18 +12,34 @@ data_dirs = $(data_home)/data/ngc1313-e
 # ------------------------------------------------------------------------------
 catalog_script = ./legus_sizes/format_catalogs.py
 v1_star_list_script = ./legus_sizes/preliminary_star_list.py
+psf_star_list_script = ./legus_sizes/select_psf_stars.py
 
 # ------------------------------------------------------------------------------
 #
-# Things to create
+# Cleaned cluster catalogs
 #
 # ------------------------------------------------------------------------------
 dir_to_catalog = $(1)/clean_catalog.txt
 all_catalogs = $(foreach dir,$(data_dirs),$(call dir_to_catalog,$(dir)))
 
+# ------------------------------------------------------------------------------
+#
+# List of stars eligible to be put into the PSF
+#
+# ------------------------------------------------------------------------------
 dir_to_v1_star_list = $(1)/preliminary_stars.txt
 all_v1_star_lists = $(foreach dir,$(data_dirs),$(call dir_to_v1_star_list,$(dir)))
 v1_star_list_to_catalog = $(subst preliminary_stars.txt,clean_catalog.txt,$(1))
+
+# ------------------------------------------------------------------------------
+#
+# User-selected stars to make the PSF
+#
+# ------------------------------------------------------------------------------
+dir_to_psf_star_list = $(1)/psf_stars.txt
+all_psf_star_lists = $(foreach dir,$(data_dirs),$(call dir_to_psf_star_list,$(dir)))
+psf_star_list_to_v1_list = $(subst psf_stars.txt,preliminary_stars.txt,$(1))
+
 # ------------------------------------------------------------------------------
 #
 #  Rules
@@ -31,11 +47,11 @@ v1_star_list_to_catalog = $(subst preliminary_stars.txt,clean_catalog.txt,$(1))
 # ------------------------------------------------------------------------------
 # https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
 
-all: $(all_catalogs) $(all_v1_star_lists)
+all: $(all_catalogs) $(all_psf_star_lists)
 
 .PHONY: clean
 clean:
-	rm $(all_catalogs) $(all_v1_star_lists)
+	rm $(all_catalogs) $(all_v1_star_lists) $(all_psf_star_lists)
 
 $(all_catalogs): $(catalog_script)
 	python $(catalog_script) $@
@@ -49,6 +65,11 @@ $(all_catalogs): $(catalog_script)
 $(all_v1_star_lists): %: $$(call v1_star_list_to_catalog, %) $(v1_star_list_script)
 	python $(v1_star_list_script) $@ $(call v1_star_list_to_catalog, $@)
 
+# Creating the actual list of PSF stars requires user input.
 # note that there's no dependency on the script itself here. That's becuase I
 # don't want any unimportant future changes to make me redo all the star
-# selection. If I need to remake these, just delete the files
+# selection, since it's tedious. If I need to remake these, just delete the
+# files
+.SECONDEXPANSION:
+$(all_psf_star_lists): %: $$(call psf_star_list_to_v1_list, %)
+	python $(psf_star_list_script) $@ $(call psf_star_list_to_v1_list, $@)

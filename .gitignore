@@ -3,3 +3,6 @@
 
 # temporary images used in PSF selection
 temp.png
+
+# other
+__pycache__
