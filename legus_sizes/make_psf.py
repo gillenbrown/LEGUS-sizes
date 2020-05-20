@@ -80,7 +80,10 @@ fig.savefig(home_dir / "psf_stars.png", dpi=100, bbox_inches="tight")
 # then combine to make the PSF
 #
 # ======================================================================================
-psf_builder = photutils.EPSFBuilder(oversampling=2, maxiters=10, progress_bar=True)
+# we don't need many iterations, since our star finder already found the centroids.
+# I experimented with these values to produce the best-looking PSFs, although this was
+# done with a sloppier selection of stars, this remains to be fine-tuned later
+psf_builder = photutils.EPSFBuilder(oversampling=4, maxiters=3, progress_bar=True)
 psf, fitted_stars = psf_builder(star_cutouts)
 
 psf_data = psf.data
