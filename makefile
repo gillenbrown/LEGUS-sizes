@@ -60,9 +60,9 @@ psf_star_list_to_v1_list = $(subst psf_stars.txt,preliminary_stars.txt,$(1))
 # The PSF itself
 #
 # ------------------------------------------------------------------------------
-dir_to_psf = $(1)$(my_dirname)/psf.png
+dir_to_psf = $(1)$(my_dirname)/psf.fits
 all_psfs = $(foreach dir,$(data_dirs),$(call dir_to_psf,$(dir)))
-psf_to_star_list = $(subst psf.png,psf_stars.txt,$(1))
+psf_to_star_list = $(subst psf.fits,psf_stars.txt,$(1))
 
 # ------------------------------------------------------------------------------
 #

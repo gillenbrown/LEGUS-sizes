@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+from astropy.io import fits
 from astropy import table
 from astropy import stats
 from astropy.nddata import NDData
@@ -91,7 +92,12 @@ psf_builder = photutils.EPSFBuilder(
 psf, fitted_stars = psf_builder(star_cutouts)
 
 psf_data = psf.data
-# then plot it too
+
+# ======================================================================================
+#
+# Plot it
+#
+# ======================================================================================
 fig, ax = bpl.subplots()
 vmax = np.max(psf_data)
 vmin = np.min(psf_data)
@@ -102,3 +108,11 @@ ax.remove_spines(["all"])
 fig.colorbar(im, ax=ax)
 
 fig.savefig(size_home_dir / "psf.png", bbox_inches="tight")
+
+# ======================================================================================
+#
+# then save it as a fits file
+#
+# ======================================================================================
+new_hdu = fits.PrimaryHDU(psf.data)
+new_hdu.writeto(psf_name, overwrite=True)
