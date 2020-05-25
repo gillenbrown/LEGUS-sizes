@@ -11,6 +11,14 @@ catalog_script = ./legus_sizes/format_catalogs.py
 v1_star_list_script = ./legus_sizes/preliminary_star_list.py
 psf_star_list_script = ./legus_sizes/select_psf_stars.py
 psf_creation_script = ./legus_sizes/make_psf.py
+sigma_script = ./legus_sizes/make_sigma_image.py
+
+# ------------------------------------------------------------------------------
+#
+# Configuration variables
+#
+# ------------------------------------------------------------------------------
+psf_oversampling_factor = 8
 
 # ------------------------------------------------------------------------------
 #
@@ -18,7 +26,7 @@ psf_creation_script = ./legus_sizes/make_psf.py
 #
 # ------------------------------------------------------------------------------
 my_dirname = size
-dir_to_my_dir = $(1)/$(my_dirname)/
+dir_to_my_dir = $(1)$(my_dirname)/
 my_dirs = $(foreach dir,$(data_dirs),$(call dir_to_my_dir,$(dir)))
 
 # ------------------------------------------------------------------------------
@@ -26,7 +34,7 @@ my_dirs = $(foreach dir,$(data_dirs),$(call dir_to_my_dir,$(dir)))
 # Cleaned cluster catalogs
 #
 # ------------------------------------------------------------------------------
-dir_to_catalog = $(1)/$(my_dirname)/clean_catalog.txt
+dir_to_catalog = $(1)$(my_dirname)/clean_catalog.txt
 all_catalogs = $(foreach dir,$(data_dirs),$(call dir_to_catalog,$(dir)))
 
 # ------------------------------------------------------------------------------
@@ -34,7 +42,7 @@ all_catalogs = $(foreach dir,$(data_dirs),$(call dir_to_catalog,$(dir)))
 # List of stars eligible to be put into the PSF
 #
 # ------------------------------------------------------------------------------
-dir_to_v1_star_list = $(1)/$(my_dirname)/preliminary_stars.txt
+dir_to_v1_star_list = $(1)$(my_dirname)/preliminary_stars.txt
 all_v1_star_lists = $(foreach dir,$(data_dirs),$(call dir_to_v1_star_list,$(dir)))
 v1_star_list_to_catalog = $(subst preliminary_stars.txt,clean_catalog.txt,$(1))
 
@@ -43,7 +51,7 @@ v1_star_list_to_catalog = $(subst preliminary_stars.txt,clean_catalog.txt,$(1))
 # User-selected stars to make the PSF
 #
 # ------------------------------------------------------------------------------
-dir_to_psf_star_list = $(1)/$(my_dirname)/psf_stars.txt
+dir_to_psf_star_list = $(1)$(my_dirname)/psf_stars.txt
 all_psf_star_lists = $(foreach dir,$(data_dirs),$(call dir_to_psf_star_list,$(dir)))
 psf_star_list_to_v1_list = $(subst psf_stars.txt,preliminary_stars.txt,$(1))
 
@@ -52,9 +60,17 @@ psf_star_list_to_v1_list = $(subst psf_stars.txt,preliminary_stars.txt,$(1))
 # The PSF itself
 #
 # ------------------------------------------------------------------------------
-dir_to_psf = $(1)/$(my_dirname)/psf.png
+dir_to_psf = $(1)$(my_dirname)/psf.png
 all_psfs = $(foreach dir,$(data_dirs),$(call dir_to_psf,$(dir)))
 psf_to_star_list = $(subst psf.png,psf_stars.txt,$(1))
+
+# ------------------------------------------------------------------------------
+#
+# The sigma image
+#
+# ------------------------------------------------------------------------------
+dir_to_sigma = $(1)$(my_dirname)/sigma_electrons.fits
+all_sigmas = $(foreach dir,$(data_dirs),$(call dir_to_sigma,$(dir)))
 
 # ------------------------------------------------------------------------------
 #
@@ -63,7 +79,7 @@ psf_to_star_list = $(subst psf.png,psf_stars.txt,$(1))
 # ------------------------------------------------------------------------------
 # https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
 
-all: $(all_psfs)
+all: $(all_psfs) $(all_sigmas)
 
 # When we clean we will only clean the things after the user has selected the
 # stars, since that's such a hassle
@@ -72,9 +88,9 @@ clean:
 	rm $(all_psfs)
 
 # but if they really want to nuke that too they can
-.PHONY clean_all
+.PHONY: clean_all
 clean_all:
-    rm -r $(my_dirs)
+	rm -r $(my_dirs)
 
 $(my_dirs):
 	mkdir $@
@@ -103,4 +119,4 @@ $(all_psf_star_lists): %: $$(call psf_star_list_to_v1_list, %)
 # The PSF creation depends on the PSF star lists
 .SECONDEXPANSION:
 $(all_psfs): %: $$(call psf_to_star_list, %) $(psf_creation_script)
-	python $(psf_creation_script) $@ $(call psf_to_star_list, $@)
+	python $(psf_creation_script) $@ $(call psf_to_star_list, $@) $(psf_oversampling_factor)
