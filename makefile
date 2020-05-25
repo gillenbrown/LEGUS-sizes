@@ -79,13 +79,13 @@ all_sigmas = $(foreach dir,$(data_dirs),$(call dir_to_sigma,$(dir)))
 # ------------------------------------------------------------------------------
 # https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
 
-all: $(all_psfs) $(all_sigmas)
+all: $(my_dirs) $(all_psfs) $(all_sigmas)
 
 # When we clean we will only clean the things after the user has selected the
 # stars, since that's such a hassle
 .PHONY: clean
 clean:
-	rm $(all_psfs)
+	rm $(all_psfs) $(all_sigmas)
 
 # but if they really want to nuke that too they can
 .PHONY: clean_all
@@ -95,7 +95,7 @@ clean_all:
 $(my_dirs):
 	mkdir $@
 
-$(all_catalogs): $(catalog_script) $(my_dirs)
+$(all_catalogs): $(catalog_script)
 	python $(catalog_script) $@
 
 # First make a preliminary list of stars, which we'll then give to the user to
@@ -120,3 +120,7 @@ $(all_psf_star_lists): %: $$(call psf_star_list_to_v1_list, %)
 .SECONDEXPANSION:
 $(all_psfs): %: $$(call psf_to_star_list, %) $(psf_creation_script)
 	python $(psf_creation_script) $@ $(call psf_to_star_list, $@) $(psf_oversampling_factor)
+
+# The first step in the fitting is the creation of the sigma image
+$(all_sigmas): $(sigma_script)
+	python $(sigma_script) $@

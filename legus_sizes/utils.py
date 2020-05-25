@@ -20,11 +20,10 @@ def get_f555w_drc_image(home_dir):
         raise FileNotFoundError(f"No f555w image found in directory:\n{str(image_dir)}")
 
     # DRC images should have the PRIMARY extension
-    image_data = hdu_list["PRIMARY"].data
-
-    # Calculate the noise level, which will be used to adjust plots. Also subtract off the
-    # background
-    _, median, _ = stats.sigma_clipped_stats(image_data, sigma=2.0)
-    image_data -= median
+    image = hdu_list["PRIMARY"]
+    image_data = image.data
+    # Multiply by the exposure time to get this in units of electrons. It stars in
+    # electrons per second
+    image_data *= image.header["EXPTIME"]
 
     return image_data, instrument
