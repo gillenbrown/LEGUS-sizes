@@ -26,7 +26,8 @@ bpl.set_style()
 # ======================================================================================
 # start by getting the output name, which we can use to get the home directory
 psf_name = Path(sys.argv[1]).absolute()
-home_dir = psf_name.parent
+size_home_dir = psf_name.parent
+home_dir = size_home_dir.parent
 # We'll need to get the star list too
 star_list_path = Path(sys.argv[2]).absolute()
 
@@ -73,7 +74,7 @@ for ax, cutout in zip(axs, star_cutouts):
     ax.remove_spines(["all"])
     fig.colorbar(im, ax=ax)
 
-fig.savefig(home_dir / "psf_stars.png", dpi=100, bbox_inches="tight")
+fig.savefig(size_home_dir / "psf_stars.png", dpi=100, bbox_inches="tight")
 
 # ======================================================================================
 #
@@ -97,4 +98,4 @@ ax.remove_labels("both")
 ax.remove_spines(["all"])
 fig.colorbar(im, ax=ax)
 
-fig.savefig(home_dir / "psf.png", bbox_inches="tight")
+fig.savefig(size_home_dir / "psf.png", bbox_inches="tight")

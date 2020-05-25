@@ -25,7 +25,7 @@ import utils
 # ======================================================================================
 # start by getting the output catalog name, which we can use to get the home directory
 final_catalog = Path(sys.argv[1]).absolute()
-home_dir = final_catalog.parent
+home_dir = final_catalog.parent.parent
 # We'll need to get the cluster catalog too
 cluster_catalog_path = Path(sys.argv[2]).absolute()
 

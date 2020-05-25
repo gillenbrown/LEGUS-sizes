@@ -123,7 +123,7 @@ def find_catalogs(home_dir):
 # --------------------------------------------------------------------------------------
 # start by getting the catalog and header files
 final_catalog = Path(sys.argv[1])
-home_dir = final_catalog.parent
+home_dir = final_catalog.parent.parent
 catalog_name, header_name = find_catalogs(home_dir)
 
 # Then we can do what we need. First we'll go through the header to get the lists of
