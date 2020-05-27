@@ -270,6 +270,7 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, params, savename):
         ax.remove_spines(["all"])
 
     fig.savefig(final_catalog.parent / "cluster_fit_plots" / savename, dpi=100)
+    plt.close(fig)
 
 
 # ======================================================================================

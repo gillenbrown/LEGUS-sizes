@@ -2,7 +2,7 @@
 *.idea
 
 # temporary images used in PSF selection
-temp.png
+*.png
 
 # other
 __pycache__

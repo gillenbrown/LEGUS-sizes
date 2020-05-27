@@ -13,6 +13,7 @@ psf_star_list_script = ./legus_sizes/select_psf_stars.py
 psf_creation_script = ./legus_sizes/make_psf.py
 sigma_script = ./legus_sizes/make_sigma_image.py
 fitting_script = ./legus_sizes/fit.py
+comparison_script = ./legus_sizes/ryon_comparison.py
 
 # ------------------------------------------------------------------------------
 #
@@ -89,12 +90,19 @@ fits_to_catalog = $(subst cluster_fits.txt,clean_catalog.txt,$(1))
 
 # ------------------------------------------------------------------------------
 #
+# The comparison plot
+#
+# ------------------------------------------------------------------------------
+comparison_plot = comparison_plot.png
+
+# ------------------------------------------------------------------------------
+#
 #  Rules
 #
 # ------------------------------------------------------------------------------
 # https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
 
-all: $(my_dirs) $(all_fits)
+all: $(my_dirs) $(all_fits) $(comparison_plot)
 
 # When we clean we will only clean the things after the user has selected the
 # stars, since that's such a hassle
@@ -145,3 +153,7 @@ $(all_sigmas): $(sigma_script)
 .SECONDEXPANSION:
 $(all_fits): %: $(fitting_script) $$(call fits_to_psf, %) $$(call fits_to_sigma, %) $$(call fits_to_catalog, %)
 	python $(fitting_script) $@ $(call fits_to_psf, $@) $(psf_oversampling_factor) $(call fits_to_sigma, $@) $(call fits_to_catalog, $@)
+
+# Make the comparison to Ryon+17's results
+$(comparison_plot): $(comparison_script) $(all_fits)
+	python $(comparison_script) $(all_fits)
