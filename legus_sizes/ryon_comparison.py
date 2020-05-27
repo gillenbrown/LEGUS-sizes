@@ -17,11 +17,11 @@ ryon_1313 = table.Table.read("ryon_results_ngc1313.txt", format="ascii.cds")
 # then make new columns, since Ryon's tables are in log radius, and I just want radius
 for cat in [ryon_628, ryon_1313]:
     cat["r_eff_Galfit"] = 10 ** cat["logReff-gal"]
-    cat["e_r_eff+_Galfit"] = (
-        10 ** (cat["logReff-gal"] + cat["E_logReff-gal"]) - cat["r_eff_Galfit"]
+    cat["e_r_eff+_Galfit"] = np.minimum(
+        10 ** (cat["logReff-gal"] + cat["E_logReff-gal"]) - cat["r_eff_Galfit"], 1000
     )
-    cat["e_r_eff-_Galfit"] = cat["r_eff_Galfit"] - 10 ** (
-        cat["logReff-gal"] - cat["e_logReff-gal"]
+    cat["e_r_eff-_Galfit"] = np.minimum(
+        cat["r_eff_Galfit"] - 10 ** (cat["logReff-gal"] - cat["e_logReff-gal"]), 100
     )
 
     cat["r_eff_CI"] = 10 ** cat["logReff-ci"]
@@ -45,11 +45,6 @@ for key in catalogs:
     if catalogs[key] is None:
         raise RuntimeError(f"The {key} catalog has not been created!")
 
-# And add an effective radius column to my tables
-for cat in catalogs.values():
-    term_a = (cat["scale_radius_pc"] * (1 + cat["axis_ratio"])) / 2.0
-    term_b = np.sqrt(0.5 ** (1 / (1 - cat["power_law_slope"])) - 1)
-    cat["my_r_eff"] = term_a * term_b
 
 # ======================================================================================
 #
@@ -63,12 +58,6 @@ catalogs["ngc1313-e"]["ID"] = [f"{i}-e" for i in catalogs["ngc1313-e"]["ID"]]
 catalogs["ngc1313-w"]["ID"] = [f"{i}-w" for i in catalogs["ngc1313-w"]["ID"]]
 catalogs["ngc628-e"]["ID"] = [f"{i}-e" for i in catalogs["ngc628-e"]["ID"]]
 catalogs["ngc628-c"]["ID"] = [f"{i}-c" for i in catalogs["ngc628-c"]["ID"]]
-
-# # then stack the tables together. Exact join type requires them to have the same columns
-# my_628 = table.vstack([catalogs["ngc628-e"], catalogs["ngc628-c"]], join_type="exact")
-# my_1313 = table.vstack(
-#     [catalogs["ngc1313-e"], catalogs["ngc1313-w"]], join_type="exact"
-# )
 
 # Then match the tables together. Using the inner join type is the strict intersection
 # where the matched keys must match exactly
@@ -88,25 +77,25 @@ fig, axs = bpl.subplots(figsize=[14, 7], ncols=2)
 for ax, method in zip(axs, ["Galfit", "CI"]):
     ax.errorbar(
         m_1313_e[f"r_eff_{method}"],
-        m_1313_e["my_r_eff"],
+        m_1313_e["effective_radius_pc"],
         xerr=[m_1313_e[f"e_r_eff-_{method}"], m_1313_e[f"e_r_eff+_{method}"]],
         label="NGC1313-e",
     )
     ax.errorbar(
         m_1313_w[f"r_eff_{method}"],
-        m_1313_w["my_r_eff"],
+        m_1313_w["effective_radius_pc"],
         xerr=[m_1313_w[f"e_r_eff-_{method}"], m_1313_w[f"e_r_eff+_{method}"]],
         label="NGC1313-w",
     )
     ax.errorbar(
         m_628_e[f"r_eff_{method}"],
-        m_628_e["my_r_eff"],
+        m_628_e["effective_radius_pc"],
         xerr=[m_628_e[f"e_r_eff-_{method}"], m_628_e[f"e_r_eff+_{method}"]],
         label="NGC628-e",
     )
     ax.errorbar(
         m_628_c[f"r_eff_{method}"],
-        m_628_c["my_r_eff"],
+        m_628_c["effective_radius_pc"],
         xerr=[m_628_c[f"e_r_eff-_{method}"], m_628_c[f"e_r_eff+_{method}"]],
         label="NGC628-c",
     )
@@ -116,8 +105,10 @@ for ax, method in zip(axs, ["Galfit", "CI"]):
     ax.set_limits(*limits, *limits)
     ax.plot(limits, limits, c=bpl.almost_black, lw=1, zorder=0)
     ax.equal_scale()
-    ax.legend(title=method, loc=2)
-    ax.add_labels("Cluster $R_{eff}$ [pc] - Ryon+ 2017", "Cluster $R_{eff}$ [pc] - Me")
+    ax.legend(loc=4)
+    ax.add_labels(
+        "Cluster $R_{eff}$ [pc] - Ryon+ 2017", "Cluster $R_{eff}$ [pc] - Me", method
+    )
 fig.savefig("comparison_plot.png")
 
 # Then a ratio comparison
@@ -125,25 +116,25 @@ fig, axs = bpl.subplots(figsize=[14, 7], ncols=2)
 for ax, method in zip(axs, ["Galfit", "CI"]):
     ax.errorbar(
         m_1313_e[f"r_eff_{method}"],
-        m_1313_e["my_r_eff"] / m_1313_e[f"r_eff_{method}"],
+        m_1313_e["effective_radius_pc"] / m_1313_e[f"r_eff_{method}"],
         xerr=[m_1313_e[f"e_r_eff-_{method}"], m_1313_e[f"e_r_eff+_{method}"]],
         label="NGC1313-e",
     )
     ax.errorbar(
         m_1313_w[f"r_eff_{method}"],
-        m_1313_w["my_r_eff"] / m_1313_w[f"r_eff_{method}"],
+        m_1313_w["effective_radius_pc"] / m_1313_w[f"r_eff_{method}"],
         xerr=[m_1313_w[f"e_r_eff-_{method}"], m_1313_w[f"e_r_eff+_{method}"]],
         label="NGC1313-w",
     )
     ax.errorbar(
         m_628_e[f"r_eff_{method}"],
-        m_628_e["my_r_eff"] / m_628_e[f"r_eff_{method}"],
+        m_628_e["effective_radius_pc"] / m_628_e[f"r_eff_{method}"],
         xerr=[m_628_e[f"e_r_eff-_{method}"], m_628_e[f"e_r_eff+_{method}"]],
         label="NGC628-e",
     )
     ax.errorbar(
         m_628_c[f"r_eff_{method}"],
-        m_628_c["my_r_eff"] / m_628_c[f"r_eff_{method}"],
+        m_628_c["effective_radius_pc"] / m_628_c[f"r_eff_{method}"],
         xerr=[m_628_c[f"e_r_eff-_{method}"], m_628_c[f"e_r_eff+_{method}"]],
         label="NGC628-c",
     )
@@ -151,11 +142,11 @@ for ax, method in zip(axs, ["Galfit", "CI"]):
     ax.set_xscale("log")
 
     limits = 0.1, 30
-    ax.set_limits(*limits)
+    ax.set_limits(*limits, 0.1, 10)
     ax.plot(limits, [1, 1], c=bpl.almost_black, lw=1, zorder=0)
-    ax.legend(title=method)
+    ax.legend()
     ax.add_labels(
-        "Cluster $R_{eff}$ [pc] - Ryon+ 2017", "$R_{eff, Me} / R_{eff, Ryon}$"
+        "Cluster $R_{eff}$ [pc] - Ryon+ 2017", "$R_{eff, Me} / R_{eff, Ryon}$", method
     )
 
 fig.savefig("comparison_ratio_plot.png")

@@ -55,10 +55,10 @@ def get_f555w_pixel_scale_pc(home_dir):
 
 def distance(data_path):
     distances_mpc = {
-        "ngc1313-e": 9.9,
-        "ngc1313-w": 9.9,
-        "ngc628-c": 4.39,
-        "ngc628-e": 4.39,
+        "ngc1313-e": 4.39,
+        "ngc1313-w": 4.39,
+        "ngc628-c": 9.9,
+        "ngc628-e": 9.9,
     }
     return distances_mpc[data_path.name] * u.Mpc
 

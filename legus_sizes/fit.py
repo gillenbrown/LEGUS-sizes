@@ -55,6 +55,7 @@ clusters_table["central_surface_brightness"] = -99.9
 clusters_table["scale_radius_pixels"] = -99.9
 clusters_table["scale_radius_arcseconds"] = -99.9
 clusters_table["scale_radius_pc"] = -99.9
+clusters_table["effective_radius_pc"] = -99.9
 clusters_table["axis_ratio"] = -99.9
 clusters_table["position_angle"] = -99.9
 clusters_table["power_law_slope"] = -99.9
@@ -189,7 +190,7 @@ def fit_model(data_snapshot, uncertainty_snapshot):
         (1, psf.shape[0]),  # scale radius in oversampled pixels
         (0.1, 1),  # axis ratio
         (-np.pi, np.pi),  # position angle
-        (1.0001, 5),  # power law slope
+        (1.01, 5),  # power law slope
         (-np.max(data_snapshot), np.max(data_snapshot)),  # background
     )
 
@@ -303,12 +304,22 @@ for row in tqdm(clusters_table):
     row["x_pix_single_fitted"] = x_min + results[1] / oversampling_factor
     row["y_pix_single_fitted"] = y_min + results[2] / oversampling_factor
     row["scale_radius_pixels"] = results[3] / oversampling_factor
-    row["scale_radius_arcseconds"] = row["scale_radius_pixels"] * pixel_scale_arcsec
-    row["scale_radius_pc"] = row["scale_radius_pixels"] * pixel_scale_pc
     row["axis_ratio"] = results[4]
     row["position_angle"] = results[5]
     row["power_law_slope"] = results[6]
     row["local_background"] = results[7]
+
+# Then we can add some of the derived properties
+clusters_table["scale_radius_arcseconds"] = (
+    clusters_table["scale_radius_pixels"] * pixel_scale_arcsec
+)
+clusters_table["scale_radius_pc"] = (
+    clusters_table["scale_radius_pixels"] * pixel_scale_pc
+)
+# the effective radius requires some computation
+term_a = (clusters_table["scale_radius_pc"] * (1 + clusters_table["axis_ratio"])) / 2.0
+term_b = np.sqrt(0.5 ** (1 / (1 - clusters_table["power_law_slope"])) - 1)
+clusters_table["effective_radius_pc"] = term_a * term_b
 
 # ======================================================================================
 #
