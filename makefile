@@ -12,6 +12,7 @@ v1_star_list_script = ./legus_sizes/preliminary_star_list.py
 psf_star_list_script = ./legus_sizes/select_psf_stars.py
 psf_creation_script = ./legus_sizes/make_psf.py
 sigma_script = ./legus_sizes/make_sigma_image.py
+fitting_script = ./legus_sizes/fit.py
 
 # ------------------------------------------------------------------------------
 #
@@ -26,8 +27,11 @@ psf_oversampling_factor = 8
 #
 # ------------------------------------------------------------------------------
 my_dirname = size
+cluster_fit_dirname = cluster_fit_plots
 dir_to_my_dir = $(1)$(my_dirname)/
-my_dirs = $(foreach dir,$(data_dirs),$(call dir_to_my_dir,$(dir)))
+my_dirs = $(foreach dir,$(data_dirs),$(dir)$(my_dirname)) \
+          $(foreach dir,$(data_dirs),$(dir)$(my_dirname)/$(cluster_fit_dirname))
+
 
 # ------------------------------------------------------------------------------
 #
@@ -74,18 +78,29 @@ all_sigmas = $(foreach dir,$(data_dirs),$(call dir_to_sigma,$(dir)))
 
 # ------------------------------------------------------------------------------
 #
+# The fitted parameters of the clusters
+#
+# ------------------------------------------------------------------------------
+dir_to_fits = $(1)$(my_dirname)/cluster_fits.txt
+all_fits = $(foreach dir,$(data_dirs),$(call dir_to_fits,$(dir)))
+fits_to_psf = $(subst cluster_fits.txt,psf.fits,$(1))
+fits_to_sigma = $(subst cluster_fits.txt,sigma_electrons.fits,$(1))
+fits_to_catalog = $(subst cluster_fits.txt,clean_catalog.txt,$(1))
+
+# ------------------------------------------------------------------------------
+#
 #  Rules
 #
 # ------------------------------------------------------------------------------
 # https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
 
-all: $(my_dirs) $(all_psfs) $(all_sigmas)
+all: $(my_dirs) $(all_fits)
 
 # When we clean we will only clean the things after the user has selected the
 # stars, since that's such a hassle
 .PHONY: clean
 clean:
-	rm $(all_psfs) $(all_sigmas)
+	rm $(all_psfs) $(all_sigmas) $(all_fits)
 
 # but if they really want to nuke that too they can
 .PHONY: clean_all
@@ -124,3 +139,9 @@ $(all_psfs): %: $$(call psf_to_star_list, %) $(psf_creation_script)
 # The first step in the fitting is the creation of the sigma image
 $(all_sigmas): $(sigma_script)
 	python $(sigma_script) $@
+
+# Then we can actually do the fitting, which depends on
+# the sigma image, psf, and cluster catalog
+.SECONDEXPANSION:
+$(all_fits): %: $(fitting_script) $$(call fits_to_psf, %) $$(call fits_to_sigma, %) $$(call fits_to_catalog, %)
+	python $(fitting_script) $@ $(call fits_to_psf, $@) $(psf_oversampling_factor) $(call fits_to_sigma, $@) $(call fits_to_catalog, $@)
