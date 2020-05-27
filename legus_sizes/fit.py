@@ -23,8 +23,6 @@ from scipy import optimize
 import cmocean
 from tqdm import tqdm
 
-import time
-
 import utils
 
 bpl.set_style()

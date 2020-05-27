@@ -124,6 +124,7 @@ fig.savefig("comparison_plot.png")
 # Then a ratio comparison
 fig, ax = bpl.subplots(figsize=[7, 7])
 for idx, (field, cat) in enumerate(matches.items()):
+    field = field.upper()
     ryon_eta = cat["Eta"]
     my_eta = cat["power_law_slope"]
     ryon_mask = ryon_eta > 1.3
