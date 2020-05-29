@@ -314,10 +314,6 @@ clusters_table["scale_radius_arcseconds"] = (
 clusters_table["scale_radius_pc"] = (
     clusters_table["scale_radius_pixels"] * pixel_scale_pc
 )
-# the effective radius requires some computation
-term_a = (clusters_table["scale_radius_pc"] * (1 + clusters_table["axis_ratio"])) / 2.0
-term_b = np.sqrt(0.5 ** (1 / (1 - clusters_table["power_law_slope"])) - 1)
-clusters_table["effective_radius_pc"] = term_a * term_b
 
 # ======================================================================================
 #

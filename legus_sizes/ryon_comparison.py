@@ -100,7 +100,7 @@ for idx, (field, cat) in enumerate(matches.items()):
 
     ax.errorbar(
         cat["r_eff_Galfit"][mask],
-        cat["effective_radius_pc"][mask],
+        cat["effective_radius_pc_no_rmax"][mask],
         xerr=[cat[f"e_r_eff-_Galfit"][mask], cat[f"e_r_eff+_Galfit"][mask]],
         markerfacecolor=c,
         markeredgecolor=c,

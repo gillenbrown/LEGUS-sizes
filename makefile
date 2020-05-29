@@ -13,6 +13,7 @@ psf_star_list_script = ./legus_sizes/select_psf_stars.py
 psf_creation_script = ./legus_sizes/make_psf.py
 sigma_script = ./legus_sizes/make_sigma_image.py
 fitting_script = ./legus_sizes/fit.py
+final_catalog_script = ./legus_sizes/derived_properties.py
 comparison_script = ./legus_sizes/ryon_comparison.py
 
 # ------------------------------------------------------------------------------
@@ -90,6 +91,15 @@ fits_to_catalog = $(subst cluster_fits.txt,clean_catalog.txt,$(1))
 
 # ------------------------------------------------------------------------------
 #
+# The full value-added catalogs
+#
+# ------------------------------------------------------------------------------
+dir_to_final_cat = $(1)$(my_dirname)/final_catalogs.txt
+all_final_cats = $(foreach dir,$(data_dirs),$(call dir_to_final_cat,$(dir)))
+final_cat_to_fits = $(subst final_catalogs.txt,cluster_fits.txt,$(1))
+
+# ------------------------------------------------------------------------------
+#
 # The comparison plot
 #
 # ------------------------------------------------------------------------------
@@ -102,7 +112,7 @@ comparison_plot = comparison_plot.png
 # ------------------------------------------------------------------------------
 # https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
 
-all: $(my_dirs) $(all_fits) $(comparison_plot)
+all: $(my_dirs) $(comparison_plot)
 
 # When we clean we will only clean the things after the user has selected the
 # stars, since that's such a hassle
@@ -154,6 +164,11 @@ $(all_sigmas): $(sigma_script)
 $(all_fits): %: $(fitting_script) $$(call fits_to_psf, %) $$(call fits_to_sigma, %) $$(call fits_to_catalog, %)
 	python $(fitting_script) $@ $(call fits_to_psf, $@) $(psf_oversampling_factor) $(call fits_to_sigma, $@) $(call fits_to_catalog, $@)
 
+# Add the derived properties to these catalogs
+.SECONDEXPANSION:
+$(all_final_cats): %: $(final_catalog_script) $$(call final_cat_to_fits, %)
+	python $(final_catalog_script) $@ $(call final_cat_to_fits, $@)
+
 # Make the comparison to Ryon+17's results
-$(comparison_plot): $(comparison_script) $(all_fits)
-	python $(comparison_script) $(all_fits)
+$(comparison_plot): $(comparison_script) $(all_final_cats)
+	python $(comparison_script) $(all_final_cats)
