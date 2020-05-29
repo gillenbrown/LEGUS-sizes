@@ -4,6 +4,7 @@ from pathlib import Path
 from astropy import table
 import numpy as np
 import betterplotlib as bpl
+from sinistra.astropy_helpers import symmetric_match
 
 bpl.set_style()
 
@@ -68,8 +69,16 @@ matches["ngc1313-w"] = table.join(
 matches["ngc628-e"] = table.join(
     catalogs["ngc628-e"], ryon_628, join_type="inner", keys="ID"
 )
-matches["ngc628-c"] = table.join(
-    catalogs["ngc628-c"], ryon_628, join_type="inner", keys="ID"
+# The NGC 628 Center field has different IDs than the published tables! I need to match
+# based on RA/Dec
+matches["ngc628-c"] = symmetric_match(
+    catalogs["ngc628-c"],
+    ryon_628,
+    ra_col_1="RA",
+    ra_col_2="RAdeg",
+    dec_col_1="Dec",
+    dec_col_2="DEdeg",
+    max_sep=0.03,
 )
 
 # ======================================================================================
@@ -77,7 +86,7 @@ matches["ngc628-c"] = table.join(
 # Making plots
 #
 # ======================================================================================
-limits = 0.1, 100
+limits = 0.3, 20
 # First we'll make a straight comparison
 fig, ax = bpl.subplots(figsize=[7, 7])
 for idx, (field, cat) in enumerate(matches.items()):
@@ -95,22 +104,13 @@ for idx, (field, cat) in enumerate(matches.items()):
         xerr=[cat[f"e_r_eff-_Galfit"][mask], cat[f"e_r_eff+_Galfit"][mask]],
         markerfacecolor=c,
         markeredgecolor=c,
+        markersize=5,
         ecolor=c,
-        label=field,
-        elinewidth=2,
+        label=field.upper(),
+        elinewidth=0.5,
         zorder=2,
     )
 
-    ax.errorbar(
-        cat["r_eff_Galfit"][~mask],
-        cat["effective_radius_pc"][~mask],
-        xerr=[cat[f"e_r_eff-_Galfit"][~mask], cat[f"e_r_eff+_Galfit"][~mask]],
-        markerfacecolor="white",
-        markeredgecolor=c,
-        ecolor=c,
-        elinewidth=0.5,
-        zorder=1,
-    )
 ax.set_yscale("log")
 ax.set_xscale("log")
 
@@ -120,46 +120,3 @@ ax.equal_scale()
 ax.legend(loc=4)
 ax.add_labels("Cluster $R_{eff}$ [pc] - Ryon+ 2017", "Cluster $R_{eff}$ [pc] - Me")
 fig.savefig("comparison_plot.png")
-
-# Then a ratio comparison
-fig, ax = bpl.subplots(figsize=[7, 7])
-for idx, (field, cat) in enumerate(matches.items()):
-    field = field.upper()
-    ryon_eta = cat["Eta"]
-    my_eta = cat["power_law_slope"]
-    ryon_mask = ryon_eta > 1.3
-    my_mask = my_eta > 1.3
-    mask = np.logical_and(ryon_mask, my_mask)
-
-    c = bpl.color_cycle[idx]
-
-    ax.errorbar(
-        cat["r_eff_Galfit"][mask],
-        cat["effective_radius_pc"][mask] / cat["r_eff_Galfit"][mask],
-        xerr=[cat[f"e_r_eff-_Galfit"][mask], cat[f"e_r_eff+_Galfit"][mask]],
-        markerfacecolor=c,
-        markeredgecolor=c,
-        ecolor=c,
-        label=field,
-        elinewidth=2,
-        zorder=2,
-    )
-
-    ax.errorbar(
-        cat["r_eff_Galfit"][~mask],
-        cat["effective_radius_pc"][~mask] / cat["r_eff_Galfit"][~mask],
-        xerr=[cat[f"e_r_eff-_Galfit"][~mask], cat[f"e_r_eff+_Galfit"][~mask]],
-        markerfacecolor="white",
-        markeredgecolor=c,
-        ecolor=c,
-        elinewidth=0.5,
-        zorder=1,
-    )
-ax.set_yscale("log")
-ax.set_xscale("log")
-
-ax.set_limits(*limits, 0.1, 10)
-ax.plot(limits, [1, 1], c=bpl.almost_black, lw=1, zorder=0)
-ax.legend()
-ax.add_labels("Cluster $R_{eff}$ [pc] - Ryon+ 2017", "$R_{eff, Me} / R_{eff, Ryon}$")
-fig.savefig("comparison_ratio_plot.png")
