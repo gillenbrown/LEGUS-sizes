@@ -14,6 +14,7 @@ import sys
 from astropy import table
 from astropy import convolution
 from astropy.io import fits
+import photutils
 import betterplotlib as bpl
 from matplotlib import colors
 from matplotlib import gridspec
@@ -156,6 +157,60 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot):
     return sum_squared - dof
 
 
+def distance(x1, y1, x2, y2):
+    return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+
+
+def mask_image(data_snapshot, uncertainty_snapshot):
+    """
+    Create mask image by setting infinte uncertainty where there are other sources
+
+    This wil use IRAFStarFinder from photutils to find stars in the snapshot. Anything
+    more than 5 pixels from the center will be masked, with a radius of FWHM. This
+    makes the full width masked twice the FWHM.
+
+    :param data_snapshot: Snapshot to be used to identify sources
+    :param uncertainty_snapshot: Snapshow showing the uncertainty.
+    :return: uncertainty_snapshot modified to have inifinities where there are other
+             sources that are not the clusters.
+    """
+    star_finder = photutils.detection.IRAFStarFinder(
+        threshold=5 * np.min(uncertainty_snapshot),
+        fwhm=2.0,
+        exclude_border=False,
+        sharphi=5.0,
+    )
+    peaks_table = star_finder.find_stars(data_snapshot)
+
+    # this will be None if nothing was found
+    if peaks_table is None:
+        return uncertainty_snapshot
+
+    # then delete any stars near the center
+    center = uncertainty_snapshot.shape[0] / 2
+    to_remove = []
+    for idx in range(len(peaks_table)):
+        x = peaks_table[idx]["xcentroid"]
+        y = peaks_table[idx]["ycentroid"]
+        if distance(center, center, x, y) < 5:
+            to_remove.append(idx)
+    peaks_table.remove_rows(to_remove)
+
+    # then remove any pixels within 2 FWHM of each source
+    for x_idx in range(uncertainty_snapshot.shape[1]):
+        x = x_idx + 0.5  # to get pixel center
+        for y_idx in range(uncertainty_snapshot.shape[0]):
+            y = y_idx + 0.5  # to get pixel center
+            # then go through each row and see if it's close
+            for row in peaks_table:
+                x_cen = row["xcentroid"]
+                y_cen = row["ycentroid"]
+                radius = 1.5 * row["fwhm"]
+                if distance(x, y, x_cen, y_cen) < radius:
+                    uncertainty_snapshot[y_idx][x_idx] = np.inf
+    return uncertainty_snapshot
+
+
 def fit_model(data_snapshot, uncertainty_snapshot):
     """
     Fits an EFF model to the data passed in.
@@ -165,6 +220,9 @@ def fit_model(data_snapshot, uncertainty_snapshot):
                                  in units of electrons.
     :return: List of fitted parameters
     """
+    # create the mask with the uncertainty image
+    uncertainty_snapshot = mask_image(data_snapshot, uncertainty_snapshot)
+
     # Create the initial guesses for the parameters
     params = (
         np.log10(np.max(data_snapshot) * 3),  # log of peak brightness.
@@ -188,7 +246,7 @@ def fit_model(data_snapshot, uncertainty_snapshot):
         (1, psf.shape[0]),  # scale radius in oversampled pixels
         (0.1, 1),  # axis ratio
         (-np.pi, np.pi),  # position angle
-        (1.01, 5),  # power law slope
+        (0, None),  # power law slope
         (-np.max(data_snapshot), np.max(data_snapshot)),  # background
     )
 
@@ -208,10 +266,13 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, params, savename):
     sigma_image = diff_image / uncertainty_snapshot
 
     # Use the data image to get the normalization that will be used in all plots
-    vmax = max(np.max(model_image), np.max(cluster_snapshot))
+    vmax = max(np.max(model_psf_bin_image), np.max(cluster_snapshot))
     data_norm = colors.SymLogNorm(vmin=-vmax, vmax=vmax, linthresh=0.01 * vmax)
     sigma_norm = colors.Normalize(vmin=-10, vmax=10)
-    u_norm = colors.Normalize(0, vmax=np.max(uncertainty_snapshot))
+    # the maximum for the uncertainty should be the maximum that's not infinite. We
+    # make it a bit higher to make it clear where the masked regions are
+    vmax_u = 1.2 * np.max(uncertainty_snapshot[np.isfinite(uncertainty_snapshot)])
+    u_norm = colors.Normalize(0, vmax=vmax_u)
 
     data_cmap = bpl.cm.lisbon
     sigma_cmap = cmocean.cm.curl
