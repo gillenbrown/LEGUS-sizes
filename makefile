@@ -15,6 +15,7 @@ sigma_script = ./legus_sizes/make_sigma_image.py
 fitting_script = ./legus_sizes/fit.py
 final_catalog_script = ./legus_sizes/derived_properties.py
 comparison_script = ./legus_sizes/ryon_comparison.py
+parameters_dist_script = ./legus_sizes/parameter_distribution.py
 
 # ------------------------------------------------------------------------------
 #
@@ -100,10 +101,11 @@ final_cat_to_fits = $(subst final_catalogs.txt,cluster_fits.txt,$(1))
 
 # ------------------------------------------------------------------------------
 #
-# The comparison plot
+# Various plots
 #
 # ------------------------------------------------------------------------------
 comparison_plot = comparison_plot.png
+param_dist_plot = parameter_distribution.png
 
 # ------------------------------------------------------------------------------
 #
@@ -112,7 +114,7 @@ comparison_plot = comparison_plot.png
 # ------------------------------------------------------------------------------
 # https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
 
-all: $(my_dirs) $(comparison_plot)
+all: $(my_dirs) $(comparison_plot) $(param_dist_plot)
 
 # When we clean we will only clean the things after the user has selected the
 # stars, since that's such a hassle
@@ -172,3 +174,6 @@ $(all_final_cats): %: $(final_catalog_script) $$(call final_cat_to_fits, %)
 # Make the comparison to Ryon+17's results
 $(comparison_plot): $(comparison_script) $(all_final_cats)
 	python $(comparison_script) $(all_final_cats)
+
+$(param_dist_plot): $(parameters_dist_script) $(all_final_cats)
+	python $(parameters_dist_script) $(all_final_cats)
