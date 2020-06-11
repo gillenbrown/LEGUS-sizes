@@ -316,17 +316,18 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     param_history = [[] for _ in range(n_variables)]
     param_std_last = [np.inf for _ in range(n_variables)]
 
-    converge_criteria = 0.05
-    converged = np.array([False] * n_variables)
+    converge_criteria = 0.1
+    converged = [False for _ in range(n_variables)]
     check_spacing = 10
     iteration = 0
-    while not np.all(converged):
+    while not all(converged):
         iteration += 1
         # sample the xs and ys
         idxs = np.random.randint(0, len(good_xs), len(good_xs))
         this_xs = good_xs[idxs]
         this_ys = good_ys[idxs]
 
+        # fit to this selection of pixels
         this_result = optimize.minimize(
             calculate_chi_squared,
             args=(data_snapshot, uncertainty_snapshot, this_xs, this_ys),
@@ -334,6 +335,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
             bounds=bounds,
         )
 
+        # store the results
         for param_idx in range(n_variables):
             param_history[param_idx].append(this_result.x[param_idx])
 
@@ -345,7 +347,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
                 this_std = np.std(param_history[param_idx])
                 if this_std == 0:
                     converged[param_idx] = True
-                else:  # actually calculate the standard deviation
+                else:  # actually calculate the change
                     last_std = param_std_last[param_idx]
                     diff = abs((this_std - last_std) / this_std)
                     if diff < converge_criteria:
@@ -386,7 +388,6 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
     gs = gridspec.GridSpec(
         nrows=1,
         ncols=7,
-        width_ratios=[10, 10, 10, 10, 10, 10, 10],
         wspace=0.05,
         hspace=0,
         left=0.01,
@@ -401,20 +402,15 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
     ax4 = fig.add_subplot(gs[4], projection="bpl")
     ax5 = fig.add_subplot(gs[5], projection="bpl")
     ax6 = fig.add_subplot(gs[6], projection="bpl")
-    # cax1 = fig.add_subplot(gs[5], projection="bpl")
-    # cax2 = fig.add_subplot(gs[7], projection="bpl")
-    # cax3 = fig.add_subplot(gs[9], projection="bpl")
 
     ax0.imshow(model_image, norm=data_norm, cmap=data_cmap, origin="lower")
-    # ax1.imshow(model_psf_image, norm=data_norm, cmap=data_cmap, origin="lower")
     ax1.imshow(model_psf_bin_image, norm=data_norm, cmap=data_cmap, origin="lower")
     d_im = ax2.imshow(cluster_snapshot, norm=data_norm, cmap=data_cmap, origin="lower")
-    # ax3.imshow(diff_image, norm=data_norm, cmap=data_cmap, origin="lower")
     s_im = ax3.imshow(sigma_image, norm=sigma_norm, cmap=sigma_cmap, origin="lower")
     u_im = ax4.imshow(uncertainty_snapshot, norm=u_norm, cmap=u_cmap, origin="lower")
-    m_im = ax5.imshow(mask, norm=m_norm, cmap=m_cmap, origin="lower")
+    ax5.imshow(mask, norm=m_norm, cmap=m_cmap, origin="lower")
 
-    # the last one just has the list of parametesr
+    # the last one just has the list of parameters
     ax6.easy_add_text(
         f"log(peak brightness) = {params[0]:.2f}\n"
         f"x center = {params[1] / oversampling_factor:.2f}\n"
@@ -427,20 +423,13 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
         "center left",
     )
 
-    cbar_d = fig.colorbar(d_im, ax=ax2)
-    cbar_s = fig.colorbar(s_im, ax=ax3)
-    cbar_u = fig.colorbar(u_im, ax=ax4)
-    # cbar_m = fig.colorbar(m_im, ax=ax5)
-
-    # cbar_d.set_label("Pixel Values [Electrons]")
-    # cbar_s.set_label("Error [Standard Deviations]")
-    # cbar_u.set_label("Pixel Uncertainty [Electrons]")
+    fig.colorbar(d_im, ax=ax2)
+    fig.colorbar(s_im, ax=ax3)
+    fig.colorbar(u_im, ax=ax4)
 
     ax0.set_title("Raw Model")
-    # ax1.set_title("Model Convolved\nwith PSF")
     ax1.set_title("Model Convolved\nwith PSF and Binned")
     ax2.set_title("Data")
-    # ax4.set_title("Data - Model")
     ax3.set_title("(Data - Model)/Uncertainty")
     ax4.set_title("Uncertainty")
     ax5.set_title("Mask")
@@ -458,22 +447,13 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
 # Then go through the catalog
 #
 # ======================================================================================
-# Before saving we need to put all the columns to the same length, which we can do
-# by padding with nans, which are easy to remove
-def pad(array, total_length):
-    final_array = np.zeros(total_length) * np.nan
-    final_array[: len(array)] = array
-    return final_array
-
-
 for row in tqdm(clusters_table):
     # create the snapshot
     x_cen = int(np.floor(row["x_pix_single"]))
     y_cen = int(np.floor(row["y_pix_single"]))
 
-    # We want a 31 pixel wide shapshot. Since we do the floor we go 16 to the left, then
-    # also go 16 to the right, but that will be cut down to 15 since the last index
-    # won't be included
+    # Get the snapshot, based on the size desired. Since we took the floor of the
+    # center, go farther in that direction (i.e. use ceil if the number is odd)
     x_min = x_cen - int(np.ceil(snapshot_size / 2.0))
     x_max = x_cen + int(np.floor(snapshot_size / 2.0))
     y_min = y_cen - int(np.ceil(snapshot_size / 2.0))
@@ -517,7 +497,14 @@ for row in tqdm(clusters_table):
 # Then write this output catalog
 #
 # ======================================================================================
-# We need to pad the columns first
+# Before saving we need to put all the columns to the same length, which we can do
+# by padding with nans, which are easy to remove
+def pad(array, total_length):
+    final_array = np.zeros(total_length) * np.nan
+    final_array[: len(array)] = array
+    return final_array
+
+
 max_length = max([len(row["central_surface_brightness"]) for row in clusters_table])
 for col in new_cols:
     clusters_table[col] = [pad(row[col], max_length) for row in clusters_table]

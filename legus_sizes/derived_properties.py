@@ -14,6 +14,8 @@ from pathlib import Path
 from astropy import table
 import numpy as np
 
+import utils
+
 # ======================================================================================
 #
 # Get the parameters the user passed in, load the catalog
@@ -21,8 +23,19 @@ import numpy as np
 # ======================================================================================
 final_catalog_path = Path(sys.argv[1]).absolute()
 fits_catalog_path = Path(sys.argv[2]).absolute()
-
 fits_catalog = table.Table.read(fits_catalog_path, format="hdf5")
+
+
+# ======================================================================================
+#
+# Convert pixels to pc
+#
+# ======================================================================================
+pixels_to_pc = utils.get_f555w_pixel_scale_pc(final_catalog_path.parent.parent)
+a_pc = "scale_radius_pc"
+a_pix = "scale_radius_pixels"
+fits_catalog[f"{a_pc}_best"] = fits_catalog[f"{a_pix}_best"] * pixels_to_pc
+fits_catalog[a_pc] = fits_catalog[a_pix] * pixels_to_pc
 
 
 # ======================================================================================
@@ -30,7 +43,11 @@ fits_catalog = table.Table.read(fits_catalog_path, format="hdf5")
 # Define some functions defining various quantities
 #
 # ======================================================================================
-def eff_profile_r_eff_no_rmax(eta, a):
+def ellipticy_correction(q):
+    return (1 + q) / 2.0
+
+
+def eff_profile_r_eff_no_rmax(eta, a, q):
     """
     Calculate the effective radius of an EFF profile assuming to maximum radius
 
@@ -38,10 +55,10 @@ def eff_profile_r_eff_no_rmax(eta, a):
     :param a: Scale radius of the EFF profile.
     :return: Effective radius of the EFF profile, in whatever units a is in.
     """
-    return a * np.sqrt(2 ** (1 / (eta - 1)) - 1)
+    return ellipticy_correction(q) * a * np.sqrt(2 ** (1 / (eta - 1)) - 1)
 
 
-def eff_profile_r_eff_with_rmax(eta, a, rmax):
+def eff_profile_r_eff_with_rmax(eta, a, rmax, q):
     """
     Calculate the effective radius of an EFF profile, assuming a maximum radius.
 
@@ -53,7 +70,7 @@ def eff_profile_r_eff_with_rmax(eta, a, rmax):
     # This is such an ugly formula, put it in a few steps
     term_1 = 1 + (1 + (rmax / a) ** 2) ** (1 - eta)
     term_2 = (0.5 * (term_1)) ** (1 / (1 - eta)) - 1
-    return a * np.sqrt(term_2)
+    return ellipticy_correction(q) * a * np.sqrt(term_2)
 
 
 # ======================================================================================
@@ -64,8 +81,9 @@ def eff_profile_r_eff_with_rmax(eta, a, rmax):
 r_eff = "effective_radius_pc"
 eta = fits_catalog["power_law_slope"]
 a = fits_catalog["scale_radius_pc"]
-fits_catalog[f"{r_eff}_no_rmax"] = eff_profile_r_eff_no_rmax(eta, a)
-fits_catalog[f"{r_eff}_rmax_100_pc"] = eff_profile_r_eff_with_rmax(eta, a, 100)
+q = fits_catalog["axis_ratio"]
+fits_catalog[f"{r_eff}_no_rmax"] = eff_profile_r_eff_no_rmax(eta, a, q)
+fits_catalog[f"{r_eff}_rmax_100_pc"] = eff_profile_r_eff_with_rmax(eta, a, 100, q)
 # add one with the size of the radius
 
 # ======================================================================================
@@ -73,4 +91,4 @@ fits_catalog[f"{r_eff}_rmax_100_pc"] = eff_profile_r_eff_with_rmax(eta, a, 100)
 # Then save the table
 #
 # ======================================================================================
-fits_catalog.write(final_catalog_path, format="ascii.ecsv")
+fits_catalog.write(str(final_catalog_path), format="hdf5", overwrite=True)

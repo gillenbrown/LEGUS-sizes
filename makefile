@@ -96,9 +96,9 @@ fits_to_catalog = $(subst cluster_fits.h5,clean_catalog.txt,$(1))
 # The full value-added catalogs
 #
 # ------------------------------------------------------------------------------
-dir_to_final_cat = $(1)$(my_dirname)/final_catalogs.txt
+dir_to_final_cat = $(1)$(my_dirname)/final_catalogs.h5
 all_final_cats = $(foreach dir,$(data_dirs),$(call dir_to_final_cat,$(dir)))
-final_cat_to_fits = $(subst final_catalogs.txt,cluster_fits.h5,$(1))
+final_cat_to_fits = $(subst final_catalogs.h5,cluster_fits.h5,$(1))
 
 # ------------------------------------------------------------------------------
 #
