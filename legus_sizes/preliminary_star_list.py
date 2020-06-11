@@ -28,6 +28,7 @@ final_catalog = Path(sys.argv[1]).absolute()
 home_dir = final_catalog.parent.parent
 # We'll need to get the cluster catalog too
 cluster_catalog_path = Path(sys.argv[2]).absolute()
+width = int(sys.argv[3])
 
 # ======================================================================================
 #
@@ -78,9 +79,6 @@ del peaks_table["mag"]
 # ======================================================================================
 # I want to identify stars that may be problematic, because they're near another star or
 # because they're a cluster.
-# Set the box size that will be used as the size of the PSF image. This is chosen as the
-# size of the Ryon+ 17 fitting region. I'll check for duplicates within this region.
-width = 31
 one_sided_width = int((width - 1) / 2.0)
 # get duplicates within this box. We initially say that everything has nothing near it,
 # then will modify that as needed. We also track if something is close enough to a

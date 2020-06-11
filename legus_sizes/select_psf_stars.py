@@ -39,6 +39,7 @@ final_catalog = Path(sys.argv[1]).absolute()
 home_dir = final_catalog.parent.parent
 # We'll need to get the preliminary catalog too
 preliminary_catalog_path = Path(sys.argv[2]).absolute()
+psf_width = int(sys.argv[3])
 
 # ======================================================================================
 #
@@ -53,10 +54,6 @@ image_data, instrument = utils.get_f555w_drc_image(home_dir)
 
 # get the noise_level, which will be used later
 _, _, noise = stats.sigma_clipped_stats(image_data, sigma=2.0)
-
-# Set the box size that will be used as the size of the PSF image. This is chosen as the
-# size of the Ryon+ 17 fitting region. I'll check for duplicates within this region.
-width = 31
 
 # ======================================================================================
 #
@@ -209,7 +206,7 @@ class MainWindow(QMainWindow):
 app = QApplication()
 
 # The MainWindow class holds all the structure
-window = MainWindow(stars_table, image_data, width)
+window = MainWindow(stars_table, image_data, psf_width)
 
 # Execute application
 app.exec_()

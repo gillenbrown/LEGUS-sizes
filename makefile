@@ -22,7 +22,8 @@ parameters_dist_script = ./legus_sizes/parameter_distribution.py
 # Configuration variables
 #
 # ------------------------------------------------------------------------------
-psf_oversampling_factor = 8
+psf_pixel_size = 15
+psf_oversampling_factor = 2
 
 # ------------------------------------------------------------------------------
 #
@@ -140,7 +141,7 @@ $(all_catalogs): $(catalog_script)
 # To do this we use SECONDEXPANSION, and turn the star list into a catalog name
 .SECONDEXPANSION:
 $(all_v1_star_lists): %: $$(call v1_star_list_to_catalog, %) $(v1_star_list_script)
-	python $(v1_star_list_script) $@ $(call v1_star_list_to_catalog, $@)
+	python $(v1_star_list_script) $@ $(call v1_star_list_to_catalog, $@) $(psf_pixel_size)
 
 # Creating the actual list of PSF stars requires user input.
 # note that there's no dependency on the script itself here. That's becuase I
@@ -149,12 +150,12 @@ $(all_v1_star_lists): %: $$(call v1_star_list_to_catalog, %) $(v1_star_list_scri
 # files
 .SECONDEXPANSION:
 $(all_psf_star_lists): %: $$(call psf_star_list_to_v1_list, %)
-	python $(psf_star_list_script) $@ $(call psf_star_list_to_v1_list, $@)
+	python $(psf_star_list_script) $@ $(call psf_star_list_to_v1_list, $@) $(psf_pixel_size)
 
 # The PSF creation depends on the PSF star lists
 .SECONDEXPANSION:
 $(all_psfs): %: $$(call psf_to_star_list, %) $(psf_creation_script)
-	python $(psf_creation_script) $@ $(call psf_to_star_list, $@) $(psf_oversampling_factor)
+	python $(psf_creation_script) $@ $(call psf_to_star_list, $@) $(psf_oversampling_factor) $(psf_pixel_size)
 
 # The first step in the fitting is the creation of the sigma image
 $(all_sigmas): $(sigma_script)

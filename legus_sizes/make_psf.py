@@ -32,6 +32,7 @@ home_dir = size_home_dir.parent
 # We'll need to get the star list too
 star_list_path = Path(sys.argv[2]).absolute()
 oversampling_factor = int(sys.argv[3])
+psf_width = int(sys.argv[4])
 
 # ======================================================================================
 #
@@ -55,7 +56,7 @@ star_table.rename_columns(["xcentroid", "ycentroid"], ["x", "y"])
 # make the cutouts
 #
 # ======================================================================================
-star_cutouts = photutils.psf.extract_stars(nddata, star_table, size=31)
+star_cutouts = photutils.psf.extract_stars(nddata, star_table, size=psf_width)
 
 # plot these for the user to see
 ncols = 5

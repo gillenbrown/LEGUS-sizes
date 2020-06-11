@@ -12,7 +12,7 @@ from pathlib import Path
 import sys
 
 from astropy import table
-from astropy import convolution
+from astropy import nddata
 from astropy.io import fits
 import photutils
 import betterplotlib as bpl
@@ -21,6 +21,7 @@ from matplotlib import gridspec
 from matplotlib import pyplot as plt
 import numpy as np
 from scipy import optimize
+from scipy import signal
 import cmocean
 from tqdm import tqdm
 
@@ -41,11 +42,19 @@ cluster_catalog_path = Path(sys.argv[5]).absolute()
 
 image_data, _ = utils.get_f555w_drc_image(final_catalog.parent.parent)
 psf = fits.open(psf_path)["PRIMARY"].data
+# the convolution requires the psf to be normalized, and without any negative values
+psf = np.maximum(psf, 0)
+psf /= np.sum(psf)
+
 sigma_data = fits.open(sigma_image_path)["PRIMARY"].data
 clusters_table = table.Table.read(cluster_catalog_path, format="ascii.ecsv")
 
 pixel_scale_arcsec = utils.get_f555w_pixel_scale_arcsec(final_catalog.parent.parent)
 pixel_scale_pc = utils.get_f555w_pixel_scale_pc(final_catalog.parent.parent)
+
+# set the size of the images we'll use
+snapshot_size = 30
+snapshot_size_oversampled = snapshot_size * oversampling_factor
 
 # Also add the new columns to the table, that we will fill as we fit
 def dummy_list_col(n_rows):
@@ -100,47 +109,52 @@ def eff_profile_2d(x, y, log_mu_0, x_c, y_c, a, q, theta, eta):
 
 def convolve_with_psf(in_array):
     """ Convolve an array with the PSF """
-    # using boundary wrap stops edge effects from reducing the values near the boundary
-    return convolution.convolve_fft(in_array, psf, boundary="wrap")
+    # Scipy FFT based convolution was tested to be the fastest. It does have edge
+    # affects, but those are minimized by using our padding. We do have to modify the
+    # psf to have
+    return signal.fftconvolve(in_array, psf, mode="same")
 
 
 def bin_data_2d(data):
     """ Bin a 2d array into square bins determined by the oversampling factor """
-    x_length_new = data.shape[0] // oversampling_factor
-    y_length_new = data.shape[1] // oversampling_factor
-
-    binned_data = np.zeros((x_length_new, y_length_new))
-
-    for x_new in range(x_length_new):
-        for y_new in range(y_length_new):
-            x_old_min = oversampling_factor * x_new
-            x_old_max = oversampling_factor * (x_new + 1)
-            y_old_min = oversampling_factor * y_new
-            y_old_max = oversampling_factor * (y_new + 1)
-
-            data_subset = data[x_old_min:x_old_max, y_old_min:y_old_max]
-            binned_data[x_new, y_new] = np.mean(data_subset)
-
-    return binned_data
+    # Astropy has a convenient function to do this
+    bin_factors = [oversampling_factor, oversampling_factor]
+    return nddata.block_reduce(data, bin_factors, np.mean)
 
 
 def create_model_image(log_mu_0, x_c, y_c, a, q, theta, eta, background):
     """ Create a model image using the EFF parameters. """
-    # first generate the x and y pixel coordinates of the model image, which will
-    # be the same size as the PSF
-    x_values = np.zeros(psf.shape)
-    y_values = np.zeros(psf.shape)
+    # first generate the x and y pixel coordinates of the model image. We will have
+    # an array that's the same size as the cluster snapshot in oversampled pixels,
+    # plus padding to account for zero-padded boundaries in the FFT convolution
+    padding = 5 * oversampling_factor  # 5 regular pixels on each side
+    box_length = snapshot_size_oversampled + 2 * padding
 
-    for x in range(psf.shape[1]):
+    # correct the center to be at the center of this new array
+    x_c_internal = x_c + padding
+    y_c_internal = y_c + padding
+
+    x_values = np.zeros([box_length, box_length])
+    y_values = np.zeros([box_length, box_length])
+
+    for x in range(box_length):
         x_values[:, x] = x
-    for y in range(psf.shape[0]):
+    for y in range(box_length):
         y_values[y, :] = y
 
     model_image = eff_profile_2d(
-        x_values, y_values, log_mu_0, x_c, y_c, a, q, theta, eta
+        x_values, y_values, log_mu_0, x_c_internal, y_c_internal, a, q, theta, eta
     )
+    # convolve without the background first, to do an ever better job avoiding edge
+    # effects, as the model should be zero near the boundaries anyway, matching the zero
+    # padding scipy does.
     model_psf_image = convolve_with_psf(model_image)
+    model_image += background
     model_psf_image += background
+
+    # crop out the padding before binning the data
+    model_image = model_image[padding:-padding, padding:-padding]
+    model_psf_image = model_psf_image[padding:-padding, padding:-padding]
     model_psf_bin_image = bin_data_2d(model_psf_image)
 
     # return all of these, since we'll want to use them when plotting
@@ -261,10 +275,10 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     params = (
         np.log10(np.max(data_snapshot) * 3),  # log of peak brightness.
         # Increase that to account for bins, as peaks will be averaged lower.
-        psf.shape[1] / 2.0,  # X center in the oversampled snapshot
-        psf.shape[0] / 2.0,  # Y center in the oversampled snapshot
+        snapshot_size_oversampled / 2.0,  # X center in the oversampled snapshot
+        snapshot_size_oversampled / 2.0,  # Y center in the oversampled snapshot
         2 * oversampling_factor,  # scale radius, in oversampled pixels
-        0.9,  # axis ratio
+        0.8,  # axis ratio
         0,  # position angle
         2.0,  # power law slope
         0,  # background
@@ -275,10 +289,11 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         # log of peak brightness. The minimum allowed will be the sky value, and the
         # maximum will be 1 order of magnitude above the first guess.
         (np.log10(np.min(uncertainty_snapshot)), params[0] + 1),
-        (0.3 * psf.shape[1], 0.7 * psf.shape[1]),  # X center
-        (0.3 * psf.shape[0], 0.7 * psf.shape[0]),  # Y center
-        (1, psf.shape[0]),  # scale radius in oversampled pixels
-        (0.1, 1),  # axis ratio
+        # X and Y center in oversampled pixels
+        (0.3 * snapshot_size_oversampled, 0.7 * snapshot_size_oversampled),
+        (0.3 * snapshot_size_oversampled, 0.7 * snapshot_size_oversampled),
+        (0.1, snapshot_size_oversampled),  # scale radius in oversampled pixels
+        (0, 1),  # axis ratio
         (-np.pi, np.pi),  # position angle
         (0, None),  # power law slope
         (-np.max(data_snapshot), np.max(data_snapshot)),  # background
@@ -299,11 +314,11 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     # Then we do bootstrapping
     n_variables = len(initial_result.x)
     param_history = [[] for _ in range(n_variables)]
-    param_std_last = [np.inf] * n_variables
+    param_std_last = [np.inf for _ in range(n_variables)]
 
-    converge_criteria = 0.01
+    converge_criteria = 0.05
     converged = np.array([False] * n_variables)
-    check_spacing = 5
+    check_spacing = 10
     iteration = 0
     while not np.all(converged):
         iteration += 1
@@ -328,12 +343,15 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
             for param_idx in range(n_variables):
                 # calculate the new standard deviation
                 this_std = np.std(param_history[param_idx])
-                last_std = param_std_last[param_idx]
-                diff = abs(this_std - last_std) / this_std
-                if diff < converge_criteria:
+                if this_std == 0:
                     converged[param_idx] = True
-                else:
-                    converged[param_idx] = False
+                else:  # actually calculate the standard deviation
+                    last_std = param_std_last[param_idx]
+                    diff = abs((this_std - last_std) / this_std)
+                    if diff < converge_criteria:
+                        converged[param_idx] = True
+                    else:
+                        converged[param_idx] = False
 
                 # then set the new last value
                 param_std_last[param_idx] = this_std
@@ -448,7 +466,7 @@ def pad(array, total_length):
     return final_array
 
 
-for row in tqdm(clusters_table[:3]):
+for row in tqdm(clusters_table):
     # create the snapshot
     x_cen = int(np.floor(row["x_pix_single"]))
     y_cen = int(np.floor(row["y_pix_single"]))
@@ -456,10 +474,10 @@ for row in tqdm(clusters_table[:3]):
     # We want a 31 pixel wide shapshot. Since we do the floor we go 16 to the left, then
     # also go 16 to the right, but that will be cut down to 15 since the last index
     # won't be included
-    x_min = x_cen - 16
-    x_max = x_cen + 15
-    y_min = y_cen - 16
-    y_max = y_cen + 15
+    x_min = x_cen - int(np.ceil(snapshot_size / 2.0))
+    x_max = x_cen + int(np.floor(snapshot_size / 2.0))
+    y_min = y_cen - int(np.ceil(snapshot_size / 2.0))
+    y_max = y_cen + int(np.floor(snapshot_size / 2.0))
 
     data_snapshot = image_data[y_min:y_max, x_min:x_max]
     error_snapshot = sigma_data[y_min:y_max, x_min:x_max]
