@@ -22,7 +22,7 @@ import numpy as np
 final_catalog_path = Path(sys.argv[1]).absolute()
 fits_catalog_path = Path(sys.argv[2]).absolute()
 
-fits_catalog = table.Table.read(fits_catalog_path, format="ascii.ecsv")
+fits_catalog = table.Table.read(fits_catalog_path, format="hdf5")
 
 
 # ======================================================================================

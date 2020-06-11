@@ -48,17 +48,27 @@ pixel_scale_arcsec = utils.get_f555w_pixel_scale_arcsec(final_catalog.parent.par
 pixel_scale_pc = utils.get_f555w_pixel_scale_pc(final_catalog.parent.parent)
 
 # Also add the new columns to the table, that we will fill as we fit
-clusters_table["x_pix_single_fitted"] = -99.9
-clusters_table["y_pix_single_fitted"] = -99.9
-clusters_table["central_surface_brightness"] = -99.9
-clusters_table["scale_radius_pixels"] = -99.9
-clusters_table["scale_radius_arcseconds"] = -99.9
-clusters_table["scale_radius_pc"] = -99.9
-clusters_table["effective_radius_pc"] = -99.9
-clusters_table["axis_ratio"] = -99.9
-clusters_table["position_angle"] = -99.9
-clusters_table["power_law_slope"] = -99.9
-clusters_table["local_background"] = -99.9
+def dummy_list_col(n_rows):
+    return [[-99.9] * i for i in range(n_rows)]
+
+
+n_rows = len(clusters_table)
+new_cols = [
+    "x_pix_single_fitted",
+    "y_pix_single_fitted",
+    "central_surface_brightness",
+    "scale_radius_pixels",
+    "axis_ratio",
+    "position_angle",
+    "power_law_slope",
+    "local_background",
+]
+
+for col in new_cols:
+    clusters_table[col] = dummy_list_col(n_rows)
+    clusters_table[col + "_best"] = -99.9
+
+clusters_table["num_boostrapping_iterations"] = -99
 
 # ======================================================================================
 #
@@ -129,21 +139,25 @@ def create_model_image(log_mu_0, x_c, y_c, a, q, theta, eta, background):
     model_image = eff_profile_2d(
         x_values, y_values, log_mu_0, x_c, y_c, a, q, theta, eta
     )
-    model_image += background
     model_psf_image = convolve_with_psf(model_image)
+    model_psf_image += background
     model_psf_bin_image = bin_data_2d(model_psf_image)
 
     # return all of these, since we'll want to use them when plotting
     return model_image, model_psf_image, model_psf_bin_image
 
 
-def calculate_chi_squared(params, cluster_snapshot, error_snapshot):
+def calculate_chi_squared(params, cluster_snapshot, error_snapshot, x_idxs, y_idxs):
     """
     Calculate the chi-squared value for a given set of parameters.
 
     :param params: Tuple of parameters of the EFF profile
     :param cluster_snapshot: Cluster snapshot
-    :param error_snapshot:
+    :param error_snapshot: Error snapshot
+    :param x_idxs: X indices of the pixels to be used when calculating the chi squared.
+    :param y_idxs: Y indices of the pixels to be used when calculating the chi squared.
+                   This should correspond to the x_idxs, such that the first pixels is
+                   at (x_idxs[0], y_idxs[0])
     :return:
     """
     _, _, model_snapshot = create_model_image(*params)
@@ -152,9 +166,10 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot):
 
     diffs = cluster_snapshot - model_snapshot
     sigma_snapshot = diffs / error_snapshot
-    sum_squared = np.sum(sigma_snapshot ** 2)
-    dof = model_snapshot.size - 8
-    return sum_squared - dof
+    # then pick the desirec pixels out to be used in the fit
+    sum_squared = np.sum(sigma_snapshot[y_idxs, x_idxs] ** 2)
+    dof = len(x_idxs) - 8
+    return sum_squared / dof
 
 
 def distance(x1, y1, x2, y2):
@@ -163,7 +178,7 @@ def distance(x1, y1, x2, y2):
 
 def mask_image(data_snapshot, uncertainty_snapshot):
     """
-    Create mask image by setting infinte uncertainty where there are other sources
+    Create mask image
 
     This wil use IRAFStarFinder from photutils to find stars in the snapshot. Anything
     more than 5 pixels from the center will be masked, with a radius of FWHM. This
@@ -171,8 +186,7 @@ def mask_image(data_snapshot, uncertainty_snapshot):
 
     :param data_snapshot: Snapshot to be used to identify sources
     :param uncertainty_snapshot: Snapshow showing the uncertainty.
-    :return: uncertainty_snapshot modified to have inifinities where there are other
-             sources that are not the clusters.
+    :return: masked image, where values with 1 are good, zero is bad.
     """
     star_finder = photutils.detection.IRAFStarFinder(
         threshold=5 * np.min(uncertainty_snapshot),
@@ -197,6 +211,7 @@ def mask_image(data_snapshot, uncertainty_snapshot):
     peaks_table.remove_rows(to_remove)
 
     # then remove any pixels within 2 FWHM of each source
+    mask = np.ones(uncertainty_snapshot.shape)
     for x_idx in range(uncertainty_snapshot.shape[1]):
         x = x_idx + 0.5  # to get pixel center
         for y_idx in range(uncertainty_snapshot.shape[0]):
@@ -207,22 +222,41 @@ def mask_image(data_snapshot, uncertainty_snapshot):
                 y_cen = row["ycentroid"]
                 radius = 1.5 * row["fwhm"]
                 if distance(x, y, x_cen, y_cen) < radius:
-                    uncertainty_snapshot[y_idx][x_idx] = np.inf
-    return uncertainty_snapshot
+                    mask[y_idx][x_idx] = 0.0
+    return mask
 
 
-def fit_model(data_snapshot, uncertainty_snapshot):
+def create_good_mask_pixels(mask):
     """
-    Fits an EFF model to the data passed in.
+    Create the list of good pixel indices that are in the mask
+
+    :param mask: 2D array holding the mask, where 1 values are good, zero is bad.
+    :return: Two lists, containing the x and y pixel values of the good pixels in
+             this regions. They will be ordered so the values correspond (i.e. the first
+             good pixel will be at xs[0], ys[0].
+    """
+    xs = []
+    ys = []
+    for x_idx in range(mask.shape[1]):
+        for y_idx in range(mask.shape[0]):
+            if mask[y_idx][x_idx] == 1:
+                xs.append(x_idx)
+                ys.append(y_idx)
+    return np.array(xs), np.array(ys)
+
+
+def fit_model(data_snapshot, uncertainty_snapshot, mask):
+    """
+    Fits an EFF model to the data passed in, using bootstrapping.
 
     :param data_snapshot: 2D array holding the pixel values (in units of electrons)
     :param uncertainty_snapshot: 2D array holding the uncertainty in the pixel values,
                                  in units of electrons.
-    :return: List of fitted parameters
-    """
-    # create the mask with the uncertainty image
-    uncertainty_snapshot = mask_image(data_snapshot, uncertainty_snapshot)
+    :param mask: 2D array holding the mask, where 1 is a good pixel, zero is bad.
+    :return: A two-item tuple containing: the fit parameters to all pixels, and the
+             history of all parameters took throughout the bootstrapping
 
+    """
     # Create the initial guesses for the parameters
     params = (
         np.log10(np.max(data_snapshot) * 3),  # log of peak brightness.
@@ -250,20 +284,70 @@ def fit_model(data_snapshot, uncertainty_snapshot):
         (-np.max(data_snapshot), np.max(data_snapshot)),  # background
     )
 
-    results = optimize.minimize(
+    # then get the list of good pixel values that can be used when fitting
+    good_xs, good_ys = create_good_mask_pixels(mask)
+
+    # first get the results when all good pixels are used, to be used as a starting
+    # point when bootstrapping is done, to save time.
+    initial_result = optimize.minimize(
         calculate_chi_squared,
-        args=(data_snapshot, error_snapshot),
+        args=(data_snapshot, uncertainty_snapshot, good_xs, good_ys),
         x0=params,
         bounds=bounds,
     )
-    return results.x
+
+    # Then we do bootstrapping
+    n_variables = len(initial_result.x)
+    param_history = [[] for _ in range(n_variables)]
+    param_std_last = [np.inf] * n_variables
+
+    converge_criteria = 0.01
+    converged = np.array([False] * n_variables)
+    check_spacing = 5
+    iteration = 0
+    while not np.all(converged):
+        iteration += 1
+        # sample the xs and ys
+        idxs = np.random.randint(0, len(good_xs), len(good_xs))
+        this_xs = good_xs[idxs]
+        this_ys = good_ys[idxs]
+
+        this_result = optimize.minimize(
+            calculate_chi_squared,
+            args=(data_snapshot, uncertainty_snapshot, this_xs, this_ys),
+            x0=initial_result.x,
+            bounds=bounds,
+        )
+
+        for param_idx in range(n_variables):
+            param_history[param_idx].append(this_result.x[param_idx])
+
+        # then check if we're converged
+        if iteration % check_spacing == 0:
+            # go through each one that's not converged yet
+            for param_idx in range(n_variables):
+                # calculate the new standard deviation
+                this_std = np.std(param_history[param_idx])
+                last_std = param_std_last[param_idx]
+                diff = abs(this_std - last_std) / this_std
+                if diff < converge_criteria:
+                    converged[param_idx] = True
+                else:
+                    converged[param_idx] = False
+
+                # then set the new last value
+                param_std_last[param_idx] = this_std
+
+    # then we're done!
+    return initial_result.x, np.array(param_history)
 
 
-def plot_model_set(cluster_snapshot, uncertainty_snapshot, params, savename):
+def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savename):
     model_image, model_psf_image, model_psf_bin_image = create_model_image(*params)
 
     diff_image = cluster_snapshot - model_psf_bin_image
     sigma_image = diff_image / uncertainty_snapshot
+    sigma_image *= mask
 
     # Use the data image to get the normalization that will be used in all plots
     vmax = max(np.max(model_psf_bin_image), np.max(cluster_snapshot))
@@ -273,10 +357,12 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, params, savename):
     # make it a bit higher to make it clear where the masked regions are
     vmax_u = 1.2 * np.max(uncertainty_snapshot[np.isfinite(uncertainty_snapshot)])
     u_norm = colors.Normalize(0, vmax=vmax_u)
+    m_norm = colors.Normalize(0, 1)
 
     data_cmap = bpl.cm.lisbon
     sigma_cmap = cmocean.cm.curl
     u_cmap = cmocean.cm.deep_r
+    m_cmap = cmocean.cm.gray_r
 
     fig = plt.figure(figsize=[38, 5])
     gs = gridspec.GridSpec(
@@ -302,28 +388,44 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, params, savename):
     # cax3 = fig.add_subplot(gs[9], projection="bpl")
 
     ax0.imshow(model_image, norm=data_norm, cmap=data_cmap, origin="lower")
-    ax1.imshow(model_psf_image, norm=data_norm, cmap=data_cmap, origin="lower")
-    ax2.imshow(model_psf_bin_image, norm=data_norm, cmap=data_cmap, origin="lower")
-    ax3.imshow(cluster_snapshot, norm=data_norm, cmap=data_cmap, origin="lower")
-    d_im = ax4.imshow(diff_image, norm=data_norm, cmap=data_cmap, origin="lower")
-    s_im = ax5.imshow(sigma_image, norm=sigma_norm, cmap=sigma_cmap, origin="lower")
-    u_im = ax6.imshow(uncertainty_snapshot, norm=u_norm, cmap=u_cmap, origin="lower")
+    # ax1.imshow(model_psf_image, norm=data_norm, cmap=data_cmap, origin="lower")
+    ax1.imshow(model_psf_bin_image, norm=data_norm, cmap=data_cmap, origin="lower")
+    d_im = ax2.imshow(cluster_snapshot, norm=data_norm, cmap=data_cmap, origin="lower")
+    # ax3.imshow(diff_image, norm=data_norm, cmap=data_cmap, origin="lower")
+    s_im = ax3.imshow(sigma_image, norm=sigma_norm, cmap=sigma_cmap, origin="lower")
+    u_im = ax4.imshow(uncertainty_snapshot, norm=u_norm, cmap=u_cmap, origin="lower")
+    m_im = ax5.imshow(mask, norm=m_norm, cmap=m_cmap, origin="lower")
 
-    cbar_d = fig.colorbar(d_im, ax=ax4)
-    cbar_s = fig.colorbar(s_im, ax=ax5)
-    cbar_u = fig.colorbar(u_im, ax=ax6)
+    # the last one just has the list of parametesr
+    ax6.easy_add_text(
+        f"log(peak brightness) = {params[0]:.2f}\n"
+        f"x center = {params[1] / oversampling_factor:.2f}\n"
+        f"y center = {params[2]/ oversampling_factor:.2f}\n"
+        f"scale radius [pixels] = {params[3] / oversampling_factor:.2f}\n"
+        f"q (axis ratio) = {params[4]:.2f}\n"
+        f"position angle = {params[5]:.2f}\n"
+        f"$\eta$ (power law slope) = {params[6]:.2f}\n"
+        f"background = {params[7]:.2f}\n",
+        "center left",
+    )
+
+    cbar_d = fig.colorbar(d_im, ax=ax2)
+    cbar_s = fig.colorbar(s_im, ax=ax3)
+    cbar_u = fig.colorbar(u_im, ax=ax4)
+    # cbar_m = fig.colorbar(m_im, ax=ax5)
 
     # cbar_d.set_label("Pixel Values [Electrons]")
     # cbar_s.set_label("Error [Standard Deviations]")
     # cbar_u.set_label("Pixel Uncertainty [Electrons]")
 
     ax0.set_title("Raw Model")
-    ax1.set_title("Model Convolved\nwith PSF")
-    ax2.set_title("Model Convolved\nwith PSF and Binned")
-    ax3.set_title("Data")
-    ax4.set_title("Data - Model")
-    ax5.set_title("(Data - Model)/Uncertainty")
-    ax6.set_title("Uncertainty")
+    # ax1.set_title("Model Convolved\nwith PSF")
+    ax1.set_title("Model Convolved\nwith PSF and Binned")
+    ax2.set_title("Data")
+    # ax4.set_title("Data - Model")
+    ax3.set_title("(Data - Model)/Uncertainty")
+    ax4.set_title("Uncertainty")
+    ax5.set_title("Mask")
 
     for ax in [ax0, ax1, ax2, ax3, ax4, ax5, ax6]:
         ax.remove_labels("both")
@@ -338,7 +440,15 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, params, savename):
 # Then go through the catalog
 #
 # ======================================================================================
-for row in tqdm(clusters_table):
+# Before saving we need to put all the columns to the same length, which we can do
+# by padding with nans, which are easy to remove
+def pad(array, total_length):
+    final_array = np.zeros(total_length) * np.nan
+    final_array[: len(array)] = array
+    return final_array
+
+
+for row in tqdm(clusters_table[:3]):
     # create the snapshot
     x_cen = int(np.floor(row["x_pix_single"]))
     y_cen = int(np.floor(row["y_pix_single"]))
@@ -353,32 +463,45 @@ for row in tqdm(clusters_table):
 
     data_snapshot = image_data[y_min:y_max, x_min:x_max]
     error_snapshot = sigma_data[y_min:y_max, x_min:x_max]
+    # create the mask with the uncertainty image
+    mask = mask_image(data_snapshot, error_snapshot)
 
-    results = fit_model(data_snapshot, error_snapshot)
+    results, history = fit_model(data_snapshot, error_snapshot, mask)
 
-    plot_model_set(data_snapshot, error_snapshot, results, f"debug_{row['ID']:04}.png")
+    plot_model_set(
+        data_snapshot, error_snapshot, mask, results, f"debug_{row['ID']:04}.png"
+    )
 
     # Then add these values to the table
-    row["central_surface_brightness"] = 10 ** results[0]
-    row["x_pix_single_fitted"] = x_min + results[1] / oversampling_factor
-    row["y_pix_single_fitted"] = y_min + results[2] / oversampling_factor
-    row["scale_radius_pixels"] = results[3] / oversampling_factor
-    row["axis_ratio"] = results[4]
-    row["position_angle"] = results[5]
-    row["power_law_slope"] = results[6]
-    row["local_background"] = results[7]
+    row["num_boostrapping_iterations"] = len(history[0])
 
-# Then we can add some of the derived properties
-clusters_table["scale_radius_arcseconds"] = (
-    clusters_table["scale_radius_pixels"] * pixel_scale_arcsec
-)
-clusters_table["scale_radius_pc"] = (
-    clusters_table["scale_radius_pixels"] * pixel_scale_pc
-)
+    row["central_surface_brightness_best"] = 10 ** results[0]
+    row["x_pix_single_fitted_best"] = x_min + results[1] / oversampling_factor
+    row["y_pix_single_fitted_best"] = y_min + results[2] / oversampling_factor
+    row["scale_radius_pixels_best"] = results[3] / oversampling_factor
+    row["axis_ratio_best"] = results[4]
+    row["position_angle_best"] = results[5]
+    row["power_law_slope_best"] = results[6]
+    row["local_background_best"] = results[7]
+
+    row["central_surface_brightness"] = [10 ** v for v in history[0]]
+    row["x_pix_single_fitted"] = [x_min + v / oversampling_factor for v in history[1]]
+    row["y_pix_single_fitted"] = [y_min + v / oversampling_factor for v in history[2]]
+    row["scale_radius_pixels"] = [v / oversampling_factor for v in history[3]]
+    row["axis_ratio"] = history[4]
+    row["position_angle"] = history[5]
+    row["power_law_slope"] = history[6]
+    row["local_background"] = history[7]
+
 
 # ======================================================================================
 #
 # Then write this output catalog
 #
 # ======================================================================================
-clusters_table.write(final_catalog, format="ascii.ecsv")
+# We need to pad the columns first
+max_length = max([len(row["central_surface_brightness"]) for row in clusters_table])
+for col in new_cols:
+    clusters_table[col] = [pad(row[col], max_length) for row in clusters_table]
+
+clusters_table.write(str(final_catalog), format="hdf5", overwrite=True)

@@ -84,11 +84,11 @@ all_sigmas = $(foreach dir,$(data_dirs),$(call dir_to_sigma,$(dir)))
 # The fitted parameters of the clusters
 #
 # ------------------------------------------------------------------------------
-dir_to_fits = $(1)$(my_dirname)/cluster_fits.txt
+dir_to_fits = $(1)$(my_dirname)/cluster_fits.h5
 all_fits = $(foreach dir,$(data_dirs),$(call dir_to_fits,$(dir)))
-fits_to_psf = $(subst cluster_fits.txt,psf.fits,$(1))
-fits_to_sigma = $(subst cluster_fits.txt,sigma_electrons.fits,$(1))
-fits_to_catalog = $(subst cluster_fits.txt,clean_catalog.txt,$(1))
+fits_to_psf = $(subst cluster_fits.h5,psf.fits,$(1))
+fits_to_sigma = $(subst cluster_fits.h5,sigma_electrons.fits,$(1))
+fits_to_catalog = $(subst cluster_fits.h5,clean_catalog.txt,$(1))
 
 # ------------------------------------------------------------------------------
 #
@@ -97,7 +97,7 @@ fits_to_catalog = $(subst cluster_fits.txt,clean_catalog.txt,$(1))
 # ------------------------------------------------------------------------------
 dir_to_final_cat = $(1)$(my_dirname)/final_catalogs.txt
 all_final_cats = $(foreach dir,$(data_dirs),$(call dir_to_final_cat,$(dir)))
-final_cat_to_fits = $(subst final_catalogs.txt,cluster_fits.txt,$(1))
+final_cat_to_fits = $(subst final_catalogs.txt,cluster_fits.h5,$(1))
 
 # ------------------------------------------------------------------------------
 #
