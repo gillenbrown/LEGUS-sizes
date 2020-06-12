@@ -99,8 +99,8 @@ for idx, (field, cat) in enumerate(matches.items()):
     c = bpl.color_cycle[idx]
 
     ax.errorbar(
-        cat["r_eff_Galfit"][mask],
-        cat["r_eff_pc_no_rmax_median"][mask],
+        x=cat["r_eff_Galfit"][mask],
+        y=cat["r_eff_pc_no_rmax_median"][mask],
         xerr=[cat["e_r_eff-_Galfit"][mask], cat["e_r_eff+_Galfit"][mask]],
         yerr=[cat["r_eff_pc_no_rmax_e-"][mask], cat["r_eff_pc_no_rmax_e+"][mask]],
         markerfacecolor=c,

@@ -116,7 +116,14 @@ fits_catalog["r_eff_pc_rmax_100pc_median"] = -99.9
 fits_catalog["r_eff_pc_rmax_100pc_e+"] = -99.9
 fits_catalog["r_eff_pc_rmax_100pc_e-"] = -99.9
 
-# first calculate the distribution of all effective radii in each case
+# first calculate the best fit value
+fits_catalog["r_eff_pc_no_rmax_best"] = eff_profile_r_eff_no_rmax(
+    fits_catalog["power_law_slope_best"],
+    fits_catalog["scale_radius_pc_best"],
+    fits_catalog["axis_ratio_best"],
+)
+
+# calculate the distribution of all effective radii in each case
 for row in fits_catalog:
     eta = row["power_law_slope"]
     a = row["scale_radius_pc"]

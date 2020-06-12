@@ -37,7 +37,7 @@ axs[1].hist(big_catalog["axis_ratio_median"], bin_size=0.05)
 axs[1].add_labels("Axis ratio", "Number of Clusters")
 axs[1].set_limits(0, 1)
 
-axs[2].hist(big_catalog["power_law_slope_median"], bin_size=0.1)
+axs[2].hist(big_catalog["power_law_slope_median"], bin_size=0.2)
 axs[2].add_labels("$\eta$ (Power Law Slope)", "Number of Clusters")
 axs[2].set_limits(0, 10)
 axs[2].axvline(1, ls=":")
