@@ -36,7 +36,7 @@ def pad(array, total_length):
     return final_array
 
 
-new_cols = [
+dist_cols = [
     "x_pix_single_fitted",
     "y_pix_single_fitted",
     "central_surface_brightness",
@@ -46,7 +46,7 @@ new_cols = [
     "power_law_slope",
     "local_background",
 ]
-for col in new_cols:
+for col in dist_cols:
     fits_catalog[col] = [unpad(row[col]) for row in fits_catalog]
 
 # ======================================================================================
@@ -59,6 +59,14 @@ a_pc = "scale_radius_pc"
 a_pix = "scale_radius_pixels"
 fits_catalog[f"{a_pc}_best"] = fits_catalog[f"{a_pix}_best"] * pixels_to_pc
 fits_catalog[a_pc] = [row[a_pix] * pixels_to_pc for row in fits_catalog]
+
+# ======================================================================================
+#
+# Calculate the medians of the ones with distributions
+#
+# ======================================================================================
+for col in dist_cols:
+    fits_catalog[col + "_median"] = [np.median(row[col]) for row in fits_catalog]
 
 # ======================================================================================
 #
@@ -125,9 +133,7 @@ for row in fits_catalog:
 # Then save the table
 #
 # ======================================================================================
-# first we have to pad everything back again.
-max_length = max([len(row["central_surface_brightness"]) for row in fits_catalog])
-for col in new_cols + ["scale_radius_pc"]:
-    fits_catalog[col] = [pad(row[col], max_length) for row in fits_catalog]
+# Delete the columns with distributions that we don't need anymore
+fits_catalog.remove_columns(dist_cols + ["scale_radius_pc"])
 
 fits_catalog.write(str(final_catalog_path), format="hdf5", overwrite=True)
