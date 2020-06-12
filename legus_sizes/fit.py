@@ -256,6 +256,10 @@ def create_good_mask_pixels(mask):
             if mask[y_idx][x_idx] == 1:
                 xs.append(x_idx)
                 ys.append(y_idx)
+    # if something is wrong, just return everything
+    if len(xs) == 0:
+        xs = [int(x) for x in range(mask.shape[1])]
+        ys = [int(y) for y in range(mask.shape[0])]
     return np.array(xs), np.array(ys)
 
 
@@ -293,7 +297,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         (0.3 * snapshot_size_oversampled, 0.7 * snapshot_size_oversampled),
         (0.3 * snapshot_size_oversampled, 0.7 * snapshot_size_oversampled),
         (0.1, snapshot_size_oversampled),  # scale radius in oversampled pixels
-        (0, 1),  # axis ratio
+        (0.01, 1),  # axis ratio
         (-np.pi, np.pi),  # position angle
         (0, None),  # power law slope
         (-np.max(data_snapshot), np.max(data_snapshot)),  # background
@@ -316,7 +320,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     param_history = [[] for _ in range(n_variables)]
     param_std_last = [np.inf for _ in range(n_variables)]
 
-    converge_criteria = 0.1
+    converge_criteria = 0.2
     converged = [False for _ in range(n_variables)]
     check_spacing = 10
     iteration = 0
