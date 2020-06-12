@@ -39,7 +39,7 @@ for item in sys.argv[1:]:
     path = Path(item)
     galaxy_name = path.parent.parent.name
     if galaxy_name in catalogs:
-        catalogs[galaxy_name] = table.Table.read(item, format="ascii.ecsv")
+        catalogs[galaxy_name] = table.Table.read(item, format="hdf5")
 
 # check that none of these are empty
 for key in catalogs:
@@ -91,17 +91,18 @@ limits = 0.3, 20
 fig, ax = bpl.subplots(figsize=[7, 7])
 for idx, (field, cat) in enumerate(matches.items()):
     ryon_eta = cat["Eta"]
-    my_eta = cat["power_law_slope"]
+    # my_eta = cat["power_law_slope_best"]
     ryon_mask = ryon_eta > 1.3
-    my_mask = my_eta > 1.3
-    mask = np.logical_and(ryon_mask, my_mask)
+    # my_mask = my_eta > 1.3
+    mask = ryon_mask  # np.logical_and(ryon_mask, my_mask)
 
     c = bpl.color_cycle[idx]
 
     ax.errorbar(
         cat["r_eff_Galfit"][mask],
-        cat["effective_radius_pc_no_rmax"][mask],
-        xerr=[cat[f"e_r_eff-_Galfit"][mask], cat[f"e_r_eff+_Galfit"][mask]],
+        cat["r_eff_pc_no_rmax_median"][mask],
+        xerr=[cat["e_r_eff-_Galfit"][mask], cat["e_r_eff+_Galfit"][mask]],
+        yerr=[cat["r_eff_pc_no_rmax_e-"][mask], cat["r_eff_pc_no_rmax_e+"][mask]],
         markerfacecolor=c,
         markeredgecolor=c,
         markersize=5,
