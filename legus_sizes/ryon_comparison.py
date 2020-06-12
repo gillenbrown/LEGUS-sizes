@@ -83,6 +83,34 @@ matches["ngc628-c"] = symmetric_match(
 
 # ======================================================================================
 #
+# Calculate RMS
+#
+# ======================================================================================
+total_rms = 0
+num_clusters = 0
+
+for field, cat in matches.items():
+    for row in cat:
+        if row["Eta"] > 1.3 and row["power_law_slope_best"] > 1.3:
+            my_r_eff = row["r_eff_pc_no_rmax_best"]
+            ryon_r_eff = row["r_eff_Galfit"]
+            if my_r_eff > ryon_r_eff:
+                ryon_err = row["e_r_eff+_Galfit"]
+                my_err = row["r_eff_pc_no_rmax_e-"]
+            else:
+                ryon_err = row["e_r_eff-_Galfit"]
+                my_err = row["r_eff_pc_no_rmax_e+"]
+
+            used_err = max(ryon_err, my_err)
+            diff = (my_r_eff - ryon_r_eff) / used_err
+            if diff < 30:
+                total_rms += ((my_r_eff - ryon_r_eff) / used_err) ** 2
+                num_clusters += 1
+
+normalized_rms = np.sqrt(total_rms / num_clusters)
+
+# ======================================================================================
+#
 # Making plots
 #
 # ======================================================================================
@@ -119,5 +147,6 @@ ax.set_limits(*limits, *limits)
 ax.plot(limits, limits, c=bpl.almost_black, lw=1, zorder=0)
 ax.equal_scale()
 ax.legend(loc=4)
+ax.easy_add_text(f"RMS = {normalized_rms:.3f}", "upper left")
 ax.add_labels("Cluster $R_{eff}$ [pc] - Ryon+ 2017", "Cluster $R_{eff}$ [pc] - Me")
 fig.savefig("comparison_plot.png")
