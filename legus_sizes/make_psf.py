@@ -102,13 +102,13 @@ psf_data = psf.data
 fig, ax = bpl.subplots()
 vmax = np.max(psf_data)
 vmin = np.min(psf_data)
-norm = colors.SymLogNorm(vmin=vmin, vmax=vmax, linthresh=abs(vmin))
+norm = colors.SymLogNorm(vmin=vmin, vmax=vmax, linthresh=max(abs(vmin), 0.001 * vmax))
 im = ax.imshow(psf_data, norm=norm, cmap=bpl.cm.lapaz)
 ax.remove_labels("both")
 ax.remove_spines(["all"])
 fig.colorbar(im, ax=ax)
 
-fig.savefig(size_home_dir / "psf.png", bbox_inches="tight")
+fig.savefig(size_home_dir / "plots" / "psf.png", bbox_inches="tight")
 
 # ======================================================================================
 #

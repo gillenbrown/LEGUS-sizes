@@ -17,7 +17,8 @@ bpl.set_style()
 # Load the catalogs that were passed in
 #
 # ======================================================================================
-catalogs = [table.Table.read(item, format="hdf5") for item in sys.argv[1:]]
+plot_name = sys.argv[1]
+catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[2:]]
 # then stack them together in one master catalog
 big_catalog = table.vstack(catalogs, join_type="inner")
 
@@ -46,4 +47,4 @@ axs[3].hist(big_catalog["num_boostrapping_iterations"], bin_size=5)
 axs[3].add_labels("Number of Bootstrapping Iterations", "Number of Clusters")
 axs[3].set_limits(0)
 
-fig.savefig("parameter_distribution.png")
+fig.savefig(plot_name)

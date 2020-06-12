@@ -2,6 +2,10 @@ data_home = /Users/gillenb/google_drive/research/legus/data
 # This directory should have nothing but directories with data
 # We'll do this complicated line that just gets all directories inside data_home
 data_dirs = $(sort $(dir $(wildcard $(data_home)/*/)))
+
+# then filter out the ones that Ryon used, to compare to those
+ryon_dirs = $(filter %ngc1313-e/ %ngc1313-w/ %ngc628-c/ %ngc628-e/, $(data_dirs))
+
 # ------------------------------------------------------------------------------
 #
 # Python scripts
@@ -14,6 +18,7 @@ psf_creation_script = ./legus_sizes/make_psf.py
 sigma_script = ./legus_sizes/make_sigma_image.py
 fitting_script = ./legus_sizes/fit.py
 final_catalog_script = ./legus_sizes/derived_properties.py
+final_catalog_script_no_mask = ./legus_sizes/derived_properties_ryon.py
 comparison_script = ./legus_sizes/ryon_comparison.py
 parameters_dist_script = ./legus_sizes/parameter_distribution.py
 
@@ -30,83 +35,52 @@ psf_oversampling_factor = 2
 # Directories to store data
 #
 # ------------------------------------------------------------------------------
-my_dirname = size
-cluster_fit_dirname = cluster_fit_plots
-dir_to_my_dir = $(1)$(my_dirname)/
-my_dirs = $(foreach dir,$(data_dirs),$(dir)$(my_dirname)) \
-          $(foreach dir,$(data_dirs),$(dir)$(my_dirname)/$(cluster_fit_dirname))
-
-
-# ------------------------------------------------------------------------------
-#
-# Cleaned cluster catalogs
-#
-# ------------------------------------------------------------------------------
-dir_to_catalog = $(1)$(my_dirname)/clean_catalog.txt
-all_catalogs = $(foreach dir,$(data_dirs),$(call dir_to_catalog,$(dir)))
+my_dirname = size/
+my_dirs = $(foreach dir,$(data_dirs),$(dir)$(my_dirname))
+my_dirs_ryon = $(foreach dir,$(ryon_dirs),$(dir)$(my_dirname))
+all_my_dirs = $(my_dirs) \
+              $(foreach dir,$(my_dirs),$(dir)cluster_fit_plots) \
+              $(foreach dir,$(my_dirs),$(dir)plots)
 
 # ------------------------------------------------------------------------------
 #
-# List of stars eligible to be put into the PSF
+# All the filenames I'll produce
 #
 # ------------------------------------------------------------------------------
-dir_to_v1_star_list = $(1)$(my_dirname)/preliminary_stars.txt
-all_v1_star_lists = $(foreach dir,$(data_dirs),$(call dir_to_v1_star_list,$(dir)))
-v1_star_list_to_catalog = $(subst preliminary_stars.txt,clean_catalog.txt,$(1))
+cat = clean_catalog.txt
+star_prelim = preliminary_stars.txt
+star_psf = psf_stars.txt
+psf = psf.fits
+sigma_image = sigma_electrons.fits
+fit = cluster_fits.h5
+fit_no_mask = cluster_fits_no_masking.h5
+final_cat = final_catalog.txt
+final_cat_no_mask = final_catalog_no_masking.txt
 
 # ------------------------------------------------------------------------------
 #
-# User-selected stars to make the PSF
+# Put all these files in each of these directories
 #
 # ------------------------------------------------------------------------------
-dir_to_psf_star_list = $(1)$(my_dirname)/psf_stars.txt
-all_psf_star_lists = $(foreach dir,$(data_dirs),$(call dir_to_psf_star_list,$(dir)))
-psf_star_list_to_v1_list = $(subst psf_stars.txt,preliminary_stars.txt,$(1))
+catalogs = $(foreach dir,$(my_dirs),$(dir)$(cat))
+v1_star_lists = $(foreach dir,$(my_dirs),$(dir)$(star_prelim))
+psf_star_lists = $(foreach dir,$(my_dirs),$(dir)$(star_psf))
+psfs = $(foreach dir,$(my_dirs),$(dir)$(psf))
+sigma_images = $(foreach dir,$(my_dirs),$(dir)$(sigma_image))
+fits = $(foreach dir,$(my_dirs),$(dir)$(fit))
+fits_no_mask = $(foreach dir,$(my_dirs_ryon),$(dir)$(fit_no_mask))
+final_cats = $(foreach dir,$(my_dirs),$(dir)$(final_cat))
+final_cats_no_mask = $(foreach dir,$(my_dirs_ryon),$(dir)$(final_cat_no_mask))
 
 # ------------------------------------------------------------------------------
 #
-# The PSF itself
-#
-# ------------------------------------------------------------------------------
-dir_to_psf = $(1)$(my_dirname)/psf.fits
-all_psfs = $(foreach dir,$(data_dirs),$(call dir_to_psf,$(dir)))
-psf_to_star_list = $(subst psf.fits,psf_stars.txt,$(1))
-
-# ------------------------------------------------------------------------------
-#
-# The sigma image
-#
-# ------------------------------------------------------------------------------
-dir_to_sigma = $(1)$(my_dirname)/sigma_electrons.fits
-all_sigmas = $(foreach dir,$(data_dirs),$(call dir_to_sigma,$(dir)))
-
-# ------------------------------------------------------------------------------
-#
-# The fitted parameters of the clusters
-#
-# ------------------------------------------------------------------------------
-dir_to_fits = $(1)$(my_dirname)/cluster_fits.h5
-all_fits = $(foreach dir,$(data_dirs),$(call dir_to_fits,$(dir)))
-fits_to_psf = $(subst cluster_fits.h5,psf.fits,$(1))
-fits_to_sigma = $(subst cluster_fits.h5,sigma_electrons.fits,$(1))
-fits_to_catalog = $(subst cluster_fits.h5,clean_catalog.txt,$(1))
-
-# ------------------------------------------------------------------------------
-#
-# The full value-added catalogs
-#
-# ------------------------------------------------------------------------------
-dir_to_final_cat = $(1)$(my_dirname)/final_catalogs.h5
-all_final_cats = $(foreach dir,$(data_dirs),$(call dir_to_final_cat,$(dir)))
-final_cat_to_fits = $(subst final_catalogs.h5,cluster_fits.h5,$(1))
-
-# ------------------------------------------------------------------------------
-#
-# Various plots
+# Various plots that will be here in this directory
 #
 # ------------------------------------------------------------------------------
 comparison_plot = comparison_plot.png
 param_dist_plot = parameter_distribution.png
+param_dist_plot_no_mask = parameter_distribution_ryon_galaxies.png
+plots = $(comparison_plot) $(param_dist_plot) $(param_dist_plot_no_mask)
 
 # ------------------------------------------------------------------------------
 #
@@ -115,23 +89,28 @@ param_dist_plot = parameter_distribution.png
 # ------------------------------------------------------------------------------
 # https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
 
-all: $(my_dirs) $(comparison_plot) $(param_dist_plot)
+all: $(all_my_dirs) $(plots)
 
-# When we clean we will only clean the things after the user has selected the
-# stars, since that's such a hassle
+# When we clean we will only clean the things after the fitting, since that
+# takes so long
 .PHONY: clean
 clean:
-	rm $(all_psfs) $(all_sigmas) $(all_fits)
+	rm $(final_cats) $(final_cats_no_mask) $(plots)
 
-# but if they really want to nuke that too they can
+# have another option to remove the fits too, just not the PSFs
+.PHONY: clean_fits
+clean_fits:
+	rm $(fits) $(fits_no_mask) $(final_cats) $(final_cats_no_mask) $(plots)
+
+# but if they really want to nuke everything too they can
 .PHONY: clean_all
 clean_all:
 	rm -r $(my_dirs)
 
-$(my_dirs):
+$(all_my_dirs):
 	mkdir $@
 
-$(all_catalogs): $(catalog_script)
+$(catalogs): $(catalog_script)
 	python $(catalog_script) $@
 
 # First make a preliminary list of stars, which we'll then give to the user to
@@ -140,8 +119,8 @@ $(all_catalogs): $(catalog_script)
 # one of the clusters from our selection of stars.
 # To do this we use SECONDEXPANSION, and turn the star list into a catalog name
 .SECONDEXPANSION:
-$(all_v1_star_lists): %: $$(call v1_star_list_to_catalog, %) $(v1_star_list_script)
-	python $(v1_star_list_script) $@ $(call v1_star_list_to_catalog, $@) $(psf_pixel_size)
+$(v1_star_lists): %: $$(dir %)$$(cat) $(v1_star_list_script)
+	python $(v1_star_list_script) $@ $(dir $@)$(cat) $(psf_pixel_size)
 
 # Creating the actual list of PSF stars requires user input.
 # note that there's no dependency on the script itself here. That's becuase I
@@ -149,32 +128,43 @@ $(all_v1_star_lists): %: $$(call v1_star_list_to_catalog, %) $(v1_star_list_scri
 # selection, since it's tedious. If I need to remake these, just delete the
 # files
 .SECONDEXPANSION:
-$(all_psf_star_lists): %: $$(call psf_star_list_to_v1_list, %)
-	python $(psf_star_list_script) $@ $(call psf_star_list_to_v1_list, $@) $(psf_pixel_size)
+$(psf_star_lists): %: $$(dir %)$$(star_prelim)
+	python $(psf_star_list_script) $@ $(dir $@)$(star_prelim) $(psf_pixel_size)
 
 # The PSF creation depends on the PSF star lists
 .SECONDEXPANSION:
-$(all_psfs): %: $$(call psf_to_star_list, %) $(psf_creation_script)
-	python $(psf_creation_script) $@ $(call psf_to_star_list, $@) $(psf_oversampling_factor) $(psf_pixel_size)
+$(psfs): %: $$(dir %)$$(star_psf) $(psf_creation_script)
+	python $(psf_creation_script) $@ $(dir $@)$(star_psf) $(psf_oversampling_factor) $(psf_pixel_size)
 
 # The first step in the fitting is the creation of the sigma image
-$(all_sigmas): $(sigma_script)
+$(sigma_images): $(sigma_script)
 	python $(sigma_script) $@
 
 # Then we can actually do the fitting, which depends on
 # the sigma image, psf, and cluster catalog
 .SECONDEXPANSION:
-$(all_fits): %: $(fitting_script) $$(call fits_to_psf, %) $$(call fits_to_sigma, %) $$(call fits_to_catalog, %)
-	python $(fitting_script) $@ $(call fits_to_psf, $@) $(psf_oversampling_factor) $(call fits_to_sigma, $@) $(call fits_to_catalog, $@)
+$(fits): %: $(fitting_script) $$(dir %)$$(psf) $$(dir %)$$(sigma_image) $$(dir %)$$(cat)
+	python $(fitting_script) $@ $(dir $@)$(psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat)
+
+# for the no masking case we pass an extra parameter
+$(fits_no_mask): %: $(fitting_script) $$(dir %)$$(psf) $$(dir %)$$(sigma_image) $$(dir %)$$(cat)
+	python $(fitting_script) $@ $(dir $@)$(psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat) ryon_like
 
 # Add the derived properties to these catalogs
 .SECONDEXPANSION:
-$(all_final_cats): %: $(final_catalog_script) $$(call final_cat_to_fits, %)
-	python $(final_catalog_script) $@ $(call final_cat_to_fits, $@)
+$(final_cats): %: $(final_catalog_script) $$(dir %)$$(fit)
+	python $(final_catalog_script) $@ $(dir $@)$(fit)
+
+.SECONDEXPANSION:
+$(final_cats_no_mask): %: $(final_catalog_script_no_mask) $$(dir %)$$(fit_no_mask)
+	python $(final_catalog_script_no_mask) $@ $(dir $@)$(fit_no_mask)
 
 # Make the comparison to Ryon+17's results
-$(comparison_plot): $(comparison_script) $(all_final_cats)
-	python $(comparison_script) $(all_final_cats)
+$(comparison_plot): $(comparison_script) $(final_cats_no_mask)
+	python $(comparison_script) $(final_cats_no_mask)
 
-$(param_dist_plot): $(parameters_dist_script) $(all_final_cats)
-	python $(parameters_dist_script) $(all_final_cats)
+$(param_dist_plot): $(parameters_dist_script) $(final_cats)
+	python $(parameters_dist_script) $@ $(final_cats)
+
+$(param_dist_plot_no_mask): $(parameters_dist_script) $(final_cats_no_mask)
+	python $(parameters_dist_script) $@ $(final_cats_no_mask)

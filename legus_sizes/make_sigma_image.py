@@ -50,7 +50,7 @@ ax.axvline(mean + sigma_sky, ls=":", label="Mean $\pm \sigma_{sky}$")
 ax.axvline(mean - sigma_sky, ls=":")
 ax.add_labels("Pixel Values [electrons]", "Number of Pixels")
 ax.legend()
-fig.savefig(size_dir / "sky_noise_debug.png")
+fig.savefig(size_dir / "plots" / "sky_noise_debug.png")
 
 # ======================================================================================
 #

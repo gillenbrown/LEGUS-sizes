@@ -77,19 +77,15 @@ def ellipticy_correction(q):
     return (1 + q) / 2.0
 
 
-def eff_profile_r_eff_with_rmax(eta, a, rmax, q):
+def eff_profile_r_eff_no_rmax(eta, a, q):
     """
-    Calculate the effective radius of an EFF profile, assuming a maximum radius.
+    Calculate the effective radius of an EFF profile assuming to maximum radius
 
     :param eta: Power law slope of the EFF profile
-    :param a: Scale radius of the EFF profile, in any units.
-    :param rmax: Maximum radius for the profile, in the same units as a.
-    :return: Effective radius, in the same units as a and rmax
+    :param a: Scale radius of the EFF profile.
+    :return: Effective radius of the EFF profile, in whatever units a is in.
     """
-    # This is such an ugly formula, put it in a few steps
-    term_1 = 1 + (1 + (rmax / a) ** 2) ** (1 - eta)
-    term_2 = (0.5 * (term_1)) ** (1 / (1 - eta)) - 1
-    return ellipticy_correction(q) * a * np.sqrt(term_2)
+    return ellipticy_correction(q) * a * np.sqrt(2 ** (1 / (eta - 1)) - 1)
 
 
 # ======================================================================================
@@ -98,16 +94,15 @@ def eff_profile_r_eff_with_rmax(eta, a, rmax, q):
 #
 # ======================================================================================
 # add the columns we want to the table
-fits_catalog["r_eff_pc_rmax_100pc_median"] = -99.9
-fits_catalog["r_eff_pc_rmax_100pc_e+"] = -99.9
-fits_catalog["r_eff_pc_rmax_100pc_e-"] = -99.9
+fits_catalog["r_eff_pc_no_rmax_median"] = -99.9
+fits_catalog["r_eff_pc_no_rmax_e+"] = -99.9
+fits_catalog["r_eff_pc_no_rmax_e-"] = -99.9
 
 # first calculate the best fit value
-fits_catalog["r_eff_pc_no_rmax_best"] = eff_profile_r_eff_with_rmax(
+fits_catalog["r_eff_pc_no_rmax_best"] = eff_profile_r_eff_no_rmax(
     fits_catalog["power_law_slope_best"],
     fits_catalog["scale_radius_pc_best"],
     fits_catalog["axis_ratio_best"],
-    100,
 )
 
 # calculate the distribution of all effective radii in each case
@@ -115,12 +110,12 @@ for row in fits_catalog:
     eta = row["power_law_slope"]
     a = row["scale_radius_pc"]
     q = row["axis_ratio"]
-    all_r_eff_no_max = eff_profile_r_eff_with_rmax(eta, a, q, 100)
+    all_r_eff_no_max = eff_profile_r_eff_no_rmax(eta, a, q)
 
     low, med, hi = np.percentile(all_r_eff_no_max, [15.85, 50, 84.15])
-    row["r_eff_pc_rmax_100pc_median"] = med
-    row["r_eff_pc_rmax_100pc_e+"] = hi - med
-    row["r_eff_pc_rmax_100pc_e-"] = med - low
+    row["r_eff_pc_no_rmax_median"] = med
+    row["r_eff_pc_no_rmax_e+"] = hi - med
+    row["r_eff_pc_no_rmax_e-"] = med - low
 
 # ======================================================================================
 #

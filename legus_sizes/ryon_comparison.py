@@ -39,7 +39,7 @@ for item in sys.argv[1:]:
     path = Path(item)
     galaxy_name = path.parent.parent.name
     if galaxy_name in catalogs:
-        catalogs[galaxy_name] = table.Table.read(item, format="hdf5")
+        catalogs[galaxy_name] = table.Table.read(item, format="ascii.ecsv")
 
 # check that none of these are empty
 for key in catalogs:
