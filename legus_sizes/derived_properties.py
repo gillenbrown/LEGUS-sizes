@@ -51,17 +51,6 @@ for col in dist_cols:
 
 # ======================================================================================
 #
-# Convert pixels to pc
-#
-# ======================================================================================
-pixels_to_pc = utils.get_f555w_pixel_scale_pc(final_catalog_path.parent.parent)
-a_pc = "scale_radius_pc"
-a_pix = "scale_radius_pixels"
-fits_catalog[f"{a_pc}_best"] = fits_catalog[f"{a_pix}_best"] * pixels_to_pc
-fits_catalog[a_pc] = [row[a_pix] * pixels_to_pc for row in fits_catalog]
-
-# ======================================================================================
-#
 # Calculate the errors of the ones with distributions
 #
 # ======================================================================================
@@ -104,27 +93,61 @@ def eff_profile_r_eff_with_rmax(eta, a, rmax, q):
 #
 # ======================================================================================
 # add the columns we want to the table
-fits_catalog["r_eff_pc_rmax_100pc_e+"] = -99.9
-fits_catalog["r_eff_pc_rmax_100pc_e-"] = -99.9
+fits_catalog["r_eff_pixels_rmax_15pix_e+"] = -99.9
+fits_catalog["r_eff_pixels_rmax_15pix_e-"] = -99.9
+fits_catalog["r_eff_pc_rmax_15pix_best"] = -99.9
+fits_catalog["r_eff_pc_rmax_15pix_e+"] = -99.9
+fits_catalog["r_eff_pc_rmax_15pix_e-"] = -99.9
+fits_catalog["r_eff_pc_rmax_15pix_e+_with_dist"] = -99.9
+fits_catalog["r_eff_pc_rmax_15pix_e-_with_dist"] = -99.9
 
 # first calculate the best fit value
-fits_catalog["r_eff_pc_rmax_100pc_best"] = eff_profile_r_eff_with_rmax(
+fits_catalog["r_eff_pixels_rmax_15pix_best"] = eff_profile_r_eff_with_rmax(
     fits_catalog["power_law_slope_best"],
-    fits_catalog["scale_radius_pc_best"],
+    fits_catalog["scale_radius_pixels_best"],
     fits_catalog["axis_ratio_best"],
-    100,
+    15,  # size of the box
 )
 
 # calculate the distribution of all effective radii in each case
 for row in fits_catalog:
-    eta = row["power_law_slope"]
-    a = row["scale_radius_pc"]
-    q = row["axis_ratio"]
-    all_r_eff_no_max = eff_profile_r_eff_with_rmax(eta, a, q, 100)
+    # Calculate the effective radius in pixels for all bootstrapping iterations
+    all_r_eff_pixels = eff_profile_r_eff_with_rmax(
+        row["power_law_slope"],
+        row["scale_radius_pixels"],
+        row["axis_ratio"],
+        15,  # size of the box
+    )
+    # then get the 1 sigma error range of that
+    low, hi = np.percentile(all_r_eff_pixels, [15.85, 84.15])
+    # subtract the middle to get the error range
+    row["r_eff_pixels_rmax_15pix_e+"] = hi - row["r_eff_pixels_rmax_15pix_best"]
+    row["r_eff_pixels_rmax_15pix_e-"] = row["r_eff_pixels_rmax_15pix_best"] - low
 
-    low, hi = np.percentile(all_r_eff_no_max, [15.85, 84.15])
-    row["r_eff_pc_rmax_100pc_e+"] = hi - row["r_eff_pc_rmax_100pc_best"]
-    row["r_eff_pc_rmax_100pc_e-"] = row["r_eff_pc_rmax_100pc_best"] - low
+    # Then we can convert to pc. First do it without including distance errors
+    best, low_e, high_e = utils.pixels_to_pc_with_errors(
+        final_catalog_path.parent.parent,
+        row["r_eff_pixels_rmax_15pix_best"],
+        row["r_eff_pixels_rmax_15pix_e-"],
+        row["r_eff_pixels_rmax_15pix_e+"],
+        include_distance_err=False,
+    )
+
+    row["r_eff_pc_rmax_15pix_best"] = best
+    row["r_eff_pc_rmax_15pix_e+"] = high_e
+    row["r_eff_pc_rmax_15pix_e-"] = low_e
+
+    # Then recalculate the errors including the distance errors
+    _, low_e, high_e = utils.pixels_to_pc_with_errors(
+        final_catalog_path.parent.parent,
+        row["r_eff_pixels_rmax_15pix_best"],
+        row["r_eff_pixels_rmax_15pix_e-"],
+        row["r_eff_pixels_rmax_15pix_e+"],
+        include_distance_err=True,
+    )
+
+    row["r_eff_pc_rmax_15pix_e+_with_dist"] = high_e
+    row["r_eff_pc_rmax_15pix_e-_with_dist"] = low_e
 
 # ======================================================================================
 #
@@ -132,6 +155,6 @@ for row in fits_catalog:
 #
 # ======================================================================================
 # Delete the columns with distributions that we don't need anymore
-fits_catalog.remove_columns(dist_cols + ["scale_radius_pc"])
+fits_catalog.remove_columns(dist_cols)
 
 fits_catalog.write(str(final_catalog_path), format="ascii.ecsv", overwrite=True)
