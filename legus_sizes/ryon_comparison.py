@@ -103,7 +103,7 @@ for field, cat in matches.items():
 
             used_err = max(ryon_err, my_err)
             diff = (my_r_eff - ryon_r_eff) / used_err
-            if diff < 30:
+            if diff < 10:
                 total_rms += ((my_r_eff - ryon_r_eff) / used_err) ** 2
                 num_clusters += 1
 
@@ -119,16 +119,16 @@ limits = 0.3, 20
 fig, ax = bpl.subplots(figsize=[7, 7])
 for idx, (field, cat) in enumerate(matches.items()):
     ryon_eta = cat["Eta"]
-    # my_eta = cat["power_law_slope_best"]
+    my_eta = cat["power_law_slope_best"]
     ryon_mask = ryon_eta > 1.3
-    # my_mask = my_eta > 1.3
-    mask = ryon_mask  # np.logical_and(ryon_mask, my_mask)
+    my_mask = my_eta > 1.3
+    mask = np.logical_and(ryon_mask, my_mask)
 
     c = bpl.color_cycle[idx]
 
     ax.errorbar(
         x=cat["r_eff_Galfit"][mask],
-        y=cat["r_eff_pc_no_rmax_median"][mask],
+        y=cat["r_eff_pc_no_rmax_best"][mask],
         xerr=[cat["e_r_eff-_Galfit"][mask], cat["e_r_eff+_Galfit"][mask]],
         yerr=[cat["r_eff_pc_no_rmax_e-"][mask], cat["r_eff_pc_no_rmax_e+"][mask]],
         markerfacecolor=c,
@@ -150,3 +150,37 @@ ax.legend(loc=4)
 ax.easy_add_text(f"RMS = {normalized_rms:.3f}", "upper left")
 ax.add_labels("Cluster $R_{eff}$ [pc] - Ryon+ 2017", "Cluster $R_{eff}$ [pc] - Me")
 fig.savefig("comparison_plot.png")
+
+# ======================================================================================
+#
+# Comparing eta - a very relevant comparison, as it strongly affects r_eff
+#
+# ======================================================================================
+# First we'll make a straight comparison
+limits = [0.9, 10]
+fig, ax = bpl.subplots(figsize=[7, 7])
+for idx, (field, cat) in enumerate(matches.items()):
+    c = bpl.color_cycle[idx]
+
+    ax.errorbar(
+        x=cat["Eta"],
+        y=cat["power_law_slope_best"],
+        xerr=cat["e_Eta"],
+        yerr=[cat["power_law_slope_e-"], cat["power_law_slope_e+"]],
+        markerfacecolor=c,
+        markeredgecolor=c,
+        markersize=5,
+        ecolor=c,
+        label=field.upper(),
+        elinewidth=0.5,
+        zorder=2,
+    )
+
+ax.set_limits(*limits, *limits)
+ax.plot(limits, limits, c=bpl.almost_black, lw=1, zorder=0)
+ax.set_yscale("log")
+ax.set_xscale("log")
+ax.equal_scale()
+ax.legend(loc=4)
+ax.add_labels("$\eta$ - Ryon+ 2017", "$\eta$  - Me")
+fig.savefig("comparison_plot_eta.png")

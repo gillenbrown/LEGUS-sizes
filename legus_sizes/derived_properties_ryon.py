@@ -62,11 +62,17 @@ fits_catalog[a_pc] = [row[a_pix] * pixels_to_pc for row in fits_catalog]
 
 # ======================================================================================
 #
-# Calculate the medians of the ones with distributions
+# Calculate the errors of the ones with distributions
 #
 # ======================================================================================
 for col in dist_cols:
-    fits_catalog[col + "_median"] = [np.median(row[col]) for row in fits_catalog]
+    fits_catalog[col + "_e+"] = -99.9
+    fits_catalog[col + "_e-"] = -99.9
+    for row in fits_catalog:
+        low, hi = np.percentile(row[col], [15.85, 84.15])
+        med = row[col + "_best"]
+        row[col + "_e+"] = hi - med
+        row[col + "_e-"] = med - low
 
 # ======================================================================================
 #
@@ -94,7 +100,6 @@ def eff_profile_r_eff_no_rmax(eta, a, q):
 #
 # ======================================================================================
 # add the columns we want to the table
-fits_catalog["r_eff_pc_no_rmax_median"] = -99.9
 fits_catalog["r_eff_pc_no_rmax_e+"] = -99.9
 fits_catalog["r_eff_pc_no_rmax_e-"] = -99.9
 
@@ -112,10 +117,9 @@ for row in fits_catalog:
     q = row["axis_ratio"]
     all_r_eff_no_max = eff_profile_r_eff_no_rmax(eta, a, q)
 
-    low, med, hi = np.percentile(all_r_eff_no_max, [15.85, 50, 84.15])
-    row["r_eff_pc_no_rmax_median"] = med
-    row["r_eff_pc_no_rmax_e+"] = hi - med
-    row["r_eff_pc_no_rmax_e-"] = med - low
+    low, hi = np.percentile(all_r_eff_no_max, [15.85, 84.15])
+    row["r_eff_pc_no_rmax_e+"] = hi - row["r_eff_pc_no_rmax_best"]
+    row["r_eff_pc_no_rmax_e-"] = row["r_eff_pc_no_rmax_best"] - low
 
 # ======================================================================================
 #

@@ -30,15 +30,15 @@ big_catalog = table.vstack(catalogs, join_type="inner")
 fig, axs = bpl.subplots(ncols=2, nrows=2, figsize=[10, 10])
 axs = axs.flatten()
 
-axs[0].hist(big_catalog["scale_radius_pixels_median"], bin_size=1)
+axs[0].hist(big_catalog["scale_radius_pixels_best"], bin_size=1)
 axs[0].add_labels("Scale Radius [pixels]", "Number of Clusters")
 axs[0].set_limits(0)
 
-axs[1].hist(big_catalog["axis_ratio_median"], bin_size=0.05)
+axs[1].hist(big_catalog["axis_ratio_best"], bin_size=0.05)
 axs[1].add_labels("Axis ratio", "Number of Clusters")
 axs[1].set_limits(0, 1)
 
-axs[2].hist(big_catalog["power_law_slope_median"], bin_size=0.2)
+axs[2].hist(big_catalog["power_law_slope_best"], bin_size=0.2)
 axs[2].add_labels("$\eta$ (Power Law Slope)", "Number of Clusters")
 axs[2].set_limits(0, 10)
 axs[2].axvline(1, ls=":")
