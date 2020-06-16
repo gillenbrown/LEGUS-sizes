@@ -359,9 +359,9 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     param_history = [[] for _ in range(n_variables)]
     param_std_last = [np.inf for _ in range(n_variables)]
 
-    converge_criteria = 0.1
+    converge_criteria = 0.2
     converged = [False for _ in range(n_variables)]
-    check_spacing = 20
+    check_spacing = 10
     iteration = 0
     while not all(converged):
         iteration += 1
