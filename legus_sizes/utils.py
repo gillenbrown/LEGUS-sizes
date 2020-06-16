@@ -35,8 +35,17 @@ def get_f555w_drc_image(home_dir):
     return image_data, instrument
 
 
+# Set up dictionary to use as a cache to make this faster
+pixel_scale_arcsec_cache = {}
+
+
 def get_f555w_pixel_scale_arcsec(home_dir):
     """ Get the pixel scale in arcseconds per pixel """
+    try:
+        return pixel_scale_arcsec_cache[home_dir]
+    except KeyError:
+        pass
+
     image, _ = _get_f555w_image(home_dir)
     image_wcs = wcs.WCS(image.header)
     pix_scale = (
@@ -45,7 +54,11 @@ def get_f555w_pixel_scale_arcsec(home_dir):
 
     # both of these should be the same
     assert np.isclose(pix_scale[0], pix_scale[1], rtol=1e-4, atol=0)
-    return pix_scale[0].to("arcsecond").value
+
+    r_value = pix_scale[0].to("arcsecond").value
+    # add this to the cache
+    pixel_scale_arcsec_cache[home_dir] = r_value
+    return r_value
 
 
 def get_f555w_pixel_scale_pc(home_dir):
