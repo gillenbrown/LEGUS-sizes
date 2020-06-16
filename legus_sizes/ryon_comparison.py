@@ -8,6 +8,8 @@ from sinistra.astropy_helpers import symmetric_match
 
 bpl.set_style()
 
+
+plot_dir = Path(sys.argv[1])
 # ======================================================================================
 #
 # Load the various catalogs
@@ -35,7 +37,7 @@ for cat in [ryon_628, ryon_1313]:
 
 # Go through all the cluster catalogs that are passed in, and get the ones we need
 catalogs = {"ngc1313-e": None, "ngc1313-w": None, "ngc628-c": None, "ngc628-e": None}
-for item in sys.argv[1:]:
+for item in sys.argv[2:]:
     path = Path(item)
     galaxy_name = path.parent.parent.name
     if galaxy_name in catalogs:
@@ -152,7 +154,7 @@ ax.equal_scale()
 ax.legend(loc=4)
 ax.easy_add_text(f"RMS = {normalized_rms:.3f}", "upper left")
 ax.add_labels("Cluster $R_{eff}$ [pc] - Ryon+ 2017", "Cluster $R_{eff}$ [pc] - Me")
-fig.savefig("comparison_plot.png")
+fig.savefig(plot_dir / "comparison_plot.png")
 
 # ======================================================================================
 #
@@ -186,4 +188,4 @@ ax.set_xscale("log")
 ax.equal_scale()
 ax.legend(loc=4)
 ax.add_labels("$\eta$ - Ryon+ 2017", "$\eta$  - Me")
-fig.savefig("comparison_plot_eta.png")
+fig.savefig(plot_dir / "comparison_plot_eta.png")
