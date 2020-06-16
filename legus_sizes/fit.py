@@ -274,18 +274,15 @@ def create_good_mask_pixels(mask):
 
 
 def create_plot_name(id, bootstrapping_iteration=None):
-    if bootstrapping_iteration is None:
-        name = "best_fit_"
-    else:
-        name = "bootstrapping_"
+    name = f"{id:04}"
 
     if ryon_like:
         name += "ryon_like_"
 
-    name += f"{id:04}"
-
-    if bootstrapping_iteration is not None:
-        name += f"_i{bootstrapping_iteration:04}"
+    if bootstrapping_iteration is None:
+        name += "best_fit_"
+    else:
+        name += f"bootstrapping_i{bootstrapping_iteration:04}"
 
     return name + ".png"
 
