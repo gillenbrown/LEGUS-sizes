@@ -112,7 +112,7 @@ def find_catalogs(home_dir):
             "_multiband_v1_padagb-mwext-avgapcor.tab"
         ):
             catalog = item
-            header = item.with_suffix(".readme.txt")
+            header = item.with_suffix(".readme")
             return catalog, header
 
 

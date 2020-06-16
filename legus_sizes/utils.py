@@ -8,12 +8,11 @@ def _get_f555w_image(home_dir):
     # then we have to find the image we need. This will be in the drc directory, but the
     # exact name is uncertain
     galaxy_name = home_dir.name
-    image_dir = home_dir / f"{galaxy_name}_drc"
     # it could be one of two instruments: ACS or UVIS.
     for instrument in ["acs", "uvis"]:
         image_name = f"hlsp_legus_hst_{instrument}_{galaxy_name}_f555w_v1_drc.fits"
         try:  # to load the image
-            hdu_list = fits.open(image_dir / image_name)
+            hdu_list = fits.open(home_dir / image_name)
             # if it works break out of this
             break
         except FileNotFoundError:
