@@ -103,21 +103,22 @@ plots = $(comparison_plot) $(param_dist_plot) $(param_dist_plot_no_mask)
 all: $(all_my_dirs) $(plots)
 
 # When we clean we will only clean the things after the fitting, since that
-# takes so long
+# takes so long. The "or true" thing there stops make from throwing an error
+# if the files we try to remove don't exist
 .PHONY: clean
 clean:
-	rm $(final_cats) $(final_cats_no_mask) $(plots)
+	rm $(final_cats) $(final_cats_no_mask) $(plots) || true
 
 # have another option to remove the fits too, just not the PSFs
 .PHONY: clean_fits
 clean_fits:
-	rm -r $(fits) $(fits_no_mask) $(cluster_fit_dirs)
+	rm -r $(fits) $(fits_no_mask) $(cluster_fit_dirs) || true
 	make clean
 
 # but if they really want to nuke everything too they can
 .PHONY: clean_all
 clean_all:
-	rm -r $(my_dirs)
+	rm -r $(my_dirs) || true
 
 $(all_my_dirs):
 	mkdir $@
