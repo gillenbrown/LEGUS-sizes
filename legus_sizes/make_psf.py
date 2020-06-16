@@ -71,7 +71,7 @@ for ax, cutout in zip(axs, star_cutouts):
     vmax = np.max(cutout)
     vmin = -5 * noise
     linthresh = max(0.01 * vmax, 5 * noise)
-    norm = colors.SymLogNorm(vmin=vmin, vmax=vmax * 2, linthresh=linthresh)
+    norm = colors.SymLogNorm(vmin=vmin, vmax=vmax * 2, linthresh=linthresh, base=10)
     im = ax.imshow(cutout, norm=norm, cmap=bpl.cm.lapaz)
     ax.remove_labels("both")
     ax.remove_spines(["all"])
