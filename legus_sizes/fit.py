@@ -568,7 +568,14 @@ def radial_profile(ax, model_psf_bin_snapshot, data_snapshot, mask, x_c, y_c):
 
     ax.legend(loc="upper center")
     ax.add_labels("Radius (pixels)", "Pixel Value [$e^{-}$]")
-    ax.set_limits(x_min=0)
+    # set min and max values so it's easier to flip through bootstrapping plots
+    y_min = np.min(data_snapshot)
+    y_max = np.max(data_snapshot)
+    # give them a bit of padding
+    diff = y_max - y_min
+    y_min -= 0.1 * diff
+    y_max += 0.1 * diff
+    ax.set_limits(x_min=0, x_max=25, y_min=y_min, y_max=y_max)
 
 
 # ======================================================================================
