@@ -1,4 +1,14 @@
-data_home = /Users/gillenb/google_drive/research/legus/data
+# Figure out what machine we're on
+hostname = $(shell hostname)
+# Then match this to my machines.
+# findstring returns the matching part of the string. If it's not empty when
+# we try to find the shangrila hostname, we know we're on shangrila
+ifneq (,$(findstring shangrila,$(hostname)))
+    data_home = /Users/gillenb/google_drive/research/legus/data
+endif
+ifneq (,$(findstring gillenb-mbp,$(hostname)))
+    data_home = /Users/gillenb/google_drive/research/legus/data
+endif
 # This directory should have nothing but directories with data
 # We'll do this complicated line that just gets all directories inside data_home
 data_dirs = $(sort $(dir $(wildcard $(data_home)/*/)))
