@@ -1,0 +1,1 @@
+rsync -av --exclude '*drc.fits' --exclude '*tar.gz' --exclude '*padagb-mwext-avgapcor*' --exclude '*.png' /Users/gillenb/google_drive/research/legus/data/* gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/
