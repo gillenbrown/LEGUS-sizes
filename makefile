@@ -4,7 +4,7 @@ hostname = $(shell hostname)
 # findstring returns the matching part of the string. If it's not empty when
 # we try to find the shangrila hostname, we know we're on shangrila
 ifneq (,$(findstring shangrila,$(hostname)))
-    data_home = /Users/gillenb/google_drive/research/legus/data
+    data_home = /u/home/gillenb/legus
 endif
 ifneq (,$(findstring gillenb-mbp,$(hostname)))
     data_home = /Users/gillenb/google_drive/research/legus/data

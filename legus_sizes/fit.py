@@ -361,7 +361,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
 
     converge_criteria = 0.1
     converged = [False for _ in range(n_variables)]
-    check_spacing = 10
+    check_spacing = 20
     iteration = 0
     while not all(converged):
         iteration += 1
