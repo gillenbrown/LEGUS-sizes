@@ -48,11 +48,10 @@ psf_oversampling_factor = 2
 my_dirname = size/
 my_dirs = $(foreach dir,$(data_dirs),$(dir)$(my_dirname))
 my_dirs_ryon = $(foreach dir,$(ryon_dirs),$(dir)$(my_dirname))
-plots_dir = ./plots/
-all_my_dirs = $(my_dirs) \
-              $(foreach dir,$(my_dirs),$(dir)cluster_fit_plots) \
-              $(foreach dir,$(my_dirs),$(dir)plots) \
-              $(plots_dir)
+cluster_fit_dirs = $(foreach dir,$(my_dirs),$(dir)cluster_fit_plots)
+cluster_plot_dirs = $(foreach dir,$(my_dirs),$(dir)plots)
+local_plots_dir = ./plots/
+all_my_dirs = $(my_dirs) $(cluster_fit_dirs) $(cluster_plot_dirs) $(local_plots_dir)
 
 # ------------------------------------------------------------------------------
 #
@@ -89,9 +88,9 @@ final_cats_no_mask = $(foreach dir,$(my_dirs_ryon),$(dir)$(final_cat_no_mask))
 # Various plots that will be here in this directory
 #
 # ------------------------------------------------------------------------------
-comparison_plot = $(plots_dir)comparison_plot.png
-param_dist_plot = $(plots_dir)parameter_distribution.png
-param_dist_plot_no_mask = $(plots_dir)parameter_distribution_ryon_galaxies.png
+comparison_plot = $(local_plots_dir)comparison_plot.png
+param_dist_plot = $(local_plots_dir)parameter_distribution.png
+param_dist_plot_no_mask = $(local_plots_dir)parameter_distribution_ryon_galaxies.png
 plots = $(comparison_plot) $(param_dist_plot) $(param_dist_plot_no_mask)
 
 # ------------------------------------------------------------------------------
@@ -112,7 +111,8 @@ clean:
 # have another option to remove the fits too, just not the PSFs
 .PHONY: clean_fits
 clean_fits:
-	rm $(fits) $(fits_no_mask) $(final_cats) $(final_cats_no_mask) $(plots)
+	rm -r $(fits) $(fits_no_mask) $(cluster_fit_dirs)
+	make clean
 
 # but if they really want to nuke everything too they can
 .PHONY: clean_all
@@ -173,7 +173,7 @@ $(final_cats_no_mask): %: $(final_catalog_script_no_mask) $$(dir %)$$(fit_no_mas
 
 # Make the comparison to Ryon+17's results
 $(comparison_plot): $(comparison_script) $(final_cats_no_mask)
-	python $(comparison_script) $(plots_dir) $(final_cats_no_mask)
+	python $(comparison_script) $(local_plots_dir) $(final_cats_no_mask)
 
 $(param_dist_plot): $(parameters_dist_script) $(final_cats)
 	python $(parameters_dist_script) $@ $(final_cats)
