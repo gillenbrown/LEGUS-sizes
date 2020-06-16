@@ -436,7 +436,7 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
 
     # Use the data image to get the normalization that will be used in all plots
     vmax = max(np.max(model_image), np.max(cluster_snapshot))
-    data_norm = colors.SymLogNorm(vmin=-vmax, vmax=vmax, linthresh=0.01 * vmax)
+    data_norm = colors.SymLogNorm(vmin=-vmax, vmax=vmax, linthresh=0.01 * vmax, base=10)
     sigma_norm = colors.Normalize(vmin=-10, vmax=10)
     u_norm = colors.Normalize(0, vmax=1.2 * np.max(uncertainty_snapshot))
     m_norm = colors.Normalize(0, vmax=np.max(mask))
