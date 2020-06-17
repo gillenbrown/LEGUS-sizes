@@ -274,7 +274,7 @@ def create_good_mask_pixels(mask):
 
 
 def create_plot_name(id, bootstrapping_iteration=None):
-    name = f"{id:04}"
+    name = f"{id:04}_"
 
     if ryon_like:
         name += "ryon_like_"
