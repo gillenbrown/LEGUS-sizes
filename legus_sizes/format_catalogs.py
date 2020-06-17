@@ -103,13 +103,15 @@ def find_catalogs(home_dir):
     :return: Path objects pointing to the catalog and readme file.
     :rtype: tuple
     """
+    galaxy_name = home_dir.name
     for item in home_dir.iterdir():
         if not item.is_file():
             continue
         filename = item.name
-        # see if it starts and ends with what the catalog should be
+        # see if it starts and ends with what the catalog should be. We don't know what
+        # instruments make up the catalog data, so we leave that segment of the name out
         if filename.startswith("hlsp_legus_hst_") and filename.endswith(
-            "_multiband_v1_padagb-mwext-avgapcor.tab"
+            f"{galaxy_name}_multiband_v1_padagb-mwext-avgapcor.tab"
         ):
             catalog = item
             header = Path(str(item).replace(".tab", ".readme"))
