@@ -8,6 +8,10 @@ def _get_image(home_dir):
     # then we have to find the image we need. This will be in the drc directory, but the
     # exact name is uncertain
     galaxy_name = home_dir.name
+    # NGC 5474 has a weird naming convention for the images
+    if galaxy_name == "ngc5474":
+        galaxy_name += "-c"
+
     # we need to check for different images. We prefer F555W if it exists, but if not
     # we use F606W
     # it could be one of two instruments: ACS or UVIS.
@@ -22,6 +26,16 @@ def _get_image(home_dir):
             except FileNotFoundError:
                 continue  # go to next band
     else:  # no break, image not found
+        # try one last thing for the mosaic for NGC 5194 and NGC 5195.
+        try:
+            image_name = "hlsp_legus_hst_acs_ngc5194-ngc5195-mosaic_f555w_v1_sci.fits"
+            hdu_list = fits.open(home_dir / image_name)
+            # if it works we found our image, so we can return
+            # DRC images should have the PRIMARY extension
+            return hdu_list["PRIMARY"], "acs"
+        except FileNotFoundError:
+            pass  # I do this so the next error raised won't appear to come from here
+
         raise FileNotFoundError(
             f"No f555w or f606w image found in directory:\n{str(home_dir)}"
         )
