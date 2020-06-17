@@ -38,8 +38,11 @@ dc = {
     "final photometric error in F275W": "photoerr_F275W",
     "final total mag in  WFC3/F336W": "mag_F336W",  # has an extra space
     "final total mag in WFC3/F336W": "mag_F336W",
-    "final photometric error in WFC3/F336W": "photoerr_F336W",
-    "final photometric error in F336W": "photoerr_F336W",
+    "final total mag in WFC3/F435W": "mag_F435W",
+    "final total mag in WFC3/F438W": "mag_F438W",
+    "final total mag in WFC3/F555W": "mag_F555W",
+    "final total mag in WFC3/F814W": "mag_F814W",
+    "final total mag in  WFC3/F336W": "mag_F336W",  # has an extra space
     "final total mag in ACS/F435W": "mag_F435W",
     "final photometric error in ACS/F435W": "photoerr_F435W",
     "final photometric error in F435W": "photoerr_F435W",
