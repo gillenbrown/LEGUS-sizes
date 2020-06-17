@@ -22,7 +22,7 @@ def _get_image(home_dir):
                 hdu_list = fits.open(home_dir / image_name)
                 # if it works we found our image, so we can return
                 # DRC images should have the PRIMARY extension
-                return hdu_list["PRIMARY"], instrument
+                return hdu_list["PRIMARY"], instrument, band
             except FileNotFoundError:
                 continue  # go to next band
     else:  # no break, image not found
@@ -32,7 +32,7 @@ def _get_image(home_dir):
             hdu_list = fits.open(home_dir / image_name)
             # if it works we found our image, so we can return
             # DRC images should have the PRIMARY extension
-            return hdu_list["PRIMARY"], "acs"
+            return hdu_list["PRIMARY"], "acs", "f555w"
         except FileNotFoundError:
             pass  # I do this so the next error raised won't appear to come from here
 
@@ -42,13 +42,13 @@ def _get_image(home_dir):
 
 
 def get_drc_image(home_dir):
-    image, instrument = _get_image(home_dir)
+    image, instrument, band = _get_image(home_dir)
     image_data = image.data
     # Multiply by the exposure time to get this in units of electrons. It stars in
     # electrons per second
     image_data *= image.header["EXPTIME"]
 
-    return image_data, instrument
+    return image_data, instrument, band
 
 
 # Set up dictionary to use as a cache to make this faster
@@ -62,7 +62,7 @@ def get_pixel_scale_arcsec(home_dir):
     except KeyError:
         pass
 
-    image, _ = _get_image(home_dir)
+    image, _, _ = _get_image(home_dir)
     image_wcs = wcs.WCS(image.header)
     pix_scale = (
         wcs.utils.proj_plane_pixel_scales(image_wcs.celestial) * image_wcs.wcs.cunit
@@ -123,7 +123,7 @@ def arcsec_to_size_pc(arcseconds, home_dir):
 def pixels_to_pc_with_errors(
     data_path, pix, pix_error_up, pix_error_down, include_distance_err=True
 ):
-    arcsec_per_pixel = get_f555w_pixel_scale_arcsec(data_path)
+    arcsec_per_pixel = get_pixel_scale_arcsec(data_path)
     # this has no error
     radians_per_pixel = (arcsec_per_pixel * u.arcsec).to("radian").value
 

@@ -50,7 +50,7 @@ psf_width = int(sys.argv[3])
 stars_table = table.Table.read(preliminary_catalog_path, format="ascii.ecsv")
 
 # and the image
-image_data, instrument = utils.get_drc_image(home_dir)
+image_data, _, _ = utils.get_drc_image(home_dir)
 
 # get the noise_level, which will be used later
 _, _, noise = stats.sigma_clipped_stats(image_data, sigma=2.0)
@@ -139,10 +139,13 @@ class MainWindow(QMainWindow):
         self.image.setPixmap(QPixmap(temp_loc))
         # update the label
         new_info = (
-            f"Number of Accepted Stars: {np.sum(self.starData['use_for_psf'])}\n\n"
-            f"Index: {self.idx}\n"
+            f"Image Directory: \n{home_dir}\n\n"
+            f"Number of Accepted Stars: {np.sum(self.starData['use_for_psf'])}\n"
+            f"Number of Examined Stars: {self.idx}\n\n"
+            f"x: {thisStar['xcentroid']:.3f}\n"
+            f"y: {thisStar['ycentroid']:.3f}\n\n"
             f"FWHM: {thisStar['fwhm']:.3f}\n"
-            f"Roundness: {thisStar['roundness']:.3f}\n"
+            f"Ellipticiy: {thisStar['roundness']:.3f}\n"
             f"Sharpness: {thisStar['sharpness']:.3f}\n\n"
         )
         if thisStar["near_star"]:
@@ -192,7 +195,7 @@ class MainWindow(QMainWindow):
         vmax = np.max(snapshot_data)
         vmin = -5 * noise
         linthresh = max(0.01 * vmax, 5 * noise)
-        norm = colors.SymLogNorm(vmin=vmin, vmax=vmax * 2, linthresh=linthresh)
+        norm = colors.SymLogNorm(vmin=vmin, vmax=vmax * 2, linthresh=linthresh, base=10)
         im = ax.imshow(snapshot_data, norm=norm, cmap=bpl.cm.lapaz)
         ax.set_limits(min_x_plot, max_x_plot, min_y_plot, max_y_plot)
         ax.scatter([cen_x_new], [cen_y_new], marker="x", c=bpl.almost_black, s=20)

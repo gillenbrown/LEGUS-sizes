@@ -35,7 +35,7 @@ width = int(sys.argv[3])
 # Load the image
 #
 # ======================================================================================
-image_data, instrument = utils.get_drc_image(home_dir)
+image_data, instrument, band = utils.get_drc_image(home_dir)
 
 # get the noise_level, which will be used later
 _, _, noise = stats.sigma_clipped_stats(image_data, sigma=2.0)
@@ -47,13 +47,22 @@ _, _, noise = stats.sigma_clipped_stats(image_data, sigma=2.0)
 # ======================================================================================
 # Then we can find peaks in this image. I try a threshold of 100 sigma, but check if
 # that wasn't enough, and we'll modify. These values were determined via experimentation
-if instrument == "uvis":
-    fwhm = 1.85  # pixels
-else:
-    fwhm = 2.2  # TODO: needs to be updated!
+fwhm_estimates = {"uvis": {"f555w": 1.85}, "acs": {"f555w": 1.85, "f606w": 1.80}}
+try:
+    fwhm = fwhm_estimates[instrument][band]
+except KeyError:
+    fwhm = 1.8
+    message = "FWHM estimate needs to be updated in preliminary_star_list.py"
+    print(f"\n\n{instrument} {band} {message} --- {home_dir.name}\n\n")
+
 threshold = 100 * noise
 star_finder = photutils.detection.IRAFStarFinder(
-    threshold=threshold, fwhm=fwhm, exclude_border=True
+    threshold=threshold,
+    fwhm=fwhm,
+    exclude_border=True,
+    sharplo=0.9,
+    sharphi=1.1,
+    roundhi=0.1,
 )
 peaks_table = star_finder.find_stars(image_data)
 while len(peaks_table) < 1000:
