@@ -1,30 +1,30 @@
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ic4247/hlsp_legus_hst_acs_ic4247_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ic4247 && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ic559/hlsp_legus_hst_uvis_ic559_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ic559/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc1433/hlsp_legus_hst_uvis_ngc1433_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc1433/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc1566/hlsp_legus_hst_uvis_ngc1566_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc1566/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc1705/hlsp_legus_hst_uvis_ngc1705_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc1705/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc3344/hlsp_legus_hst_uvis_ngc3344_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc3344/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc3351/hlsp_legus_hst_uvis_ngc3351_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc3351/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc3738/hlsp_legus_hst_acs_ngc3738_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc3738/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc4242/hlsp_legus_hst_uvis_ngc4242_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc4242/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc4395-n/hlsp_legus_hst_uvis_ngc4395-n_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc4395-n/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc4395-s/hlsp_legus_hst_acs_ngc4395-s_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc4395-s/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc4449/hlsp_legus_hst_acs_ngc4449_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc4449/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc45/hlsp_legus_hst_uvis_ngc45_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc45/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc4656/hlsp_legus_hst_uvis_ngc4656_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc4656/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc5194-ngc5195-mosaic/hlsp_legus_hst_acs_ngc5194-ngc5195-mosaic_f555w_v1_sci.fits /Users/gillenb/google_drive/research/legus/data/ngc5194-ngc5195-mosaic/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc5238/hlsp_legus_hst_acs_ngc5238_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc5238/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc5253/hlsp_legus_hst_acs_ngc5253_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc5253/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc5474/hlsp_legus_hst_acs_ngc5474-c_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc5474/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc5477/hlsp_legus_hst_acs_ngc5477_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc5477/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc6503/hlsp_legus_hst_uvis_ngc6503_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc6503/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc7793-e/hlsp_legus_hst_uvis_ngc7793-e_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc7793-e/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc7793-w/hlsp_legus_hst_acs_ngc7793-w_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc7793-w/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ugc1249/hlsp_legus_hst_acs_ugc1249_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ugc1249/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ugc4305/hlsp_legus_hst_acs_ugc4305_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ugc4305/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ugc4459/hlsp_legus_hst_acs_ugc4459_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ugc4459/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ugc5139/hlsp_legus_hst_acs_ugc5139_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ugc5139/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ugc685/hlsp_legus_hst_acs_ugc685_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ugc685/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ugc695/hlsp_legus_hst_uvis_ugc695_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ugc695/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ugc7408/hlsp_legus_hst_acs_ugc7408_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ugc7408/ && \
-rsync gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ugca281/hlsp_legus_hst_acs_ugca281_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ugca281/
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ic4247/hlsp_legus_hst_acs_ic4247_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ic4247 && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ic559/hlsp_legus_hst_uvis_ic559_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ic559/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc1433/hlsp_legus_hst_uvis_ngc1433_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc1433/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc1566/hlsp_legus_hst_uvis_ngc1566_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc1566/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc1705/hlsp_legus_hst_uvis_ngc1705_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc1705/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc3344/hlsp_legus_hst_uvis_ngc3344_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc3344/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc3351/hlsp_legus_hst_uvis_ngc3351_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc3351/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc3738/hlsp_legus_hst_acs_ngc3738_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc3738/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc4242/hlsp_legus_hst_uvis_ngc4242_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc4242/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc4395-n/hlsp_legus_hst_uvis_ngc4395-n_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc4395-n/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc4395-s/hlsp_legus_hst_acs_ngc4395-s_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc4395-s/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc4449/hlsp_legus_hst_acs_ngc4449_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc4449/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc45/hlsp_legus_hst_uvis_ngc45_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc45/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc4656/hlsp_legus_hst_uvis_ngc4656_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc4656/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc5194-ngc5195-mosaic/hlsp_legus_hst_acs_ngc5194-ngc5195-mosaic_f555w_v1_sci.fits /Users/gillenb/google_drive/research/legus/data/ngc5194-ngc5195-mosaic/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc5238/hlsp_legus_hst_acs_ngc5238_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc5238/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc5253/hlsp_legus_hst_acs_ngc5253_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc5253/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc5474/hlsp_legus_hst_acs_ngc5474-c_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc5474/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc5477/hlsp_legus_hst_acs_ngc5477_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc5477/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc6503/hlsp_legus_hst_uvis_ngc6503_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc6503/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc7793-e/hlsp_legus_hst_uvis_ngc7793-e_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc7793-e/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ngc7793-w/hlsp_legus_hst_acs_ngc7793-w_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ngc7793-w/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ugc1249/hlsp_legus_hst_acs_ugc1249_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ugc1249/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ugc4305/hlsp_legus_hst_acs_ugc4305_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ugc4305/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ugc4459/hlsp_legus_hst_acs_ugc4459_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ugc4459/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ugc5139/hlsp_legus_hst_acs_ugc5139_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ugc5139/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ugc685/hlsp_legus_hst_acs_ugc685_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ugc685/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ugc695/hlsp_legus_hst_uvis_ugc695_f555w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ugc695/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ugc7408/hlsp_legus_hst_acs_ugc7408_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ugc7408/ && \
+rsync -av gillenb@shangrila.astro.lsa.umich.edu:/u/home/gillenb/legus/ugca281/hlsp_legus_hst_acs_ugca281_f606w_v1_drc.fits /Users/gillenb/google_drive/research/legus/data/ugca281/
