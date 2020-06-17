@@ -123,10 +123,10 @@ def pixels_to_pc_with_errors(
     frac_err_pix_up = pix_error_up / pix
     frac_err_pix_down = pix_error_down / pix
 
-    rel_err_pc_up = np.sqrt(frac_err_dist ** 2 + frac_err_pix_up ** 2)
-    rel_err_pc_down = np.sqrt(frac_err_dist ** 2 + frac_err_pix_down ** 2)
+    frac_err_tot_up = np.sqrt(frac_err_dist ** 2 + frac_err_pix_up ** 2)
+    frac_err_tot_down = np.sqrt(frac_err_dist ** 2 + frac_err_pix_down ** 2)
 
-    err_pc_up = parsecs * rel_err_pc_up
-    err_pc_down = parsecs * rel_err_pc_down
+    err_pc_up = parsecs * frac_err_tot_up
+    err_pc_down = parsecs * frac_err_tot_down
 
     return parsecs, err_pc_down, err_pc_up
