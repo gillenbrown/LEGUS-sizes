@@ -132,7 +132,7 @@ $(catalogs): $(catalog_script)
 # one of the clusters from our selection of stars.
 # To do this we use SECONDEXPANSION, and turn the star list into a catalog name
 .SECONDEXPANSION:
-$(v1_star_lists): %: $$(dir %)$$(cat) $(v1_star_list_script)
+$(v1_star_lists): %: $(v1_star_list_script) | $$(dir %)$$(cat)
 	python $(v1_star_list_script) $@ $(dir $@)$(cat) $(psf_pixel_size)
 
 # Creating the actual list of PSF stars requires user input.
