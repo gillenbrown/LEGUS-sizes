@@ -47,7 +47,7 @@ if len(sys.argv) > 6:
 else:
     ryon_like = False
 
-image_data, _ = utils.get_f555w_drc_image(final_catalog.parent.parent)
+image_data, _ = utils.get_drc_image(final_catalog.parent.parent)
 psf = fits.open(psf_path)["PRIMARY"].data
 # the convolution requires the psf to be normalized, and without any negative values
 psf = np.maximum(psf, 0)
@@ -56,7 +56,7 @@ psf /= np.sum(psf)
 sigma_data = fits.open(sigma_image_path)["PRIMARY"].data
 clusters_table = table.Table.read(cluster_catalog_path, format="ascii.ecsv")
 
-pixel_scale_arcsec = utils.get_f555w_pixel_scale_arcsec(final_catalog.parent.parent)
+pixel_scale_arcsec = utils.get_pixel_scale_arcsec(final_catalog.parent.parent)
 pixel_scale_pc = utils.get_f555w_pixel_scale_pc(final_catalog.parent.parent)
 
 # set the size of the images we'll use

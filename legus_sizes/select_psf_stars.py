@@ -50,7 +50,7 @@ psf_width = int(sys.argv[3])
 stars_table = table.Table.read(preliminary_catalog_path, format="ascii.ecsv")
 
 # and the image
-image_data, instrument = utils.get_f555w_drc_image(home_dir)
+image_data, instrument = utils.get_drc_image(home_dir)
 
 # get the noise_level, which will be used later
 _, _, noise = stats.sigma_clipped_stats(image_data, sigma=2.0)

@@ -4,28 +4,31 @@ from astropy import units as u
 import numpy as np
 
 
-def _get_f555w_image(home_dir):
+def _get_image(home_dir):
     # then we have to find the image we need. This will be in the drc directory, but the
     # exact name is uncertain
     galaxy_name = home_dir.name
+    # we need to check for different images. We prefer F555W if it exists, but if not
+    # we use F606W
     # it could be one of two instruments: ACS or UVIS.
-    for instrument in ["acs", "uvis"]:
-        image_name = f"hlsp_legus_hst_{instrument}_{galaxy_name}_f555w_v1_drc.fits"
-        try:  # to load the image
-            hdu_list = fits.open(home_dir / image_name)
-            # if it works break out of this
-            break
-        except FileNotFoundError:
-            continue  # go to next band
+    for band in ["f555w", "f606w"]:
+        for instrument in ["acs", "uvis"]:
+            image_name = f"hlsp_legus_hst_{instrument}_{galaxy_name}_{band}_v1_drc.fits"
+            try:  # to load the image
+                hdu_list = fits.open(home_dir / image_name)
+                # if it works we found our image, so we can return
+                # DRC images should have the PRIMARY extension
+                return hdu_list["PRIMARY"], instrument
+            except FileNotFoundError:
+                continue  # go to next band
     else:  # no break, image not found
-        raise FileNotFoundError(f"No f555w image found in directory:\n{str(image_dir)}")
+        raise FileNotFoundError(
+            f"No f555w or f606w image found in directory:\n{str(home_dir)}"
+        )
 
-    # DRC images should have the PRIMARY extension
-    return hdu_list["PRIMARY"], instrument
 
-
-def get_f555w_drc_image(home_dir):
-    image, instrument = _get_f555w_image(home_dir)
+def get_drc_image(home_dir):
+    image, instrument = _get_image(home_dir)
     image_data = image.data
     # Multiply by the exposure time to get this in units of electrons. It stars in
     # electrons per second
@@ -38,14 +41,14 @@ def get_f555w_drc_image(home_dir):
 pixel_scale_arcsec_cache = {}
 
 
-def get_f555w_pixel_scale_arcsec(home_dir):
+def get_pixel_scale_arcsec(home_dir):
     """ Get the pixel scale in arcseconds per pixel """
     try:
         return pixel_scale_arcsec_cache[home_dir]
     except KeyError:
         pass
 
-    image, _ = _get_f555w_image(home_dir)
+    image, _ = _get_image(home_dir)
     image_wcs = wcs.WCS(image.header)
     pix_scale = (
         wcs.utils.proj_plane_pixel_scales(image_wcs.celestial) * image_wcs.wcs.cunit
@@ -61,7 +64,7 @@ def get_f555w_pixel_scale_arcsec(home_dir):
 
 
 def get_f555w_pixel_scale_pc(home_dir):
-    arcsec_per_pixel = get_f555w_pixel_scale_arcsec(home_dir)
+    arcsec_per_pixel = get_pixel_scale_arcsec(home_dir)
     return arcsec_to_size_pc(arcsec_per_pixel, home_dir)
 
 
