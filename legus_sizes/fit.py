@@ -368,8 +368,8 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
         # X and Y center in oversampled pixels
         (0.4 * snapshot_size_oversampled, 0.6 * snapshot_size_oversampled),
         (0.4 * snapshot_size_oversampled, 0.6 * snapshot_size_oversampled),
-        (0.1, snapshot_size_oversampled),  # scale radius in oversampled pixels
-        (0.01, 1),  # axis ratio
+        (1, snapshot_size_oversampled),  # scale radius in oversampled pixels
+        (0.1, 1),  # axis ratio
         (-np.pi, np.pi),  # position angle
         (0, None),  # power law slope
         (np.min(data_snapshot), np.max(data_snapshot)),  # background
