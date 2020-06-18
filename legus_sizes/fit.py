@@ -10,6 +10,7 @@ This takes 4 arguments:
 """
 from pathlib import Path
 import sys
+from collections import defaultdict
 
 from astropy import table
 from astropy import nddata
@@ -59,11 +60,21 @@ clusters_table = table.Table.read(cluster_catalog_path, format="ascii.ecsv")
 pixel_scale_arcsec = utils.get_pixel_scale_arcsec(final_catalog.parent.parent)
 pixel_scale_pc = utils.get_f555w_pixel_scale_pc(final_catalog.parent.parent)
 
+# ======================================================================================
+#
+# Set up some configuration parameters
+#
+# ======================================================================================
+rough_psf_size = 3
 # set the size of the images we'll use
 snapshot_size = 30
 snapshot_size_oversampled = snapshot_size * oversampling_factor
 
-# Also add the new columns to the table, that we will fill as we fit
+# ======================================================================================
+#
+# Set up the table. We need some dummy columns that we'll fill later
+#
+# ======================================================================================
 def dummy_list_col(n_rows):
     return [[-99.9] * i for i in range(n_rows)]
 
@@ -250,29 +261,6 @@ def mask_image(data_snapshot, uncertainty_snapshot):
     return mask
 
 
-def create_good_mask_pixels(mask):
-    """
-    Create the list of good pixel indices that are in the mask
-
-    :param mask: 2D array holding the mask, where 1 values are good, zero is bad.
-    :return: Two lists, containing the x and y pixel values of the good pixels in
-             this regions. They will be ordered so the values correspond (i.e. the first
-             good pixel will be at xs[0], ys[0].
-    """
-    xs = []
-    ys = []
-    for x_idx in range(mask.shape[1]):
-        for y_idx in range(mask.shape[0]):
-            if mask[y_idx][x_idx] == 1:
-                xs.append(x_idx)
-                ys.append(y_idx)
-    # if something is wrong, just return everything
-    if len(xs) == 0:
-        xs = [int(x) for x in range(mask.shape[1])]
-        ys = [int(y) for y in range(mask.shape[0])]
-    return np.array(xs), np.array(ys)
-
-
 def create_plot_name(id, bootstrapping_iteration=None):
     name = f"{id:04}_"
 
@@ -280,11 +268,53 @@ def create_plot_name(id, bootstrapping_iteration=None):
         name += "ryon_like_"
 
     if bootstrapping_iteration is None:
-        name += "best_fit_"
+        name += "best_fit"
     else:
         name += f"bootstrapping_i{bootstrapping_iteration:04}"
 
     return name + ".png"
+
+
+def create_boostrap_mask(original_mask, x_c, y_c):
+    # correct for oversampled pixels
+    x_c /= oversampling_factor
+    y_c /= oversampling_factor
+
+    # first go through and assign all pixels to either a box or the center
+    outside_boxes = defaultdict(list)
+    center_pixels = []
+    for x in range(mask.shape[1]):
+        for y in range(mask.shape[0]):
+            if original_mask[y, x] == 1:
+                if distance(x, y, x_c, y_c) <= 2 * rough_psf_size:
+                    center_pixels.append((x, y))
+                else:
+                    idx_box_x = x // rough_psf_size
+                    idx_box_y = y // rough_psf_size
+
+                    outside_boxes[(idx_box_x, idx_box_y)].append((x, y))
+
+    # freeze the keys so we can have an order to sample from
+    outside_boxes_keys = list(outside_boxes.keys())
+
+    # then we can subsample each of those
+    idxs_boxes = np.random.randint(0, len(outside_boxes_keys), len(outside_boxes_keys))
+    idxs_center = np.random.randint(0, len(center_pixels), len(center_pixels))
+
+    # then put this into the mask
+    temp_mask = np.zeros(original_mask.shape)
+    for idx in idxs_boxes:
+        # print(f"idx: {idx}")
+        key = outside_boxes_keys[idx]
+        # print(f"key: {key}")
+        for x, y in outside_boxes[key]:
+            # print(f"x, y: {x} {y}")
+            temp_mask[y, x] += 1
+    for idx in idxs_center:
+        x, y = center_pixels[idx]
+        temp_mask[y, x] += 1
+
+    return temp_mask
 
 
 def fit_model(data_snapshot, uncertainty_snapshot, mask):
@@ -330,9 +360,6 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     if ryon_like:
         bounds[6] = (1.01, None)
 
-    # then get the list of good pixel values that can be used when fitting
-    good_xs, good_ys = create_good_mask_pixels(mask)
-
     # first get the results when all good pixels are used, to be used as a starting
     # point when bootstrapping is done, to save time.
     initial_result = optimize.minimize(
@@ -363,10 +390,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     while not all(converged):
         iteration += 1
         # sample the xs and ys to make a new mask
-        temp_mask = np.zeros(mask.shape)
-        idxs = np.random.randint(0, len(good_xs), len(good_xs))
-        for x, y in zip(good_xs[idxs], good_ys[idxs]):
-            temp_mask[y][x] += 1
+        temp_mask = create_boostrap_mask(mask, initial_result.x[1], initial_result.x[2])
 
         # fit to this selection of pixels
         this_result = optimize.minimize(
@@ -431,37 +455,39 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
     # to just be that when plotted
     sigma_image *= np.minimum(mask, 1)
 
-    # Use the data image to get the normalization that will be used in all plots
-    vmax = max(np.max(model_image), np.max(cluster_snapshot))
+    # Use the data image to get the normalization that will be used in all plots. Base
+    # it on the data so that it is the same in all bootstrap iterations
+    vmax = 2 * np.max(cluster_snapshot)
     data_norm = colors.SymLogNorm(vmin=-vmax, vmax=vmax, linthresh=0.01 * vmax, base=10)
     sigma_norm = colors.Normalize(vmin=-10, vmax=10)
     u_norm = colors.Normalize(0, vmax=1.2 * np.max(uncertainty_snapshot))
     m_norm = colors.Normalize(0, vmax=np.max(mask))
 
     data_cmap = bpl.cm.lisbon
-    sigma_cmap = cmocean.cm.curl
+    sigma_cmap = cmocean.cm.tarn  # "bwr_r" also works
     u_cmap = cmocean.cm.deep_r
     m_cmap = cmocean.cm.gray_r
 
-    fig = plt.figure(figsize=[28, 10])
+    fig = plt.figure(figsize=[20, 15])
     gs = gridspec.GridSpec(
-        nrows=2,
-        ncols=6,
-        width_ratios=[10, 10, 10, 1, 10, 10],  # have a dummy spacer column
+        nrows=6,
+        ncols=4,
+        width_ratios=[10, 10, 1, 15],  # have a dummy spacer column
         wspace=0.1,
-        hspace=0.1,
+        hspace=0.7,
         left=0.01,
-        right=0.96,
-        bottom=0.1,
-        top=0.9,
+        right=0.98,
+        bottom=0.06,
+        top=0.94,
     )
-    ax_r = fig.add_subplot(gs[1, 0], projection="bpl")  # raw model
-    ax_f = fig.add_subplot(gs[0, 0], projection="bpl")  # full model (f for fit)
-    ax_d = fig.add_subplot(gs[0, 1], projection="bpl")  # data
-    ax_s = fig.add_subplot(gs[0, 2], projection="bpl")  # sigma difference
-    ax_u = fig.add_subplot(gs[1, 1], projection="bpl")  # uncertainty
-    ax_m = fig.add_subplot(gs[1, 2], projection="bpl")  # mask
-    ax_p = fig.add_subplot(gs[:, 4:], projection="bpl")  # radial profile
+    ax_r = fig.add_subplot(gs[0:2, 0], projection="bpl")  # raw model
+    ax_f = fig.add_subplot(gs[0:2, 1], projection="bpl")  # full model (f for fit)
+    ax_d = fig.add_subplot(gs[2:4, 1], projection="bpl")  # data
+    ax_s = fig.add_subplot(gs[2:4, 0], projection="bpl")  # sigma difference
+    ax_u = fig.add_subplot(gs[4:, 1], projection="bpl")  # uncertainty
+    ax_m = fig.add_subplot(gs[4:, 0], projection="bpl")  # mask
+    ax_pd = fig.add_subplot(gs[0:3, 3], projection="bpl")  # radial profile differential
+    ax_pc = fig.add_subplot(gs[3:, 3], projection="bpl")  # radial profile cumulative
 
     r_im = ax_r.imshow(model_image, norm=data_norm, cmap=data_cmap, origin="lower")
     f_im = ax_f.imshow(
@@ -471,23 +497,6 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
     s_im = ax_s.imshow(sigma_image, norm=sigma_norm, cmap=sigma_cmap, origin="lower")
     u_im = ax_u.imshow(uncertainty_snapshot, norm=u_norm, cmap=u_cmap, origin="lower")
     m_im = ax_m.imshow(mask, norm=m_norm, cmap=m_cmap, origin="lower")
-
-    # add the radial profile to the last panel
-    radial_profile(ax_p, model_psf_bin_image, data_snapshot, mask, params[1], params[2])
-
-    # the last one just has the list of parameters
-    ax_p.easy_add_text(
-        f"log(peak brightness) = {params[0]:.2f}\n"
-        f"x center = {params[1] / oversampling_factor:.2f}\n"
-        f"y center = {params[2]/ oversampling_factor:.2f}\n"
-        f"scale radius [pixels] = {params[3] / oversampling_factor:.2f}\n"
-        f"q (axis ratio) = {params[4]:.2f}\n"
-        f"position angle = {params[5]:.2f}\n"
-        f"$\eta$ (power law slope) = {params[6]:.2f}\n"
-        f"background = {params[7]:.2f}\n",
-        "upper right",
-        fontsize=18,
-    )
 
     fig.colorbar(r_im, ax=ax_r)
     fig.colorbar(f_im, ax=ax_f)
@@ -507,46 +516,31 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
         ax.remove_labels("both")
         ax.remove_spines(["all"])
 
-    fig.savefig(final_catalog.parent / "cluster_fit_plots" / savename, dpi=100)
-    plt.close(fig)
-
-
-def radial_profile(ax, model_psf_bin_snapshot, data_snapshot, mask, x_c, y_c):
-    """
-    Show the radial profile of the fit compared to the data
-
-    :param ax: Axis to plot this on
-    :param model_psf_bin_snapshot: Model shapshot to be compared to the data
-    :param data_snapshot: Data snapshot
-    :param mask: Mask image to be used to discard pixels
-    :param x_c: Center in the x direction, in the coordinates of the snapshots
-    :param y_c: Center in the y direction, in the coordinates of the snapshots
-    :return: None
-    """
+    # Then make the radial plots
     c_d = bpl.color_cycle[0]
     c_m = bpl.color_cycle[1]
     # the center is in oversampled coords, fix that
-    x_c = oversampled_to_image(x_c)
-    y_c = oversampled_to_image(y_c)
-    # Above I treated the center of the pixels as the integer location, so do that
-    # here too
+    x_c = oversampled_to_image(params[1])
+    y_c = oversampled_to_image(params[2])
+    # When fitting I treated the center of the pixels as the integer location, so do
+    # that here too
     radii, model_ys, data_ys = [], [], []
-    for x in range(model_psf_bin_snapshot.shape[1]):
-        for y in range(model_psf_bin_snapshot.shape[0]):
+    for x in range(model_psf_bin_image.shape[1]):
+        for y in range(model_psf_bin_image.shape[0]):
             if mask[y][x] > 0:
                 radii.append(distance(x, y, x_c, y_c))
-                model_ys.append(model_psf_bin_snapshot[y, x])
+                model_ys.append(model_psf_bin_image[y, x])
                 data_ys.append(data_snapshot[y, x])
 
-    ax.scatter(radii, data_ys, c=c_d, s=5, alpha=1.0, label="Data")
-    ax.scatter(radii, model_ys, c=c_m, s=5, alpha=1.0, label="Model")
+    ax_pd.scatter(radii, data_ys, c=c_d, s=5, alpha=1.0, label="Data")
+    ax_pd.scatter(radii, model_ys, c=c_m, s=5, alpha=1.0, label="Model")
 
     # convert to numpy array to have nice indexing
     radii = np.array(radii)
     model_ys = np.array(model_ys)
     data_ys = np.array(data_ys)
 
-    # then bin this data
+    # then bin this data to make the binned plot
     bin_size = 1.0
     binned_radii, binned_model_ys, binned_data_ys = [], [], []
     for r_min in np.arange(0, int(np.ceil(max(radii))), bin_size):
@@ -560,11 +554,11 @@ def radial_profile(ax, model_psf_bin_snapshot, data_snapshot, mask, x_c, y_c):
             binned_model_ys.append(np.mean(model_ys[idx_good]))
             binned_data_ys.append(np.mean(data_ys[idx_good]))
 
-    ax.plot(binned_radii, binned_data_ys, c=c_d, lw=5, label="Binned Data")
-    ax.plot(binned_radii, binned_model_ys, c=c_m, lw=5, label="Binned Model")
+    ax_pd.plot(binned_radii, binned_data_ys, c=c_d, lw=5, label="Binned Data")
+    ax_pd.plot(binned_radii, binned_model_ys, c=c_m, lw=5, label="Binned Model")
 
-    ax.legend(loc="upper center")
-    ax.add_labels("Radius (pixels)", "Pixel Value [$e^{-}$]")
+    ax_pd.legend(loc="upper right")
+    ax_pd.add_labels("Radius (pixels)", "Pixel Value [$e^{-}$]")
     # set min and max values so it's easier to flip through bootstrapping plots
     y_min = np.min(data_snapshot)
     y_max = np.max(data_snapshot)
@@ -572,7 +566,48 @@ def radial_profile(ax, model_psf_bin_snapshot, data_snapshot, mask, x_c, y_c):
     diff = y_max - y_min
     y_min -= 0.1 * diff
     y_max += 0.1 * diff
-    ax.set_limits(x_min=0, x_max=25, y_min=y_min, y_max=y_max)
+    ax_pd.set_limits(0, np.ceil(max(radii)), y_min, y_max)
+
+    # then make the cumulative one. We subtract off the background before doing this.
+    model_ys -= params[7]
+    data_ys -= params[7]
+    # get the radii in orcer
+    idxs_sort = np.argsort(radii)
+    model_ys_cumulative = np.cumsum(model_ys[idxs_sort])
+    data_ys_cumulative = np.cumsum(data_ys[idxs_sort])
+
+    ax_pc.plot(
+        radii[idxs_sort],
+        data_ys_cumulative,
+        c=c_d,
+        label="Data (Background Subtracted)",
+    )
+    ax_pc.plot(
+        radii[idxs_sort],
+        model_ys_cumulative,
+        c=c_m,
+        label="Model (Background Subtracted)",
+    )
+    ax_pc.set_limits(0, np.ceil(max(radii)), 0, 1.2 * np.max(data_ys_cumulative))
+    ax_pc.legend(loc="upper left")
+    ax_pc.add_labels("Radius (pixels)", "Cumulative Pixel Values [$e^{-}$]")
+
+    # the last one just has the list of parameters
+    ax_pc.easy_add_text(
+        f"log(peak brightness) = {params[0]:.2f}\n"
+        f"x center = {params[1] / oversampling_factor:.2f}\n"
+        f"y center = {params[2]/ oversampling_factor:.2f}\n"
+        f"scale radius [pixels] = {params[3] / oversampling_factor:.2f}\n"
+        f"q (axis ratio) = {params[4]:.2f}\n"
+        f"position angle = {params[5]:.2f}\n"
+        f"$\eta$ (power law slope) = {params[6]:.2f}\n"
+        f"background = {params[7]:.2f}\n",
+        "lower right",
+        fontsize=15,
+    )
+
+    fig.savefig(final_catalog.parent / "cluster_fit_plots" / savename, dpi=100)
+    plt.close(fig)
 
 
 # ======================================================================================
