@@ -616,21 +616,31 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
 #
 # ======================================================================================
 for row in tqdm(clusters_table):
-    # create the snapshot
-    x_cen = int(np.floor(row["x_pix_single"]))
-    y_cen = int(np.floor(row["y_pix_single"]))
+    # create the snapshot. We use ceiling to get the integer pixel values as python
+    # indexing does not include the final value. So when we calcualte the offset, it
+    # naturally gets biased low. Moving the center up fixes that in the easiest way.
+    x_cen = int(np.ceil(row["x_pix_single"]))
+    y_cen = int(np.ceil(row["y_pix_single"]))
 
-    # Get the snapshot, based on the size desired. Since we took the floor of the
-    # center, go farther in that direction (i.e. use ceil if the number is odd)
-    x_min = x_cen - int(np.ceil(snapshot_size / 2.0))
-    x_max = x_cen + int(np.floor(snapshot_size / 2.0))
-    y_min = y_cen - int(np.ceil(snapshot_size / 2.0))
-    y_max = y_cen + int(np.floor(snapshot_size / 2.0))
+    # Get the snapshot, based on the size desired. I start out creating snapshots a
+    # bit larger than desired, so that we can select stars on the borders of the image.
+    # Since we took the ceil of the center, go more in the negative direction (i.e.
+    # use ceil to get the minimum values). This only matters if the snapshot size is odd
+    buffer = 10
+    x_min = x_cen - int(np.ceil(snapshot_size / 2.0) + buffer)
+    x_max = x_cen + int(np.floor(snapshot_size / 2.0) + buffer)
+    y_min = y_cen - int(np.ceil(snapshot_size / 2.0) + buffer)
+    y_max = y_cen + int(np.floor(snapshot_size / 2.0) + buffer)
 
     data_snapshot = image_data[y_min:y_max, x_min:x_max]
     error_snapshot = sigma_data[y_min:y_max, x_min:x_max]
     # create the mask with the uncertainty image
     mask = mask_image(data_snapshot, error_snapshot)
+
+    # then crop the images back to the desired size
+    data_snapshot = data_snapshot[buffer:-buffer, buffer:-buffer]
+    error_snapshot = error_snapshot[buffer:-buffer, buffer:-buffer]
+    mask = mask[buffer:-buffer, buffer:-buffer]
 
     # then do this fitting!
     results, history = fit_model(data_snapshot, error_snapshot, mask)
