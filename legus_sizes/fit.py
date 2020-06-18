@@ -234,7 +234,7 @@ def mask_image(data_snapshot, uncertainty_snapshot):
 
     # this will be None if nothing was found
     if peaks_table is None:
-        return uncertainty_snapshot
+        return mask
 
     # then delete any stars near the center
     center = uncertainty_snapshot.shape[0] / 2
