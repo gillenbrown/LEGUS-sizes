@@ -39,7 +39,7 @@ psf_width = int(sys.argv[4])
 # Load the data - image and star catalog
 #
 # ======================================================================================
-image_data, instrument = utils.get_f555w_drc_image(home_dir)
+image_data, _, _ = utils.get_drc_image(home_dir)
 # the extract_stars thing below requires the input as a NDData object
 nddata = NDData(data=image_data)
 
@@ -102,7 +102,9 @@ psf_data = psf.data
 fig, ax = bpl.subplots()
 vmax = np.max(psf_data)
 vmin = np.min(psf_data)
-norm = colors.SymLogNorm(vmin=vmin, vmax=vmax, linthresh=max(abs(vmin), 0.001 * vmax))
+norm = colors.SymLogNorm(
+    vmin=vmin, vmax=vmax, linthresh=max(abs(vmin), 0.001 * vmax), base=10
+)
 im = ax.imshow(psf_data, norm=norm, cmap=bpl.cm.lapaz)
 ax.remove_labels("both")
 ax.remove_spines(["all"])

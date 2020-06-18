@@ -47,7 +47,7 @@ if len(sys.argv) > 6:
 else:
     ryon_like = False
 
-image_data, _ = utils.get_drc_image(final_catalog.parent.parent)
+image_data, _, _ = utils.get_drc_image(final_catalog.parent.parent)
 psf = fits.open(psf_path)["PRIMARY"].data
 # the convolution requires the psf to be normalized, and without any negative values
 psf = np.maximum(psf, 0)
