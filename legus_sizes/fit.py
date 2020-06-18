@@ -48,6 +48,7 @@ if len(sys.argv) > 6:
 else:
     ryon_like = False
 
+galaxy_name = final_catalog.parent.parent.name
 image_data, _, _ = utils.get_drc_image(final_catalog.parent.parent)
 psf = fits.open(psf_path)["PRIMARY"].data
 # the convolution requires the psf to be normalized, and without any negative values
@@ -279,7 +280,7 @@ def mask_image(data_snapshot, uncertainty_snapshot):
 
 
 def create_plot_name(id, bootstrapping_iteration=None):
-    name = f"{id:04}_"
+    name = f"{galaxy_name}_{id:04}_"
 
     if ryon_like:
         name += "ryon_like_"
