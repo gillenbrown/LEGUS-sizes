@@ -286,7 +286,7 @@ def create_boostrap_mask(original_mask, x_c, y_c):
     for x in range(mask.shape[1]):
         for y in range(mask.shape[0]):
             if original_mask[y, x] == 1:
-                if distance(x, y, x_c, y_c) <= 2 * rough_psf_size:
+                if distance(x, y, x_c, y_c) <= 3 * rough_psf_size:
                     center_pixels.append((x, y))
                 else:
                     idx_box_x = x // rough_psf_size
