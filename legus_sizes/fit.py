@@ -317,7 +317,7 @@ def create_boostrap_mask(original_mask, x_c, y_c):
     return temp_mask
 
 
-def fit_model(data_snapshot, uncertainty_snapshot, mask):
+def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
     """
     Fits an EFF model to the data passed in, using bootstrapping.
 
@@ -325,6 +325,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     :param uncertainty_snapshot: 2D array holding the uncertainty in the pixel values,
                                  in units of electrons.
     :param mask: 2D array holding the mask, where 1 is a good pixel, zero is bad.
+    :param id_num: The ID of this cluster
     :return: A two-item tuple containing: the fit parameters to all pixels, and the
              history of all parameters took throughout the bootstrapping
 
@@ -375,7 +376,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         uncertainty_snapshot,
         mask,
         initial_result.x,
-        create_plot_name(row["ID"]),
+        create_plot_name(id_num),
     )
 
     # Then we do bootstrapping
@@ -428,7 +429,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
                 uncertainty_snapshot,
                 temp_mask,
                 this_result.x,
-                create_plot_name(row["ID"], iteration),
+                create_plot_name(id_num, iteration),
             )
 
     # then we're done!
@@ -643,7 +644,7 @@ for row in tqdm(clusters_table):
     mask = mask[buffer:-buffer, buffer:-buffer]
 
     # then do this fitting!
-    results, history = fit_model(data_snapshot, error_snapshot, mask)
+    results, history = fit_model(data_snapshot, error_snapshot, mask, row["ID"])
 
     # Then add these values to the table
     row["num_boostrapping_iterations"] = len(history[0])
