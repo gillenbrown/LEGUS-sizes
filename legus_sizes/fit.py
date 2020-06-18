@@ -220,15 +220,20 @@ def mask_image(data_snapshot, uncertainty_snapshot):
     :param uncertainty_snapshot: Snapshow showing the uncertainty.
     :return: masked image, where values with 1 are good, zero is bad.
     """
-    mask = np.ones(uncertainty_snapshot.shape)
+    mask = np.ones(data_snapshot.shape)
     if ryon_like:  # Ryon did no masking
         return mask
 
+    threshold = 5 * np.min(uncertainty_snapshot)
     star_finder = photutils.detection.IRAFStarFinder(
-        threshold=5 * np.min(uncertainty_snapshot),
-        fwhm=2.0,
+        threshold=threshold + np.min(data_snapshot),
+        fwhm=2.0,  # slightly larger than real PSF, to get extended sources
         exclude_border=False,
-        sharphi=5.0,
+        sharplo=0.8,
+        sharphi=5,
+        roundlo=0.0,
+        roundhi=0.5,
+        minsep_fwhm=1.0,
     )
     peaks_table = star_finder.find_stars(data_snapshot)
 
@@ -237,19 +242,31 @@ def mask_image(data_snapshot, uncertainty_snapshot):
         return mask
 
     # then delete any stars near the center
-    center = uncertainty_snapshot.shape[0] / 2
+    center = data_snapshot.shape[0] / 2
     to_remove = []
     for idx in range(len(peaks_table)):
-        x = peaks_table[idx]["xcentroid"]
-        y = peaks_table[idx]["ycentroid"]
-        if distance(center, center, x, y) < 5:
+        row = peaks_table[idx]
+        x = row["xcentroid"]
+        y = row["ycentroid"]
+        if (
+            distance(center, center, x, y) < 2 * rough_psf_size
+            or row["peak"] < row["sky"]
+            # peak is sky-subtracted. This ^ removes ones that aren't very far above
+            # a high sky background. This cut stops substructure in clusters from
+            # being masked.
+            or row["peak"] < threshold
+        ):
             to_remove.append(idx)
     peaks_table.remove_rows(to_remove)
 
+    # we may have gotten rid of all the peaks, if so return
+    if len(peaks_table) == 0:
+        return mask
+
     # then remove any pixels within 2 FWHM of each source
-    for x_idx in range(uncertainty_snapshot.shape[1]):
+    for x_idx in range(data_snapshot.shape[1]):
         x = x_idx + 0.5  # to get pixel center
-        for y_idx in range(uncertainty_snapshot.shape[0]):
+        for y_idx in range(data_snapshot.shape[0]):
             y = y_idx + 0.5  # to get pixel center
             # then go through each row and see if it's close
             for row in peaks_table:
