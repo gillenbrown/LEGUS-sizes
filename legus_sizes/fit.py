@@ -477,7 +477,8 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
     # Use the data image to get the normalization that will be used in all plots. Base
     # it on the data so that it is the same in all bootstrap iterations
     vmax = 2 * np.max(cluster_snapshot)
-    data_norm = colors.SymLogNorm(vmin=-vmax, vmax=vmax, linthresh=0.01 * vmax, base=10)
+    linthresh = 3 * np.min(uncertainty_snapshot)
+    data_norm = colors.SymLogNorm(vmin=-vmax, vmax=vmax, linthresh=linthresh, base=10)
     sigma_norm = colors.Normalize(vmin=-10, vmax=10)
     u_norm = colors.Normalize(0, vmax=1.2 * np.max(uncertainty_snapshot))
     m_norm = colors.Normalize(0, vmax=np.max(mask))
@@ -653,7 +654,7 @@ for row in tqdm(clusters_table):
 
     data_snapshot = image_data[y_min:y_max, x_min:x_max]
     error_snapshot = sigma_data[y_min:y_max, x_min:x_max]
-    # create the mask with the uncertainty image
+    # create the mask
     mask = mask_image(data_snapshot, error_snapshot)
 
     # then crop the images back to the desired size
