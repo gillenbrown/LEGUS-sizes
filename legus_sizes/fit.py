@@ -255,7 +255,7 @@ def mask_image(data_snapshot, uncertainty_snapshot):
             for row in peaks_table:
                 x_cen = row["xcentroid"]
                 y_cen = row["ycentroid"]
-                radius = 1.5 * row["fwhm"]
+                radius = 2.0 * row["fwhm"]
                 if distance(x, y, x_cen, y_cen) < radius:
                     mask[y_idx][x_idx] = 0.0
     return mask
