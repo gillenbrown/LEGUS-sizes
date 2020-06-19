@@ -39,7 +39,7 @@ parameters_dist_script = ./legus_sizes/parameter_distribution.py
 # ------------------------------------------------------------------------------
 psf_pixel_size = 15
 psf_oversampling_factor = 2
-fit_region_size = 50
+fit_region_size = 30
 
 # ------------------------------------------------------------------------------
 #
@@ -110,10 +110,14 @@ all: $(all_my_dirs) $(plots)
 clean:
 	rm $(final_cats) $(final_cats_no_mask) $(plots) || true
 
-# have another option to remove the fits too, just not the PSFs
+$(info )
+
+# have another option to remove the fits too, just not the PSFs. Be careful
+# that we only remove the plots for this image size.
+debug_plots = $(foreach dir,$(cluster_fit_dirs),$(dir)/*size_$(fit_region_size)*)
 .PHONY: clean_fits
 clean_fits:
-	rm -r $(fits) $(fits_no_mask) $(cluster_fit_dirs) || true
+	rm -r $(fits) $(fits_no_mask) $(debug_plots) || true
 	make clean
 
 # but if they really want to nuke everything too they can
