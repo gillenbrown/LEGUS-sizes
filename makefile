@@ -110,8 +110,6 @@ all: $(all_my_dirs) $(plots)
 clean:
 	rm $(final_cats) $(final_cats_no_mask) $(plots) || true
 
-$(info )
-
 # have another option to remove the fits too, just not the PSFs. Be careful
 # that we only remove the plots for this image size.
 debug_plots = $(foreach dir,$(cluster_fit_dirs),$(dir)/*size_$(fit_region_size)*)
