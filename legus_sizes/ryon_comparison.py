@@ -9,7 +9,7 @@ from sinistra.astropy_helpers import symmetric_match
 bpl.set_style()
 
 
-plot_dir = Path(sys.argv[1])
+plot_name = Path(sys.argv[1])
 # ======================================================================================
 #
 # Load the various catalogs
@@ -154,4 +154,4 @@ ax.equal_scale()
 ax.legend(loc=4)
 ax.easy_add_text(f"RMS = {normalized_rms:.3f}", "upper left")
 ax.add_labels("Cluster $R_{eff}$ [pc] - Ryon+ 2017", "Cluster $R_{eff}$ [pc] - Me")
-fig.savefig(plot_dir / "comparison_plot.png")
+fig.savefig(plot_name)

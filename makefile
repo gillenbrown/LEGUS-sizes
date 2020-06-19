@@ -39,6 +39,7 @@ parameters_dist_script = ./legus_sizes/parameter_distribution.py
 # ------------------------------------------------------------------------------
 psf_pixel_size = 15
 psf_oversampling_factor = 2
+fit_region_size = 50
 
 # ------------------------------------------------------------------------------
 #
@@ -63,10 +64,10 @@ star_prelim = preliminary_stars.txt
 star_psf = psf_stars.txt
 psf = psf.fits
 sigma_image = sigma_electrons.fits
-fit = cluster_fits.h5
-fit_no_mask = cluster_fits_no_masking.h5
-final_cat = final_catalog.txt
-final_cat_no_mask = final_catalog_no_masking.txt
+fit = cluster_fits_$(fit_region_size).h5
+fit_no_mask = cluster_fits_no_masking_size_$(fit_region_size).h5
+final_cat = final_catalog_$(fit_region_size).txt
+final_cat_no_mask = final_catalog_no_masking_$(fit_region_size).txt
 
 # ------------------------------------------------------------------------------
 #
@@ -88,9 +89,9 @@ final_cats_no_mask = $(foreach dir,$(my_dirs_ryon),$(dir)$(final_cat_no_mask))
 # Various plots that will be here in this directory
 #
 # ------------------------------------------------------------------------------
-comparison_plot = $(local_plots_dir)comparison_plot.png
-param_dist_plot = $(local_plots_dir)parameter_distribution.png
-param_dist_plot_no_mask = $(local_plots_dir)parameter_distribution_ryon_galaxies.png
+comparison_plot = $(local_plots_dir)comparison_plot_size_$(fit_region_size).png
+param_dist_plot = $(local_plots_dir)parameter_distribution_size_$(fit_region_size).png
+param_dist_plot_no_mask = $(local_plots_dir)parameter_distribution_ryon_galaxies_size_$(fit_region_size).png
 plots = $(comparison_plot) $(param_dist_plot) $(param_dist_plot_no_mask)
 
 # ------------------------------------------------------------------------------
@@ -157,11 +158,11 @@ $(sigma_images): $(sigma_script)
 # the sigma image, psf, and cluster catalog
 .SECONDEXPANSION:
 $(fits): %: $(fitting_script) $$(dir %)$$(psf) $$(dir %)$$(sigma_image) $$(dir %)$$(cat)
-	python $(fitting_script) $@ $(dir $@)$(psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat)
+	python $(fitting_script) $@ $(dir $@)$(psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat) $(fit_region_size)
 
 # for the no masking case we pass an extra parameter
 $(fits_no_mask): %: $(fitting_script) $$(dir %)$$(psf) $$(dir %)$$(sigma_image) $$(dir %)$$(cat)
-	python $(fitting_script) $@ $(dir $@)$(psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat) ryon_like
+	python $(fitting_script) $@ $(dir $@)$(psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat) $(fit_region_size) ryon_like
 
 # Add the derived properties to these catalogs
 .SECONDEXPANSION:
@@ -174,7 +175,7 @@ $(final_cats_no_mask): %: $(final_catalog_script_no_mask) $$(dir %)$$(fit_no_mas
 
 # Make the comparison to Ryon+17's results
 $(comparison_plot): $(comparison_script) $(final_cats_no_mask)
-	python $(comparison_script) $(local_plots_dir) $(final_cats_no_mask)
+	python $(comparison_script) $@ $(final_cats_no_mask)
 
 $(param_dist_plot): $(parameters_dist_script) $(final_cats)
 	python $(parameters_dist_script) $@ $(final_cats)

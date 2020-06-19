@@ -40,8 +40,9 @@ psf_path = Path(sys.argv[2]).absolute()
 oversampling_factor = int(sys.argv[3])
 sigma_image_path = Path(sys.argv[4]).absolute()
 cluster_catalog_path = Path(sys.argv[5]).absolute()
-if len(sys.argv) > 6:
-    if len(sys.argv) != 7 or sys.argv[6] != "ryon_like":
+snapshot_size = int(sys.argv[6])
+if len(sys.argv) > 7:
+    if len(sys.argv) != 8 or sys.argv[7] != "ryon_like":
         raise ValueError("Bad list of parameters to fit.py")
     else:
         ryon_like = True
@@ -68,7 +69,6 @@ pixel_scale_pc = utils.get_f555w_pixel_scale_pc(final_catalog.parent.parent)
 # ======================================================================================
 rough_psf_size = 3
 # set the size of the images we'll use
-snapshot_size = 30
 snapshot_size_oversampled = snapshot_size * oversampling_factor
 
 # ======================================================================================
@@ -280,7 +280,7 @@ def mask_image(data_snapshot, uncertainty_snapshot):
 
 
 def create_plot_name(id, bootstrapping_iteration=None):
-    name = f"{galaxy_name}_{id:04}_"
+    name = f"{galaxy_name}_{id:04}_size_{snapshot_size}_"
 
     if ryon_like:
         name += "ryon_like_"
