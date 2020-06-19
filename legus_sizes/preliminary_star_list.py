@@ -75,7 +75,7 @@ peaks_table.sort("peak")
 peaks_table.reverse()  # put biggest peaks first
 # then add a column for brightness rank
 peaks_table["peak_rank"] = range(1, len(peaks_table) + 1)
-# mag is not properly calculated, delete it. 
+# mag is not properly calculated, delete it.
 del peaks_table["mag"]
 
 # ======================================================================================

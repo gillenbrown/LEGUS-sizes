@@ -142,11 +142,14 @@ class MainWindow(QMainWindow):
             f"Image Directory: \n{home_dir}\n\n"
             f"Number of Accepted Stars: {np.sum(self.starData['use_for_psf'])}\n"
             f"Number of Examined Stars: {self.idx}\n\n"
+            f"ID: {thisStar['id']:.3f}\n"
             f"x: {thisStar['xcentroid']:.3f}\n"
             f"y: {thisStar['ycentroid']:.3f}\n\n"
             f"FWHM: {thisStar['fwhm']:.3f}\n"
-            f"Ellipticiy: {thisStar['roundness']:.3f}\n"
             f"Sharpness: {thisStar['sharpness']:.3f}\n\n"
+            f"Ellipticiy: {thisStar['roundness']:.3f}\n"
+            f"Sky: {thisStar['sky']:.3f}\n"
+            f"Flux (unknown units): {thisStar['flux']:.3f}\n"
         )
         if thisStar["near_star"]:
             new_info += "NEAR ANOTHER STAR\n"
