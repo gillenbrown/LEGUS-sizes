@@ -284,6 +284,8 @@ def create_plot_name(id, bootstrapping_iteration=None):
 
     if ryon_like:
         name += "ryon_like_"
+    else:
+        name += "final_"
 
     if bootstrapping_iteration is None:
         name += "best_fit"
