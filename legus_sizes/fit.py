@@ -1,12 +1,15 @@
 """
 fit.py - Do the fitting of the clusters in the image
 
-This takes 4 arguments:
+This takes 6 or 7 arguments:
 - Path where the resulting cluster catalog will be saved
 - Path to the fits image containing the PSF
 - Oversampling factor used when creating the PSF
 - Path to the sigma image containing uncertainties for each pixel
 - Path to the cleaned cluster catalog
+- Size of the fitting region to be used
+- Optional argument that must be "ryon_like" if present. If it is present, masking will
+  not be done, and the power law slope will be restricted to be greater than 1.
 """
 from pathlib import Path
 import sys
@@ -52,6 +55,7 @@ else:
 galaxy_name = final_catalog.parent.parent.name
 image_data, _, _ = utils.get_drc_image(final_catalog.parent.parent)
 psf = fits.open(psf_path)["PRIMARY"].data
+
 # the convolution requires the psf to be normalized, and without any negative values
 psf = np.maximum(psf, 0)
 psf /= np.sum(psf)
@@ -62,13 +66,6 @@ clusters_table = table.Table.read(cluster_catalog_path, format="ascii.ecsv")
 pixel_scale_arcsec = utils.get_pixel_scale_arcsec(final_catalog.parent.parent)
 pixel_scale_pc = utils.get_f555w_pixel_scale_pc(final_catalog.parent.parent)
 
-# ======================================================================================
-#
-# Set up some configuration parameters
-#
-# ======================================================================================
-rough_psf_size = 3
-# set the size of the images we'll use
 snapshot_size_oversampled = snapshot_size * oversampling_factor
 
 # ======================================================================================
@@ -250,7 +247,7 @@ def mask_image(data_snapshot, uncertainty_snapshot):
         x = row["xcentroid"]
         y = row["ycentroid"]
         if (
-            distance(center, center, x, y) < 2 * rough_psf_size
+            distance(center, center, x, y) < 6
             or row["peak"] < row["sky"]
             # peak is sky-subtracted. This ^ removes ones that aren't very far above
             # a high sky background. This cut stops substructure in clusters from
@@ -296,21 +293,37 @@ def create_plot_name(id, bootstrapping_iteration=None):
 
 
 def create_boostrap_mask(original_mask, x_c, y_c):
+    """
+    Create a temporary mask used during a given bootstrapping iteration.
+
+    We will have two separate regions. Within 9 pixels from the center, we will sample
+    on all pixels individually. Outside this central region, we create 3x3 pixel
+    boxes. We do bootstrapping on both of these regions independently, then combine
+    the selection.
+
+    :param original_mask: Original mask, where other sources can be masked out.
+    :param x_c: X center of the cluster
+    :param y_c: Y center of the cluster
+    :return: Mask that contains the number of times each pixel was selected.
+    """
+    box_size = 3
     # correct for oversampled pixels
     x_c /= oversampling_factor
     y_c /= oversampling_factor
 
-    # first go through and assign all pixels to either a box or the center
+    # first go through and assign all pixels to either a box or the center. We have a
+    # dictionary of lists for the boxes, that will have keys of box location and values
+    # of all the pixels in that box.
     outside_boxes = defaultdict(list)
     center_pixels = []
     for x in range(mask.shape[1]):
         for y in range(mask.shape[0]):
-            if original_mask[y, x] == 1:
-                if distance(x, y, x_c, y_c) <= 3 * rough_psf_size:
+            if original_mask[y, x] == 1:  # only keep pixels not already masked out
+                if distance(x, y, x_c, y_c) <= 9:
                     center_pixels.append((x, y))
                 else:
-                    idx_box_x = x // rough_psf_size
-                    idx_box_y = y // rough_psf_size
+                    idx_box_x = x // box_size
+                    idx_box_y = y // box_size
 
                     outside_boxes[(idx_box_x, idx_box_y)].append((x, y))
 
@@ -324,11 +337,8 @@ def create_boostrap_mask(original_mask, x_c, y_c):
     # then put this into the mask
     temp_mask = np.zeros(original_mask.shape)
     for idx in idxs_boxes:
-        # print(f"idx: {idx}")
         key = outside_boxes_keys[idx]
-        # print(f"key: {key}")
         for x, y in outside_boxes[key]:
-            # print(f"x, y: {x} {y}")
             temp_mask[y, x] += 1
     for idx in idxs_center:
         x, y = center_pixels[idx]
@@ -406,11 +416,14 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
 
     converge_criteria = 0.2
     converged = [False for _ in range(n_variables)]
-    check_spacing = 10
+    check_spacing = 20
+    # larger spacing is more computationally efficient, plots take a while to make, so
+    # don't do them that frequently.
     iteration = 0
     while not all(converged):
         iteration += 1
-        # sample the xs and ys to make a new mask
+
+        # make a new mask
         temp_mask = create_boostrap_mask(mask, initial_result.x[1], initial_result.x[2])
 
         # fit to this selection of pixels
@@ -457,6 +470,15 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
 
 
 def oversampled_to_image(x):
+    """
+    Turn oversampled pixel coordinates into regular pixel coordinates.
+
+    There are two affects here: first the pixel size is different, and the centers
+    (where the pixel is defined to be) are not aligned.
+
+    :param x: Location in oversampled pixel coordinates
+    :return: Location in regular pixel coordinates
+    """
     # first have to correct for the pixel size
     x /= oversampling_factor
     # then the oversampled pixel centers are offset from the regular pixels,
@@ -473,9 +495,10 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
     diff_image = cluster_snapshot - model_psf_bin_image
     sigma_image = diff_image / uncertainty_snapshot
     # when used in bootstrapping the mask can have higher values than 1. Restrict it
-    # to just be that when plotted
+    # to no more than 1 when showing the sigma image
     sigma_image *= np.minimum(mask, 1)
 
+    # set up the normalizations and colormaps
     # Use the data image to get the normalization that will be used in all plots. Base
     # it on the data so that it is the same in all bootstrap iterations
     vmax = 2 * np.max(cluster_snapshot)
@@ -490,6 +513,7 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
     u_cmap = cmocean.cm.deep_r
     m_cmap = cmocean.cm.gray_r
 
+    # create the figure and add all the subplots
     fig = plt.figure(figsize=[20, 15])
     gs = gridspec.GridSpec(
         nrows=6,
@@ -511,11 +535,11 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
     ax_pd = fig.add_subplot(gs[0:3, 3], projection="bpl")  # radial profile differential
     ax_pc = fig.add_subplot(gs[3:, 3], projection="bpl")  # radial profile cumulative
 
-    r_im = ax_r.imshow(model_image, norm=data_norm, cmap=data_cmap, origin="lower")
-    f_im = ax_f.imshow(
-        model_psf_bin_image, norm=data_norm, cmap=data_cmap, origin="lower"
-    )
-    d_im = ax_d.imshow(cluster_snapshot, norm=data_norm, cmap=data_cmap, origin="lower")
+    # show the images in their respective panels
+    common_data = {"norm": data_norm, "cmap": data_cmap}
+    r_im = ax_r.imshow(model_image, **common_data, origin="lower")
+    f_im = ax_f.imshow(model_psf_bin_image, **common_data, origin="lower")
+    d_im = ax_d.imshow(cluster_snapshot, **common_data, origin="lower")
     s_im = ax_s.imshow(sigma_image, norm=sigma_norm, cmap=sigma_cmap, origin="lower")
     u_im = ax_u.imshow(uncertainty_snapshot, norm=u_norm, cmap=u_cmap, origin="lower")
     m_im = ax_m.imshow(mask, norm=m_norm, cmap=m_cmap, origin="lower")
