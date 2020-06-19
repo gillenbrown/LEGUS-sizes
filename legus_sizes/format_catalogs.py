@@ -168,6 +168,7 @@ def find_catalogs(home_dir):
     # if we got here, we have an error.
     raise FileNotFoundError(f"No catalog found in {home_dir}")
 
+
 # --------------------------------------------------------------------------------------
 #
 # Actual process
