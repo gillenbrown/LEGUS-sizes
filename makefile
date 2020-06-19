@@ -123,7 +123,7 @@ clean_fits:
 # but if they really want to nuke everything too they can
 .PHONY: clean_all
 clean_all:
-	rm -r $(my_dirs) || true
+	rm -r $(all_my_dirs) || true
 
 $(all_my_dirs):
 	mkdir $@
