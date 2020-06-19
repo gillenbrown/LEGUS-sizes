@@ -63,7 +63,7 @@ ncols = 5
 nrows = int(np.ceil(len(star_cutouts) / 5))
 
 fig, axs = bpl.subplots(
-    nrows=nrows, ncols=ncols, figsize=[4 * ncols, 3 * nrows], tight_layout=True
+    nrows=nrows, ncols=ncols, figsize=[3.5 * ncols, 3 * nrows], tight_layout=True
 )
 axs = axs.flatten()
 
@@ -77,7 +77,9 @@ for ax, cutout in zip(axs, star_cutouts):
     ax.remove_spines(["all"])
     fig.colorbar(im, ax=ax)
 
-fig.savefig(size_home_dir / "psf_stars.png", dpi=100, bbox_inches="tight")
+fig.suptitle(str(home_dir.name).upper(), fontsize=20)
+
+fig.savefig(size_home_dir / "plots" / "psf_stars.png", dpi=100, bbox_inches="tight")
 
 # ======================================================================================
 #
@@ -108,6 +110,7 @@ norm = colors.SymLogNorm(
 im = ax.imshow(psf_data, norm=norm, cmap=bpl.cm.lapaz)
 ax.remove_labels("both")
 ax.remove_spines(["all"])
+ax.set_title(str(home_dir.name).upper())
 fig.colorbar(im, ax=ax)
 
 fig.savefig(size_home_dir / "plots" / "psf.png", bbox_inches="tight")
