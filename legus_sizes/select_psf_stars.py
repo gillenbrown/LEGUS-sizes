@@ -20,9 +20,9 @@ from PySide2.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
-    QPushButton,
+    QPushButton, QShortcut
 )
-from PySide2.QtGui import QPixmap
+from PySide2.QtGui import QPixmap, QKeySequence
 from PySide2.QtCore import Qt
 
 import utils
@@ -98,9 +98,14 @@ class MainWindow(QMainWindow):
         self.acceptButton.clicked.connect(self.accept)
         self.rejectButton.clicked.connect(self.reject)
         self.exitButton.clicked.connect(self.exit)
+        # and make keyboard shortcuts
+        acceptShortcut = QShortcut(QKeySequence("right"), self.acceptButton)
+        rejectShortcut = QShortcut(QKeySequence("left"), self.rejectButton)
+        acceptShortcut.activated.connect(self.accept)
+        rejectShortcut.activated.connect(self.reject)
 
-        hBoxInput.addWidget(self.acceptButton)
         hBoxInput.addWidget(self.rejectButton)
+        hBoxInput.addWidget(self.acceptButton)
         hBoxInput.addWidget(self.exitButton)
         vBoxMain.addLayout(hBoxInput)
 
