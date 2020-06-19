@@ -146,8 +146,8 @@ class MainWindow(QMainWindow):
             f"x: {thisStar['xcentroid']:.3f}\n"
             f"y: {thisStar['ycentroid']:.3f}\n\n"
             f"FWHM: {thisStar['fwhm']:.3f}\n"
-            f"Sharpness: {thisStar['sharpness']:.3f}\n\n"
-            f"Ellipticiy: {thisStar['roundness']:.3f}\n"
+            f"Sharpness: {thisStar['sharpness']:.3f}\n"
+            f"Ellipticiy: {thisStar['roundness']:.3f}\n\n"
             f"Sky: {thisStar['sky']:.3f}\n"
             f"Flux (unknown units): {thisStar['flux']:.3f}\n"
         )
