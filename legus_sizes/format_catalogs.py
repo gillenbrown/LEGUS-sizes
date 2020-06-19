@@ -165,7 +165,8 @@ def find_catalogs(home_dir):
             catalog = item
             header = Path(str(item).replace(".tab", ".readme"))
             return catalog, header
-
+    # if we got here, we have an error.
+    raise FileNotFoundError(f"No catalog found in {home_dir}")
 
 # --------------------------------------------------------------------------------------
 #
