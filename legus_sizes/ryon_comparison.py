@@ -155,37 +155,3 @@ ax.legend(loc=4)
 ax.easy_add_text(f"RMS = {normalized_rms:.3f}", "upper left")
 ax.add_labels("Cluster $R_{eff}$ [pc] - Ryon+ 2017", "Cluster $R_{eff}$ [pc] - Me")
 fig.savefig(plot_dir / "comparison_plot.png")
-
-# ======================================================================================
-#
-# Comparing eta - a very relevant comparison, as it strongly affects r_eff
-#
-# ======================================================================================
-# First we'll make a straight comparison
-limits = [0.9, 10]
-fig, ax = bpl.subplots(figsize=[7, 7])
-for idx, (field, cat) in enumerate(matches.items()):
-    c = bpl.color_cycle[idx]
-
-    ax.errorbar(
-        x=cat["Eta"],
-        y=cat["power_law_slope_best"],
-        xerr=cat["e_Eta"],
-        yerr=[cat["power_law_slope_e-"], cat["power_law_slope_e+"]],
-        markerfacecolor=c,
-        markeredgecolor=c,
-        markersize=5,
-        ecolor=c,
-        label=field.upper(),
-        elinewidth=0.5,
-        zorder=2,
-    )
-
-ax.set_limits(*limits, *limits)
-ax.plot(limits, limits, c=bpl.almost_black, lw=1, zorder=0)
-ax.set_yscale("log")
-ax.set_xscale("log")
-ax.equal_scale()
-ax.legend(loc=4)
-ax.add_labels("$\eta$ - Ryon+ 2017", "$\eta$  - Me")
-fig.savefig(plot_dir / "comparison_plot_eta.png")
