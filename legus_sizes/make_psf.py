@@ -75,6 +75,7 @@ for ax, cutout in zip(axs, star_cutouts):
     im = ax.imshow(cutout, norm=norm, cmap=bpl.cm.lapaz)
     ax.remove_labels("both")
     ax.remove_spines(["all"])
+    ax.set_title(id)
     fig.colorbar(im, ax=ax)
 
 fig.suptitle(str(home_dir.name).upper(), fontsize=20)
@@ -95,6 +96,9 @@ psf_builder = photutils.EPSFBuilder(
 psf, fitted_stars = psf_builder(star_cutouts)
 
 psf_data = psf.data
+# the convolution requires the psf to be normalized, and without any negative values
+psf_data = np.maximum(psf_data, 0)
+psf_data /= np.sum(psf_data)
 
 # ======================================================================================
 #
@@ -104,9 +108,7 @@ psf_data = psf.data
 fig, ax = bpl.subplots()
 vmax = np.max(psf_data)
 vmin = np.min(psf_data)
-norm = colors.SymLogNorm(
-    vmin=vmin, vmax=vmax, linthresh=max(abs(vmin), 0.001 * vmax), base=10
-)
+norm = colors.SymLogNorm(vmin=0, vmax=0.1, linthresh=0.002, base=10)
 im = ax.imshow(psf_data, norm=norm, cmap=bpl.cm.lapaz)
 ax.remove_labels("both")
 ax.remove_spines(["all"])
