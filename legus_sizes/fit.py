@@ -63,9 +63,6 @@ psf /= np.sum(psf)
 sigma_data = fits.open(sigma_image_path)["PRIMARY"].data
 clusters_table = table.Table.read(cluster_catalog_path, format="ascii.ecsv")
 
-pixel_scale_arcsec = utils.get_pixel_scale_arcsec(final_catalog.parent.parent)
-pixel_scale_pc = utils.get_f555w_pixel_scale_pc(final_catalog.parent.parent)
-
 snapshot_size_oversampled = snapshot_size * oversampling_factor
 
 # ======================================================================================
