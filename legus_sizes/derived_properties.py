@@ -119,10 +119,11 @@ for row in fits_catalog:
         15,  # size of the box
     )
     # then get the 1 sigma error range of that
-    low, hi = np.percentile(all_r_eff_pixels, [15.85, 84.15])
-    # subtract the middle to get the error range
-    row["r_eff_pixels_rmax_15pix_e+"] = hi - row["r_eff_pixels_rmax_15pix_best"]
-    row["r_eff_pixels_rmax_15pix_e-"] = row["r_eff_pixels_rmax_15pix_best"] - low
+    lo, hi = np.percentile(all_r_eff_pixels, [15.85, 84.15])
+    # subtract the middle to get the error range. If the best fit it outside the error
+    # range, make the error in that direction zero.
+    row["r_eff_pixels_rmax_15pix_e+"] = max(hi - row["r_eff_pixels_rmax_15pix_best"], 0)
+    row["r_eff_pixels_rmax_15pix_e-"] = max(row["r_eff_pixels_rmax_15pix_best"] - lo, 0)
 
     # Then we can convert to pc. First do it without including distance errors
     best, low_e, high_e = utils.pixels_to_pc_with_errors(
