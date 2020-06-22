@@ -17,6 +17,7 @@ from collections import defaultdict
 
 from astropy import table
 from astropy import nddata
+from astropy import stats
 from astropy.io import fits
 import photutils
 import betterplotlib as bpl
@@ -64,6 +65,24 @@ sigma_data = fits.open(sigma_image_path)["PRIMARY"].data
 clusters_table = table.Table.read(cluster_catalog_path, format="ascii.ecsv")
 
 snapshot_size_oversampled = snapshot_size * oversampling_factor
+
+# ======================================================================================
+#
+# Calculate the minimum background level allowed in the fits. This will be 2 sigma
+# below the mean sky value (which is calculated here) or the mimum pixel value
+# in the cluster snapshot, whichever is lower.
+#
+# ======================================================================================
+flat_im = image_data.flatten()
+idxs_nonzero = np.nonzero(image_data)
+nonzero_flat_im = image_data[idxs_nonzero]
+# calculate some stats
+mean_sky, _, sigma_sky = stats.sigma_clipped_stats(nonzero_flat_im, sigma=2.0)
+# choose only 2 sigma because the mean is a bit higher than the mode (which should be
+# the true sky value). We don't want to go too low because that could let the
+# background go too low. We will allow for that if needed as we choose the minimum of
+# this value and the minimum pixel value in the cluster snapshot.
+background_min = mean_sky - 2 * sigma_sky
 
 # ======================================================================================
 #
@@ -381,7 +400,9 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
         (0.1, 1),  # axis ratio
         (-np.pi, np.pi),  # position angle
         (0, None),  # power law slope
-        (np.min(data_snapshot), np.max(data_snapshot)),  # background
+        # the minimum background allowed will be the smaller of the background level
+        # determined above or the minimum pixel value in the shapshot.
+        (min(background_min, np.min(data_snapshot)), np.max(data_snapshot)),
     ]
     # modify this in the case of doing things like Ryon, in which case we have a lower
     # limit on the power law slope of 1 (or slightly higher, to avoid overflow errors
