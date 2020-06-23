@@ -385,10 +385,10 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
         # Increase that to account for bins, as peaks will be averaged lower.
         snapshot_size_oversampled / 2.0,  # X center in the oversampled snapshot
         snapshot_size_oversampled / 2.0,  # Y center in the oversampled snapshot
-        2,  # scale radius, in regular pixels
+        1,  # scale radius, in regular pixels. Start small to avoid fitting other things
         0.8,  # axis ratio
         np.pi / 2.0,  # position angle
-        2.0,  # power law slope
+        3.0,  # power law slope. Start high to give a sharp cutoff and avoid other stuff
         np.min(data_snapshot),  # background
     )
 
@@ -402,9 +402,9 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
         # scale radius in regular pixels. Choose the limit to be one regular pixel
         # to the radius of the image
         (1, snapshot_size / 2.0),
-        (0.1, 1),  # axis ratio
+        (0.3, 1),  # axis ratio
         (0, np.pi),  # position angle
-        (0, None),  # power law slope
+        (0.6, 10),  # power law slope
         # the minimum background allowed will be the smaller of the background level
         # determined above or the minimum pixel value in the shapshot.
         (min(background_min, np.min(data_snapshot)), np.max(data_snapshot)),
