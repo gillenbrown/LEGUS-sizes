@@ -168,7 +168,7 @@ $(fits): %: $(fitting_script) $$(dir %)$$(psf) $$(dir %)$$(sigma_image) $$(dir %
 
 # for the no masking case we pass an extra parameter
 $(fits_no_mask): %: $(fitting_script) $$(dir %)$$(psf) $$(dir %)$$(sigma_image) $$(dir %)$$(cat)
-	ls $(call to_rm_debug_plots,$(dir $@),ryon_like)
+	rm $(call to_rm_debug_plots,$(dir $@),ryon_like)
 	python $(fitting_script) $@ $(dir $@)$(psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat) $(fit_region_size) ryon_like
 
 # Add the derived properties to these catalogs
