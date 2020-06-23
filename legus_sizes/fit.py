@@ -384,9 +384,9 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
         snapshot_size_oversampled / 2.0,  # Y center in the oversampled snapshot
         2 * oversampling_factor,  # scale radius, in oversampled pixels
         0.8,  # axis ratio
-        0,  # position angle
+        np.pi / 2.0,  # position angle
         2.0,  # power law slope
-        0,  # background
+        np.min(data_snapshot),  # background
     )
 
     bounds = [
@@ -398,7 +398,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
         (0.4 * snapshot_size_oversampled, 0.6 * snapshot_size_oversampled),
         (1, snapshot_size_oversampled),  # scale radius in oversampled pixels
         (0.1, 1),  # axis ratio
-        (-np.pi, np.pi),  # position angle
+        (0, np.pi),  # position angle
         (0, None),  # power law slope
         # the minimum background allowed will be the smaller of the background level
         # determined above or the minimum pixel value in the shapshot.
