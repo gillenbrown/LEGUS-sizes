@@ -163,12 +163,12 @@ $(sigma_images): $(sigma_script)
 to_rm_debug_plots =  $(1)cluster_fit_plots/*size_$(fit_region_size)_$(2)*
 .SECONDEXPANSION:
 $(fits): %: $(fitting_script) $$(dir %)$$(psf) $$(dir %)$$(sigma_image) $$(dir %)$$(cat)
-	rm $(call to_rm_debug_plots,$(dir $@),final)
+	rm $(call to_rm_debug_plots,$(dir $@),final) || true
 	python $(fitting_script) $@ $(dir $@)$(psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat) $(fit_region_size)
 
 # for the no masking case we pass an extra parameter
 $(fits_no_mask): %: $(fitting_script) $$(dir %)$$(psf) $$(dir %)$$(sigma_image) $$(dir %)$$(cat)
-	rm $(call to_rm_debug_plots,$(dir $@),ryon_like)
+	rm $(call to_rm_debug_plots,$(dir $@),ryon_like) || true
 	python $(fitting_script) $@ $(dir $@)$(psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat) $(fit_region_size) ryon_like
 
 # Add the derived properties to these catalogs
