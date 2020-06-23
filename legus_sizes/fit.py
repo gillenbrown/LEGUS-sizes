@@ -325,7 +325,7 @@ def create_boostrap_mask(original_mask, x_c, y_c):
     :param y_c: Y center of the cluster
     :return: Mask that contains the number of times each pixel was selected.
     """
-    box_size = 3
+    box_size = 5
     # correct for oversampled pixels
     x_c /= oversampling_factor
     y_c /= oversampling_factor
