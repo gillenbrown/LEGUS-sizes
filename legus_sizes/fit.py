@@ -156,6 +156,9 @@ def bin_data_2d(data):
 
 def create_model_image(log_mu_0, x_c, y_c, a, q, theta, eta, background):
     """ Create a model image using the EFF parameters. """
+    # a is passed in in regular coordinates, shift it to the oversampled ones
+    a *= oversampling_factor
+
     # first generate the x and y pixel coordinates of the model image. We will have
     # an array that's the same size as the cluster snapshot in oversampled pixels,
     # plus padding to account for zero-padded boundaries in the FFT convolution
@@ -382,7 +385,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
         # Increase that to account for bins, as peaks will be averaged lower.
         snapshot_size_oversampled / 2.0,  # X center in the oversampled snapshot
         snapshot_size_oversampled / 2.0,  # Y center in the oversampled snapshot
-        2 * oversampling_factor,  # scale radius, in oversampled pixels
+        2,  # scale radius, in regular pixels
         0.8,  # axis ratio
         np.pi / 2.0,  # position angle
         2.0,  # power law slope
@@ -396,7 +399,9 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
         # X and Y center in oversampled pixels
         (0.4 * snapshot_size_oversampled, 0.6 * snapshot_size_oversampled),
         (0.4 * snapshot_size_oversampled, 0.6 * snapshot_size_oversampled),
-        (1, snapshot_size_oversampled),  # scale radius in oversampled pixels
+        # scale radius in regular pixels. Choose the limit to be one regular pixel
+        # to the radius of the image
+        (1, snapshot_size / 2.0),
         (0.1, 1),  # axis ratio
         (0, np.pi),  # position angle
         (0, None),  # power law slope
@@ -659,9 +664,9 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
     # the last one just has the list of parameters
     ax_pc.easy_add_text(
         f"log(peak brightness) = {params[0]:.2f}\n"
-        f"x center = {params[1] / oversampling_factor:.2f}\n"
-        f"y center = {params[2]/ oversampling_factor:.2f}\n"
-        f"scale radius [pixels] = {params[3] / oversampling_factor:.2f}\n"
+        f"x center = {oversampled_to_image(params[1]):.2f}\n"
+        f"y center = {oversampled_to_image(params[2]):.2f}\n"
+        f"scale radius [pixels] = {params[3]:.2f}\n"
         f"q (axis ratio) = {params[4]:.2f}\n"
         f"position angle = {params[5]:.2f}\n"
         f"$\eta$ (power law slope) = {params[6]:.2f}\n"
@@ -715,7 +720,7 @@ for row in tqdm(clusters_table):
     row["central_surface_brightness_best"] = 10 ** results[0]
     row["x_pix_single_fitted_best"] = x_min + oversampled_to_image(results[1])
     row["y_pix_single_fitted_best"] = y_min + oversampled_to_image(results[2])
-    row["scale_radius_pixels_best"] = results[3] / oversampling_factor
+    row["scale_radius_pixels_best"] = results[3]
     row["axis_ratio_best"] = results[4]
     row["position_angle_best"] = results[5]
     row["power_law_slope_best"] = results[6]
@@ -724,7 +729,7 @@ for row in tqdm(clusters_table):
     row["central_surface_brightness"] = [10 ** v for v in history[0]]
     row["x_pix_single_fitted"] = [x_min + oversampled_to_image(v) for v in history[1]]
     row["y_pix_single_fitted"] = [y_min + oversampled_to_image(v) for v in history[2]]
-    row["scale_radius_pixels"] = [v / oversampling_factor for v in history[3]]
+    row["scale_radius_pixels"] = history[3]
     row["axis_ratio"] = history[4]
     row["position_angle"] = history[5]
     row["power_law_slope"] = history[6]
