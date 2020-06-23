@@ -157,13 +157,18 @@ $(sigma_images): $(sigma_script)
 	python $(sigma_script) $@
 
 # Then we can actually do the fitting, which depends on
-# the sigma image, psf, and cluster catalog
+# the sigma image, psf, and cluster catalog. First we remove all the debug plots
+# associated with this run, as we don't know how many bootstrap iterations
+# will be needed, and we want to make sure all plots come from the same run.
+to_rm_debug_plots =  $(1)cluster_fit_plots/*size_$(fit_region_size)_$(2)*
 .SECONDEXPANSION:
 $(fits): %: $(fitting_script) $$(dir %)$$(psf) $$(dir %)$$(sigma_image) $$(dir %)$$(cat)
+	rm $(call to_rm_debug_plots,$(dir $@),final)
 	python $(fitting_script) $@ $(dir $@)$(psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat) $(fit_region_size)
 
 # for the no masking case we pass an extra parameter
 $(fits_no_mask): %: $(fitting_script) $$(dir %)$$(psf) $$(dir %)$$(sigma_image) $$(dir %)$$(cat)
+	ls $(call to_rm_debug_plots,$(dir $@),ryon_like)
 	python $(fitting_script) $@ $(dir $@)$(psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat) $(fit_region_size) ryon_like
 
 # Add the derived properties to these catalogs
