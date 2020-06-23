@@ -515,6 +515,12 @@ def oversampled_to_image(x):
 def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savename):
     model_image, model_psf_image, model_psf_bin_image = create_model_image(*params)
 
+    # background subtract everything at this point, to make better plots
+    cluster_snapshot -= params[7]
+    model_image -= params[7]
+    model_psf_image -= params[7]
+    model_psf_bin_image -= params[7]
+
     diff_image = cluster_snapshot - model_psf_bin_image
     sigma_image = diff_image / uncertainty_snapshot
     # when used in bootstrapping the mask can have higher values than 1. Restrict it
@@ -574,9 +580,9 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
     fig.colorbar(u_im, ax=ax_u)
     fig.colorbar(m_im, ax=ax_m)
 
-    ax_r.set_title("Raw Model")
+    ax_r.set_title("Raw Cluster Model")
     ax_f.set_title("Model Convolved\nwith PSF and Binned")
-    ax_d.set_title("Data")
+    ax_d.set_title("Data\nBackground Subtracted")
     ax_s.set_title("(Data - Model)/Uncertainty")
     ax_u.set_title("Uncertainty")
     ax_m.set_title("Mask")
@@ -603,6 +609,7 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
 
     ax_pd.scatter(radii, data_ys, c=c_d, s=5, alpha=1.0, label="Data")
     ax_pd.scatter(radii, model_ys, c=c_m, s=5, alpha=1.0, label="Model")
+    ax_pd.axhline(0, ls=":", c=bpl.almost_black)
 
     # convert to numpy array to have nice indexing
     radii = np.array(radii)
@@ -637,25 +644,16 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
     y_max += 0.1 * diff
     ax_pd.set_limits(0, np.ceil(max(radii)), y_min, y_max)
 
-    # then make the cumulative one. We subtract off the background before doing this.
-    model_ys -= params[7]
-    data_ys -= params[7]
-    # get the radii in orcer
+    # then make the cumulative one. get the radii in order
     idxs_sort = np.argsort(radii)
     model_ys_cumulative = np.cumsum(model_ys[idxs_sort])
     data_ys_cumulative = np.cumsum(data_ys[idxs_sort])
 
     ax_pc.plot(
-        radii[idxs_sort],
-        data_ys_cumulative,
-        c=c_d,
-        label="Data (Background Subtracted)",
+        radii[idxs_sort], data_ys_cumulative, c=c_d, label="Data",
     )
     ax_pc.plot(
-        radii[idxs_sort],
-        model_ys_cumulative,
-        c=c_m,
-        label="Model (Background Subtracted)",
+        radii[idxs_sort], model_ys_cumulative, c=c_m, label="Model",
     )
     ax_pc.set_limits(0, np.ceil(max(radii)), 0, 1.2 * np.max(data_ys_cumulative))
     ax_pc.legend(loc="upper left")
