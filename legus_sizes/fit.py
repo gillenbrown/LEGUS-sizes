@@ -532,7 +532,7 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
     # it on the data so that it is the same in all bootstrap iterations
     vmax = 2 * np.max(cluster_snapshot)
     linthresh = 3 * np.min(uncertainty_snapshot)
-    data_norm = colors.SymLogNorm(vmin=-vmax, vmax=vmax, linthresh=linthresh, base=10)
+    data_norm = colors.SymLogNorm(vmin=-vmax, vmax=vmax, linthresh=linthresh)
     sigma_norm = colors.Normalize(vmin=-10, vmax=10)
     u_norm = colors.Normalize(0, vmax=1.2 * np.max(uncertainty_snapshot))
     m_norm = colors.Normalize(0, vmax=np.max(mask))
