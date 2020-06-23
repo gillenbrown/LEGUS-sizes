@@ -448,7 +448,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
         this_result = optimize.minimize(
             calculate_chi_squared,
             args=(data_snapshot, uncertainty_snapshot, temp_mask),
-            x0=initial_result.x,
+            x0=params,  # don't use the initial result, to avoid local minima
             bounds=bounds,
         )
 
