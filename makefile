@@ -1,3 +1,8 @@
+# for intel Python distribution, the MKL library has parallelization. For my
+# purposes one core is ideal, so I can run multiple fields at once. This isn't
+# much slower then letting it do multiple cores, not sure why.
+export MKL_NUM_THREADS=1
+
 # Figure out what machine we're on
 hostname = $(shell hostname)
 # Then match this to my machines.
