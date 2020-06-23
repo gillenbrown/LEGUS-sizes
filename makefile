@@ -2,6 +2,7 @@
 # purposes one core is ideal, so I can run multiple fields at once. This isn't
 # much slower then letting it do multiple cores, not sure why.
 export MKL_NUM_THREADS=1
+export MKL_THREADING_LAYER=sequential
 
 # Figure out what machine we're on
 hostname = $(shell hostname)
