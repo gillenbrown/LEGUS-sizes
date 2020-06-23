@@ -207,7 +207,7 @@ class MainWindow(QMainWindow):
         vmax = np.max(snapshot_data)
         vmin = -5 * noise
         linthresh = max(0.01 * vmax, 5 * noise)
-        norm = colors.SymLogNorm(vmin=vmin, vmax=vmax * 2, linthresh=linthresh)
+        norm = colors.SymLogNorm(vmin=vmin, vmax=vmax * 2, linthresh=linthresh, base=10)
         im = ax.imshow(snapshot_data, norm=norm, cmap=bpl.cm.lapaz)
         ax.set_limits(min_x_plot, max_x_plot, min_y_plot, max_y_plot)
         ax.scatter([cen_x_new], [cen_y_new], marker="x", c=bpl.almost_black, s=20)
