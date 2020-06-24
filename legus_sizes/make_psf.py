@@ -29,10 +29,8 @@ bpl.set_style()
 psf_name = Path(sys.argv[1]).absolute()
 size_home_dir = psf_name.parent
 home_dir = size_home_dir.parent
-# We'll need to get the star list too
-star_list_path = Path(sys.argv[2]).absolute()
-oversampling_factor = int(sys.argv[3])
-psf_width = int(sys.argv[4])
+oversampling_factor = int(sys.argv[2])
+psf_width = int(sys.argv[3])
 
 # ======================================================================================
 #
@@ -46,10 +44,26 @@ nddata = NDData(data=image_data)
 # get the noise_level, which will be used later
 _, _, noise = stats.sigma_clipped_stats(image_data, sigma=2.0)
 
-# load the input catalog
-star_table = table.Table.read(star_list_path, format="ascii.ecsv")
-# rename columns, as required by extract_stars
-star_table.rename_columns(["xcentroid", "ycentroid"], ["x", "y"])
+# load the input star list. I'll do this myself because of the formatting. We do have
+# to be careful with one galaxy which has a long filename
+galaxy_name = home_dir.name
+if galaxy_name == "ngc5194-ngc5195-mosaic":
+    name = "isolated_stars__f435w_f555w_f814w_ngc5194-ngc5195-mosaic.coo"
+else:
+    name = f"isolated_stars_{galaxy_name}.coo"
+preliminary_catalog_path = home_dir / name
+
+star_table = table.Table(names=("x", "y"))
+with open(preliminary_catalog_path, "r") as in_file:
+    for row in in_file:
+        row = row.strip()
+        if (not row.startswith("#")) and row != "":
+            star_table.add_row((row.split()[0], row.split()[1]))
+
+
+# handle one vs zero indexing
+star_table["x"] -= 1
+star_table["y"] -= 1
 
 # ======================================================================================
 #
@@ -67,7 +81,7 @@ fig, axs = bpl.subplots(
 )
 axs = axs.flatten()
 
-for ax, cutout in zip(axs, star_cutouts):
+for ax, cutout, row in zip(axs, star_cutouts, star_table):
     vmax = np.max(cutout)
     vmin = -5 * noise
     linthresh = max(0.01 * vmax, 5 * noise)
@@ -75,7 +89,7 @@ for ax, cutout in zip(axs, star_cutouts):
     im = ax.imshow(cutout, norm=norm, cmap=bpl.cm.lapaz)
     ax.remove_labels("both")
     ax.remove_spines(["all"])
-    ax.set_title(id)
+    ax.set_title(f"x={row['x']:.0f}\ny={row['y']:.0f}")
     fig.colorbar(im, ax=ax)
 
 fig.suptitle(str(home_dir.name).upper(), fontsize=20)
@@ -87,11 +101,8 @@ fig.savefig(size_home_dir / "plots" / "psf_stars.png", dpi=100, bbox_inches="tig
 # then combine to make the PSF
 #
 # ======================================================================================
-# we don't need many iterations, since our star finder already found the centroids.
-# I experimented with these values to produce the best-looking PSFs, although this was
-# done with a sloppier selection of stars, this remains to be fine-tuned later
 psf_builder = photutils.EPSFBuilder(
-    oversampling=oversampling_factor, maxiters=3, progress_bar=True
+    oversampling=oversampling_factor, maxiters=10, progress_bar=True
 )
 psf, fitted_stars = psf_builder(star_cutouts)
 
