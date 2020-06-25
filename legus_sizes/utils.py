@@ -121,7 +121,7 @@ def arcsec_to_size_pc(arcseconds, home_dir):
 
 
 def pixels_to_pc_with_errors(
-    data_path, pix, pix_error_up, pix_error_down, include_distance_err=True
+    data_path, pix, pix_error_down, pix_error_up, include_distance_err=True
 ):
     arcsec_per_pixel = get_pixel_scale_arcsec(data_path)
     # this has no error
