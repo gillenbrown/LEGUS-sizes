@@ -72,12 +72,13 @@ def ellipticy_correction(q):
     return (1 + q) / 2.0
 
 
-def eff_profile_r_eff_with_rmax(eta, a, rmax, q):
+def eff_profile_r_eff_with_rmax(eta, a, q, rmax):
     """
     Calculate the effective radius of an EFF profile, assuming a maximum radius.
 
     :param eta: Power law slope of the EFF profile
     :param a: Scale radius of the EFF profile, in any units.
+    :param q: Axis ratio of the profile
     :param rmax: Maximum radius for the profile, in the same units as a.
     :return: Effective radius, in the same units as a and rmax
     """
