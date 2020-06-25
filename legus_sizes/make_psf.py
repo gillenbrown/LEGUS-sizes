@@ -102,7 +102,7 @@ fig.savefig(size_home_dir / "plots" / "psf_stars.png", dpi=100, bbox_inches="tig
 #
 # ======================================================================================
 psf_builder = photutils.EPSFBuilder(
-    oversampling=oversampling_factor, maxiters=10, progress_bar=True
+    oversampling=oversampling_factor, maxiters=3, progress_bar=True
 )
 psf, fitted_stars = psf_builder(star_cutouts)
 
