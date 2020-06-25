@@ -113,8 +113,8 @@ for row in fits_catalog:
     # then get the 1 sigma error range of that
     low, hi = np.percentile(all_r_eff_pixels, [15.85, 84.15])
     # subtract the middle to get the error range
-    row["r_eff_pixels_no_rmax_e+"] = hi - row["r_eff_pixels_no_rmax_best"]
-    row["r_eff_pixels_no_rmax_e-"] = row["r_eff_pixels_no_rmax_best"] - low
+    row["r_eff_pixels_no_rmax_e+"] = max(hi - row["r_eff_pixels_no_rmax_best"], 0)
+    row["r_eff_pixels_no_rmax_e-"] = max(row["r_eff_pixels_no_rmax_best"] - low, 0)
 
     # Then we can convert to pc. First do it without including distance errors
     best, low_e, high_e = utils.pixels_to_pc_with_errors(
