@@ -523,9 +523,7 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
 
     diff_image = cluster_snapshot - model_psf_bin_image
     sigma_image = diff_image / uncertainty_snapshot
-    # when used in bootstrapping the mask can have higher values than 1. Restrict it
-    # to no more than 1 when showing the sigma image
-    sigma_image *= np.minimum(mask, 1)
+    # don't modify the sigma image based on the mask
 
     # set up the normalizations and colormaps
     # Use the data image to get the normalization that will be used in all plots. Base
