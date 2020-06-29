@@ -4,10 +4,10 @@ hostname = $(shell hostname)
 # findstring returns the matching part of the string. If it's not empty when
 # we try to find the shangrila hostname, we know we're on shangrila
 ifneq (,$(findstring shangrila,$(hostname)))
-    data_home = /u/home/gillenb/legus
+    data_home = /u/home/gillenb/code/mine/LEGUS-sizes/data
 endif
 ifneq (,$(findstring gillenb-mbp,$(hostname)))
-    data_home = /Users/gillenb/google_drive/research/legus/data
+    data_home = /Users/gillenb/code/legus_sizes/data
 endif
 # This directory should have nothing but directories with data
 # We'll do this complicated line that just gets all directories inside data_home
@@ -96,7 +96,7 @@ plots = $(comparison_plot) $(param_dist_plot) $(param_dist_plot_no_mask)
 # ------------------------------------------------------------------------------
 # https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
 
-all: $(all_my_dirs) $(plots)
+all: $(all_my_dirs) $(sigma_images)
 
 # When we clean we will only clean the things after the fitting, since that
 # takes so long. The "or true" thing there stops make from throwing an error
