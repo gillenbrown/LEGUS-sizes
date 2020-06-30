@@ -123,7 +123,7 @@ psf_data /= np.sum(psf_data)
 fig, axs = bpl.subplots(ncols=2, figsize=[13, 5], tight_layout=True)
 
 vmax = np.max(psf_data)
-norm_log = colors.SymLogNorm(vmin=0, vmax=vmax, linthresh=0.02*vmax, base=10)
+norm_log = colors.SymLogNorm(vmin=0, vmax=vmax, linthresh=0.02 * vmax, base=10)
 norm_lin = colors.Normalize(vmin=0, vmax=vmax)
 
 im_lin = axs[0].imshow(psf_data, norm=norm_lin, cmap=bpl.cm.lapaz)
@@ -135,7 +135,7 @@ fig.colorbar(im_log, ax=axs[1])
 for ax in axs:
     ax.remove_labels("both")
     ax.remove_spines(["all"])
-fig.suptitle(str(home_dir.name).upper()+"\n", fontsize=24)
+fig.suptitle(str(home_dir.name).upper() + "\n", fontsize=24)
 
 fig.savefig(
     size_home_dir / "plots" / f"psf_{oversampling_factor}.png", bbox_inches="tight"
