@@ -36,7 +36,7 @@ parameters_dist_script = ./legus_sizes/parameter_distribution.py
 # Configuration variables
 #
 # ------------------------------------------------------------------------------
-psf_pixel_size = 15
+psf_pixel_size = 9
 psf_oversampling_factor = 2
 fit_region_size = 30
 
@@ -59,7 +59,7 @@ all_my_dirs = $(my_dirs) $(cluster_fit_dirs) $(cluster_plot_dirs) $(local_plots_
 #
 # ------------------------------------------------------------------------------
 cat = clean_catalog.txt
-psf = psf.fits
+psf = psf_$(psf_oversampling_factor).fits
 sigma_image = sigma_electrons.fits
 fit = cluster_fits_$(fit_region_size).h5
 fit_no_mask = cluster_fits_no_masking_size_$(fit_region_size).h5
@@ -96,7 +96,7 @@ plots = $(comparison_plot) $(param_dist_plot) $(param_dist_plot_no_mask)
 # ------------------------------------------------------------------------------
 # https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
 
-all: $(all_my_dirs) $(sigma_images)
+all: $(all_my_dirs) $(plots)
 
 # When we clean we will only clean the things after the fitting, since that
 # takes so long. The "or true" thing there stops make from throwing an error

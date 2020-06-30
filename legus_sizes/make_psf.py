@@ -94,7 +94,11 @@ for ax, cutout, row in zip(axs, star_cutouts, star_table):
 
 fig.suptitle(str(home_dir.name).upper(), fontsize=20)
 
-fig.savefig(size_home_dir / "plots" / "psf_stars.png", dpi=100, bbox_inches="tight")
+fig.savefig(
+    size_home_dir / "plots" / f"psf_stars_{oversampling_factor}.png",
+    dpi=100,
+    bbox_inches="tight",
+)
 
 # ======================================================================================
 #
@@ -116,17 +120,26 @@ psf_data /= np.sum(psf_data)
 # Plot it
 #
 # ======================================================================================
-fig, ax = bpl.subplots()
-vmax = np.max(psf_data)
-vmin = np.min(psf_data)
-norm = colors.SymLogNorm(vmin=0, vmax=0.1, linthresh=0.002, base=10)
-im = ax.imshow(psf_data, norm=norm, cmap=bpl.cm.lapaz)
-ax.remove_labels("both")
-ax.remove_spines(["all"])
-ax.set_title(str(home_dir.name).upper())
-fig.colorbar(im, ax=ax)
+fig, axs = bpl.subplots(ncols=2, figsize=[13, 5], tight_layout=True)
 
-fig.savefig(size_home_dir / "plots" / "psf.png", bbox_inches="tight")
+vmax = np.max(psf_data)
+norm_log = colors.SymLogNorm(vmin=0, vmax=vmax, linthresh=0.02*vmax, base=10)
+norm_lin = colors.Normalize(vmin=0, vmax=vmax)
+
+im_lin = axs[0].imshow(psf_data, norm=norm_lin, cmap=bpl.cm.lapaz)
+im_log = axs[1].imshow(psf_data, norm=norm_log, cmap=bpl.cm.lapaz)
+
+fig.colorbar(im_lin, ax=axs[0])
+fig.colorbar(im_log, ax=axs[1])
+
+for ax in axs:
+    ax.remove_labels("both")
+    ax.remove_spines(["all"])
+fig.suptitle(str(home_dir.name).upper()+"\n", fontsize=24)
+
+fig.savefig(
+    size_home_dir / "plots" / f"psf_{oversampling_factor}.png", bbox_inches="tight"
+)
 
 # ======================================================================================
 #
