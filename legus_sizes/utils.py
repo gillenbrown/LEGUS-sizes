@@ -219,8 +219,6 @@ def pixels_to_pc_with_errors(
     parsecs = radians_per_pixel * pix * distance(data_path, ryon)
     parsecs = parsecs.to("pc").value
 
-    print(data_path, ryon, distance(data_path, ryon), distance_error(data_path, ryon))
-
     # the fractional error is then added in quadrature. We assume the distance error
     # is symmetric
     if include_distance_err:

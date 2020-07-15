@@ -68,8 +68,36 @@ for col in dist_cols:
 # Define some functions defining various quantities
 #
 # ======================================================================================
-def ellipticy_correction(q):
-    return (1 + q) / 2.0
+def logistic(eta):
+    """
+    This is the fit to the slopes as a function of eta
+
+    These slopes are used in the ellipticity correction.
+    :param eta: Eta (power law slope)
+    :return: The slope to go in ellipticity_correction
+    """
+    ymax = 0.57902872
+    scale = -3.75273761
+    eta_0 = 0.92404308
+    offset = 0.07298472
+    return ymax / (1 + np.exp(scale * (eta - eta_0))) - offset
+
+
+def ellipticy_correction(q, eta):
+    """
+    Correction for ellipticity. This given R_eff(q) / R_eff(q=1)
+
+    This is a generalized form of the simplified form used in Ryon's analysis. It's
+    simply a line of arbitrary slope passing through (q=1, correction=1) as circular
+    clusters need no correction. This lets us write the correction in point slope form
+    as:
+    y - 1 = m (q - 1)
+    y = 1 + m (q - 1)
+
+    Note that when m = 0.5, this simplifies to y = (1 + q) * 0.5, as used in Ryon.
+    The slope here (m) is determined by fitting it as a function of eta.
+    """
+    return 1 + logistic(eta) * (q - 1)
 
 
 def eff_profile_r_eff_with_rmax(eta, a, q, rmax):
@@ -85,7 +113,7 @@ def eff_profile_r_eff_with_rmax(eta, a, q, rmax):
     # This is such an ugly formula, put it in a few steps
     term_1 = 1 + (1 + (rmax / a) ** 2) ** (1 - eta)
     term_2 = (0.5 * (term_1)) ** (1 / (1 - eta)) - 1
-    return ellipticy_correction(q) * a * np.sqrt(term_2)
+    return ellipticy_correction(q, eta) * a * np.sqrt(term_2)
 
 
 # ======================================================================================
