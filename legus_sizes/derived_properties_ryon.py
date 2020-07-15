@@ -139,6 +139,7 @@ for row in fits_catalog:
         row["r_eff_pixels_no_rmax_e-"],
         row["r_eff_pixels_no_rmax_e+"],
         include_distance_err=False,
+        ryon=True,
     )
 
     row["r_eff_pc_no_rmax_best"] = best
@@ -152,6 +153,7 @@ for row in fits_catalog:
         row["r_eff_pixels_no_rmax_e-"],
         row["r_eff_pixels_no_rmax_e+"],
         include_distance_err=True,
+        ryon=True,
     )
 
     row["r_eff_pc_no_rmax_e+_with_dist"] = high_e
@@ -202,6 +204,7 @@ for row in fits_catalog:
         row["r_eff_pixels_rmax_15pix_e-"],
         row["r_eff_pixels_rmax_15pix_e+"],
         include_distance_err=False,
+        ryon=True,
     )
 
     row["r_eff_pc_rmax_15pix_best"] = best
@@ -215,6 +218,7 @@ for row in fits_catalog:
         row["r_eff_pixels_rmax_15pix_e-"],
         row["r_eff_pixels_rmax_15pix_e+"],
         include_distance_err=True,
+        ryon=True,
     )
 
     row["r_eff_pc_rmax_15pix_e+_with_dist"] = high_e

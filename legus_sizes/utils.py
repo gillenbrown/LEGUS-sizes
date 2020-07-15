@@ -84,7 +84,7 @@ def get_f555w_pixel_scale_pc(home_dir):
 
 # https://en.wikipedia.org/wiki/Distance_modulus
 def distance_modulus_distance_and_err(distance_modulus, distance_modulus_error):
-    distance = 0 ** (1 + 0.2 * distance_modulus) / 1e6
+    distance = 10 ** (1 + 0.2 * distance_modulus) / 1e6
     distance_err = np.log(10) * 0.2 * distance * distance_modulus_error
     return distance, distance_err
 
@@ -129,8 +129,8 @@ distances_and_errs_mpc = {
     # For NGC 1313 we use the mean of both fields from  Sabbi et al. 2018
     "ngc1313-e": mean_with_error((4.2, 0.34), (4.4, 0.35)),
     "ngc1313-w": mean_with_error((4.2, 0.34), (4.4, 0.35)),
-    # Sabbi et al. 2018 says: A combination of distance, crowding, and metallicity made
-    # the estimate of the TRGB luminosity of the NGC1433 quite uncertain. The only
+    # Sabbi et al. 2018 says: "A combination of distance, crowding, and metallicity made
+    # the estimate of the TRGB luminosity of the NGC1433 quite uncertain." The only
     # other available estimates are Tully Fisher, and the modern ones (>1990) are
     # consistent with Sabbi et al. 2018, so I just use it for consistency.
     "ngc1433": (9.1, 1.0),
@@ -175,12 +175,18 @@ distances_and_errs_mpc = {
 }
 
 
-def distance(data_path):
-    return distances_and_errs_mpc[data_path.name][0] * u.Mpc
+def distance(data_path, ryon=False):
+    if ryon:
+        return ryon_distances_and_errs_mpc[data_path.name][0] * u.Mpc
+    else:
+        return distances_and_errs_mpc[data_path.name][0] * u.Mpc
 
 
-def distance_error(data_path):
-    return distances_and_errs_mpc[data_path.name][1] * u.Mpc
+def distance_error(data_path, ryon=False):
+    if ryon:
+        return ryon_distances_and_errs_mpc[data_path.name][1] * u.Mpc
+    else:
+        return distances_and_errs_mpc[data_path.name][1] * u.Mpc
 
 
 def arcsec_to_size_pc(arcseconds, home_dir):
@@ -191,19 +197,34 @@ def arcsec_to_size_pc(arcseconds, home_dir):
 
 
 def pixels_to_pc_with_errors(
-    data_path, pix, pix_error_down, pix_error_up, include_distance_err=True
+    data_path, pix, pix_error_down, pix_error_up, include_distance_err=True, ryon=False
 ):
+    """
+    Convert a size in pixels to one in parsecs, including errors
+
+    :param data_path: Location of the image - needed to get the distance
+    :param pix: Size in pixels
+    :param pix_error_down: Lower error of the size in pixels
+    :param pix_error_up: Upper error of the size in pixels
+    :param include_distance_err: Whether or not to include the distance error in the
+                                 returned size uncertainty
+    :param ryon: Whether or not to use the distances quoted in Ryon et al. 2017 or
+                 use the updated ones from Sabbi et al 2018
+    :return: Size, lower error, upper error, all in parsecs.
+    """
     arcsec_per_pixel = get_pixel_scale_arcsec(data_path)
     # this has no error
     radians_per_pixel = (arcsec_per_pixel * u.arcsec).to("radian").value
 
-    parsecs = radians_per_pixel * pix * distance(data_path)
+    parsecs = radians_per_pixel * pix * distance(data_path, ryon)
     parsecs = parsecs.to("pc").value
+
+    print(data_path, ryon, distance(data_path, ryon), distance_error(data_path, ryon))
 
     # the fractional error is then added in quadrature. We assume the distance error
     # is symmetric
     if include_distance_err:
-        frac_err_dist = distance_error(data_path) / distance(data_path)
+        frac_err_dist = distance_error(data_path, ryon) / distance(data_path, ryon)
     else:
         frac_err_dist = 0
 
