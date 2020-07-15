@@ -29,7 +29,9 @@ fitting_script = ./legus_sizes/fit.py
 final_catalog_script = ./legus_sizes/derived_properties.py
 final_catalog_script_no_mask = ./legus_sizes/derived_properties_ryon.py
 comparison_script = ./legus_sizes/ryon_comparison.py
+radii_def_plot_script = ./legus_sizes/radii_def_comp_plot.py
 parameters_dist_script = ./legus_sizes/parameter_distribution.py
+all_fields_script = ./legus_sizes/all_fields_hist.py
 
 # ------------------------------------------------------------------------------
 #
@@ -85,9 +87,11 @@ final_cats_no_mask = $(foreach dir,$(my_dirs_ryon),$(dir)$(final_cat_no_mask))
 #
 # ------------------------------------------------------------------------------
 comparison_plot = $(local_plots_dir)comparison_plot_size_$(fit_region_size).png
+radii_def_comp_plot = $(local_plots_dir)radii_def_comp_plot_$(fit_region_size).png
 param_dist_plot = $(local_plots_dir)parameter_distribution_size_$(fit_region_size).png
 param_dist_plot_no_mask = $(local_plots_dir)parameter_distribution_ryon_galaxies_size_$(fit_region_size).png
-plots = $(comparison_plot) $(param_dist_plot) $(param_dist_plot_no_mask)
+all_fields_hist_plot = $(local_plots_dir)all_fields_$(fit_region_size).png
+plots = $(comparison_plot) $(radii_def_comp_plot) $(param_dist_plot) $(param_dist_plot_no_mask) $(all_fields_hist_plot)
 
 # ------------------------------------------------------------------------------
 #
@@ -162,8 +166,14 @@ $(final_cats_no_mask): %: $(final_catalog_script_no_mask) $$(dir %)$$(fit_no_mas
 $(comparison_plot): $(comparison_script) $(final_cats_no_mask)
 	python $(comparison_script) $@ $(final_cats_no_mask)
 
+$(radii_def_comp_plot): $(radii_def_plot_script) $(final_cats_no_mask)
+	python $(radii_def_plot_script) $@ $(final_cats_no_mask)
+
 $(param_dist_plot): $(parameters_dist_script) $(final_cats)
 	python $(parameters_dist_script) $@ $(final_cats)
 
 $(param_dist_plot_no_mask): $(parameters_dist_script) $(final_cats_no_mask)
 	python $(parameters_dist_script) $@ $(final_cats_no_mask)
+
+$(all_fields_hist_plot): $(final_cats) $(all_fields_script)
+	python $(all_fields_script) $@ $(final_cats)
