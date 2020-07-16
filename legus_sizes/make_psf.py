@@ -85,8 +85,51 @@ else:
 #
 # ======================================================================================
 star_cutouts = photutils.psf.extract_stars(nddata, star_table, size=psf_width)
+# background subtract them. Here I use the pixels farther than 8 pixels from the center.
+# this value was determined by looking at the profiles.
+def distance(x1, y1, x2, y2):
+    return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
-# plot these for the user to see
+
+for star in star_cutouts:
+    x_cen = star.cutout_center[0]  # yes, this indexing is correct, look at the docs or
+    y_cen = star.cutout_center[1]  # at the bottom of this and psf_compare.py to see use
+    border_pixels = [
+        star.data[y][x]
+        for x in range(star.data.shape[1])
+        for y in range(star.data.shape[0])
+        if distance(x_cen, y_cen, x, y) > 8
+    ]
+    # quick estimate of how many pixels we expect to have here. 0.9 is fudge factor
+    assert len(border_pixels) > 0.9 * (psf_width ** 2 - np.pi * 8 ** 2)
+    star._data = star.data - np.median(border_pixels)
+
+# ======================================================================================
+#
+# then combine to make the PSF
+#
+# ======================================================================================
+psf_builder = photutils.EPSFBuilder(
+    oversampling=oversampling_factor,
+    maxiters=20,
+    smoothing_kernel="quadratic",  # more stable than quartic
+    progress_bar=False,
+)
+psf, fitted_stars = psf_builder(star_cutouts)
+
+psf_data = psf.data
+# the convolution requires the psf to be normalized, and without any negative values
+psf_data = np.maximum(psf_data, 0)
+psf_data /= np.sum(psf_data)
+
+# ======================================================================================
+#
+# Plot the cutouts
+#
+# ======================================================================================
+cmap = bpl.cm.lapaz
+cmap.set_bad(cmap(0))  # for negative values in log plot
+
 ncols = 5
 nrows = int(np.ceil(len(star_cutouts) / 5))
 
@@ -111,12 +154,19 @@ axs = axs.flatten()
 for ax in axs:
     ax.set_axis_off()
 
-for ax, cutout, row in zip(axs, star_cutouts, star_table):
+for ax, cutout, row, fitted_star in zip(axs, star_cutouts, star_table, fitted_stars):
     vmax = np.max(cutout)
     vmin = -5 * noise
     linthresh = max(0.01 * vmax, 5 * noise)
     norm = colors.SymLogNorm(vmin=vmin, vmax=vmax * 2, linthresh=linthresh, base=10)
-    im = ax.imshow(cutout, norm=norm, cmap=bpl.cm.lapaz)
+    im = ax.imshow(cutout, norm=norm, cmap=cmap)
+    # add a marker at the location identified as the center
+    ax.scatter(
+        [fitted_star.cutout_center[0]],
+        fitted_star.cutout_center[1],
+        c=bpl.almost_black,
+        marker="x",
+    )
     ax.remove_labels("both")
     ax.remove_spines(["all"])
     ax.set_title(f"x={row['x']:.0f}\ny={row['y']:.0f}")
@@ -131,7 +181,7 @@ else:
 fig.suptitle(plot_title, fontsize=40)
 
 figname = (
-    f"psf_stars_{star_source}_"
+    f"psf_stars_{star_source}_stars_"
     + f"{psf_width}_pixels_"
     + f"{oversampling_factor}x_oversampled.png"
 )
@@ -142,57 +192,19 @@ fig.savefig(
 
 # ======================================================================================
 #
-# then combine to make the PSF
-#
-# ======================================================================================
-psf_builder = photutils.EPSFBuilder(
-    oversampling=oversampling_factor, maxiters=3, progress_bar=True
-)
-psf, fitted_stars = psf_builder(star_cutouts)
-
-psf_data = psf.data
-# the convolution requires the psf to be normalized, and without any negative values
-psf_data = np.maximum(psf_data, 0)
-psf_data /= np.sum(psf_data)
-
-# ======================================================================================
-#
-# Plot it
-#
-# ======================================================================================
-fig, axs = bpl.subplots(
-    ncols=2,
-    figsize=[12, 5],
-    tight_layout=False,
-    gridspec_kw={"top": 0.9, "left": 0.05, "right": 0.95, "wspace": 0.1},
-)
-
-vmax = np.max(psf_data)
-norm_log = colors.SymLogNorm(vmin=0, vmax=vmax, linthresh=0.02 * vmax, base=10)
-norm_lin = colors.Normalize(vmin=0, vmax=vmax)
-
-im_lin = axs[0].imshow(psf_data, norm=norm_lin, cmap=bpl.cm.lapaz)
-im_log = axs[1].imshow(psf_data, norm=norm_log, cmap=bpl.cm.lapaz)
-
-fig.colorbar(im_lin, ax=axs[0])
-fig.colorbar(im_log, ax=axs[1])
-
-for ax in axs:
-    ax.remove_labels("both")
-    ax.remove_spines(["all"])
-fig.suptitle(plot_title, fontsize=24)
-
-figname = (
-    f"psf_{star_source}_"
-    + f"{psf_width}_pixels_"
-    + f"{oversampling_factor}x_oversampled.png"
-)
-fig.savefig(size_home_dir / "plots" / figname, bbox_inches="tight")
-
-# ======================================================================================
-#
 # then save it as a fits file
 #
 # ======================================================================================
-new_hdu = fits.PrimaryHDU(psf.data)
+new_hdu = fits.PrimaryHDU(psf_data)
 new_hdu.writeto(psf_name, overwrite=True)
+
+# also save the fitted stars
+x_cens = [star.cutout_center[0] + star.origin[0] for star in fitted_stars.all_stars]
+y_cens = [star.cutout_center[1] + star.origin[1] for star in fitted_stars.all_stars]
+fitted_star_table = table.Table([x_cens, y_cens], names=("x_center", "y_center"))
+savename = (
+    f"psf_star_centers_{star_source}_stars_"
+    + f"{psf_width}_pixels_"
+    + f"{oversampling_factor}x_oversampled.txt"
+)
+fitted_star_table.write(size_home_dir / savename, format="ascii.ecsv")

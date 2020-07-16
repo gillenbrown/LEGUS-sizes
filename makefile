@@ -22,29 +22,21 @@ ryon_dirs = $(filter %ngc1313-e/ %ngc1313-w/ %ngc628-c/ %ngc628-e/, $(data_dirs)
 #
 # ------------------------------------------------------------------------------
 # psf type can either be "my" or "legus"
-psf_type = legus
+psf_type = my
 psf_pixel_size = 15
 psf_oversampling_factor = 2
 fit_region_size = 30
 
-# this is ugly, but the empty if blocks make this easier to read than other
-# solutions, I found
-ifeq ($(psf_type),my)
-else ifeq ($(psf_type),legus)
-else
-$(error Bad PSF type!)
-endif
 # ------------------------------------------------------------------------------
 #
 # Python scripts
 #
 # ------------------------------------------------------------------------------
 catalog_script = ./legus_sizes/format_catalogs.py
-ifeq ($(psf_type),my)
 v1_star_list_script = ./legus_sizes/preliminary_star_list.py
 psf_star_list_script = ./legus_sizes/select_psf_stars.py
-endif
 psf_creation_script = ./legus_sizes/make_psf.py
+psf_comparison_script = ./legus_sizes/psf_compare.py
 sigma_script = ./legus_sizes/make_sigma_image.py
 fitting_script = ./legus_sizes/fit.py
 final_catalog_script = ./legus_sizes/derived_properties.py
@@ -73,16 +65,16 @@ all_my_dirs = $(my_dirs) $(cluster_fit_dirs) $(cluster_plot_dirs) $(local_plots_
 #
 # ------------------------------------------------------------------------------
 cat = clean_catalog.txt
-ifeq ($(psf_type),my)
 star_prelim = preliminary_stars.txt
 star_psf = psf_stars.txt
-endif
-psf = psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_overampled.fits
+psf_legus = psf_legus_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.fits
+psf_my = psf_my_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.fits
+psf_comp_plot = psf_comparison_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.png
 sigma_image = sigma_electrons.fits
-fit = cluster_fits_$(fit_region_size).h5
-fit_no_mask = cluster_fits_no_masking_size_$(fit_region_size).h5
-final_cat = final_catalog_$(fit_region_size).txt
-final_cat_no_mask = final_catalog_no_masking_$(fit_region_size).txt
+fit = cluster_fits_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.h5
+fit_no_mask = cluster_fits_no_masking_size_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.h5
+final_cat = final_catalog_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.txt
+final_cat_no_mask = final_catalog_no_masking_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.txt
 
 # ------------------------------------------------------------------------------
 #
@@ -90,16 +82,27 @@ final_cat_no_mask = final_catalog_no_masking_$(fit_region_size).txt
 #
 # ------------------------------------------------------------------------------
 catalogs = $(foreach dir,$(my_dirs),$(dir)$(cat))
-ifeq ($(psf_type),my)
 v1_star_lists = $(foreach dir,$(my_dirs),$(dir)$(star_prelim))
 psf_star_lists = $(foreach dir,$(my_dirs),$(dir)$(star_psf))
-endif
-psfs = $(foreach dir,$(my_dirs),$(dir)$(psf))
+psfs_legus = $(foreach dir,$(my_dirs),$(dir)$(psf_legus))
+psfs_my = $(foreach dir,$(my_dirs),$(dir)$(psf_my))
+psf_comp_plots = $(foreach dir,$(my_dirs),$(dir)$(psf_comp_plot))
 sigma_images = $(foreach dir,$(my_dirs),$(dir)$(sigma_image))
 fits = $(foreach dir,$(my_dirs),$(dir)$(fit))
 fits_no_mask = $(foreach dir,$(my_dirs_ryon),$(dir)$(fit_no_mask))
 final_cats = $(foreach dir,$(my_dirs),$(dir)$(final_cat))
 final_cats_no_mask = $(foreach dir,$(my_dirs_ryon),$(dir)$(final_cat_no_mask))
+
+# determine which psfs to use for fitting
+ifeq ($(psf_type),my)
+fit_psf = $(psf_my)
+fit_psfs = $(psfs_my)
+else ifeq ($(psf_type),legus)
+fit_psf = $(psf_legus)
+fit_psfs = $(psfs_legus)
+else
+$(error Bad PSF type!)
+endif
 
 # ------------------------------------------------------------------------------
 #
@@ -111,7 +114,7 @@ radii_def_comp_plot = $(local_plots_dir)radii_def_comp_plot_$(fit_region_size).p
 param_dist_plot = $(local_plots_dir)parameter_distribution_size_$(fit_region_size).png
 param_dist_plot_no_mask = $(local_plots_dir)parameter_distribution_ryon_galaxies_size_$(fit_region_size).png
 all_fields_hist_plot = $(local_plots_dir)all_fields_$(fit_region_size).png
-plots = $(comparison_plot) $(radii_def_comp_plot) $(param_dist_plot) $(param_dist_plot_no_mask) $(all_fields_hist_plot)
+plots = $(psf_comp_plots) $(comparison_plot) $(radii_def_comp_plot) $(param_dist_plot) $(param_dist_plot_no_mask) $(all_fields_hist_plot)
 
 # ------------------------------------------------------------------------------
 #
@@ -148,7 +151,6 @@ $(all_my_dirs):
 $(catalogs): $(catalog_script)
 	python $(catalog_script) $@
 
-ifeq ($(psf_type),my)
 # First make a preliminary list of stars, which we'll then give to the user to
 # sort through to make the final list
 # The star lists require the catalogs, as we need to exclude anything that's
@@ -166,18 +168,22 @@ $(v1_star_lists): %: | $(v1_star_list_script) $$(dir %)$$(cat)
 .SECONDEXPANSION:
 $(psf_star_lists): %: | $$(dir %)$$(star_prelim)
 	python $(psf_star_list_script) $@ $(dir $@)$(star_prelim) $(psf_pixel_size)
-endif
 
 # we use SECONDEXPANSION to parametrize over all clusters
 # The PSF creation depends on the PSF star lists. If we made our own this needs
 # to depend on that
 .SECONDEXPANSION:
-ifeq ($(psf_type),my)
-$(psfs): %: $(psf_creation_script) $$(dir %)$$(star_psf)
-else
-$(psfs): %: $(psf_creation_script)
-endif
-	python $(psf_creation_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) $(psf_type)
+$(psfs_my): %: $(psf_creation_script) $$(dir %)$$(star_psf)
+	python $(psf_creation_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) my
+
+.SECONDEXPANSION:
+$(psfs_legus): %: $(psf_creation_script)
+	python $(psf_creation_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) legus
+
+# Then the plot comparing the psfs
+.SECONDEXPANSION:
+$(psf_comp_plots): %: $$(dir %)$$(psf_legus) $$(dir %)$$(psf_my) $$(dir %)$$(star_psf) $(psf_comparison_script)
+	python $(psf_comparison_script) $@ $(psf_oversampling_factor) $(psf_pixel_size)
 
 # The first step in the fitting is the creation of the sigma image
 $(sigma_images): $(sigma_script)
@@ -189,14 +195,14 @@ $(sigma_images): $(sigma_script)
 # will be needed, and we want to make sure all plots come from the same run.
 to_rm_debug_plots =  $(1)cluster_fit_plots/*size_$(fit_region_size)_$(2)*
 .SECONDEXPANSION:
-$(fits): %: $(fitting_script) $$(dir %)$$(psf) $$(dir %)$$(sigma_image) $$(dir %)$$(cat)
+$(fits): %: $(fitting_script) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(cat)
 	rm $(call to_rm_debug_plots,$(dir $@),final) || true
-	python $(fitting_script) $@ $(dir $@)$(psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat) $(fit_region_size)
+	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat) $(fit_region_size)
 
 # for the no masking case we pass an extra parameter
-$(fits_no_mask): %: $(fitting_script) $$(dir %)$$(psf) $$(dir %)$$(sigma_image) $$(dir %)$$(cat)
+$(fits_no_mask): %: | $(fitting_script) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(cat)
 	rm $(call to_rm_debug_plots,$(dir $@),ryon_like) || true
-	python $(fitting_script) $@ $(dir $@)$(psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat) $(fit_region_size) ryon_like
+	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat) $(fit_region_size) ryon_like
 
 # Add the derived properties to these catalogs
 .SECONDEXPANSION:
