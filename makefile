@@ -200,7 +200,7 @@ $(fits): %: $(fitting_script) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(d
 	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat) $(fit_region_size)
 
 # for the no masking case we pass an extra parameter
-$(fits_no_mask): %: | $(fitting_script) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(cat)
+$(fits_no_mask): %: $(fitting_script) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(cat)
 	rm $(call to_rm_debug_plots,$(dir $@),ryon_like) || true
 	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat) $(fit_region_size) ryon_like
 

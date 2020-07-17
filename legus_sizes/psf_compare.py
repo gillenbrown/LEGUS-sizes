@@ -50,6 +50,7 @@ def get_star_list_and_psf(source):
 
     return star_table, psf
 
+
 star_table_me, psf_me = get_star_list_and_psf("my")
 star_table_legus, psf_legus = get_star_list_and_psf("legus")
 
@@ -69,12 +70,12 @@ for psf, star_source in zip([psf_legus, psf_me], ["legus", "my"]):
         gridspec_kw={"top": 0.9, "left": 0.05, "right": 0.95, "wspace": 0.1},
     )
 
-    vmax = 0.025
+    vmax = 0.035
     norm_log = colors.LogNorm(vmin=1e-6, vmax=vmax)
     norm_lin = colors.Normalize(vmin=0, vmax=vmax)
 
-    im_lin = axs[0].imshow(psf, norm=norm_lin, cmap=cmap)
-    im_log = axs[1].imshow(psf, norm=norm_log, cmap=cmap)
+    im_lin = axs[0].imshow(psf, norm=norm_lin, cmap=cmap, origin="lower")
+    im_log = axs[1].imshow(psf, norm=norm_log, cmap=cmap, origin="lower")
 
     fig.colorbar(im_lin, ax=axs[0])
     fig.colorbar(im_log, ax=axs[1])
@@ -190,7 +191,7 @@ for psf, color, label in zip([psf_legus, psf_me], [c_legus, c_me], ["LEGUS", "Me
     ax.plot(radii, values, c=color, lw=3, label=label)
 
 ax.add_labels("Radius (pixels)", "Normalized Pixel Value", home_dir.name.upper())
-ax.set_limits(0, 12, 1e-5, 0.04)
+ax.set_limits(0, 12, 1e-6, 0.04)
 ax.axhline(0, ls=":")
 ax.legend()
 ax.set_yscale("log")

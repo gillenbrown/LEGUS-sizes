@@ -159,7 +159,7 @@ for ax, cutout, row, fitted_star in zip(axs, star_cutouts, star_table, fitted_st
     vmin = -5 * noise
     linthresh = max(0.01 * vmax, 5 * noise)
     norm = colors.SymLogNorm(vmin=vmin, vmax=vmax * 2, linthresh=linthresh, base=10)
-    im = ax.imshow(cutout, norm=norm, cmap=cmap)
+    im = ax.imshow(cutout, norm=norm, cmap=cmap, origin="lower")
     # add a marker at the location identified as the center
     ax.scatter(
         [fitted_star.cutout_center[0]],
