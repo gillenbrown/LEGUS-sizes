@@ -6,7 +6,10 @@ from pathlib import Path
 
 import numpy as np
 from astropy import table
+from astropy.io import fits
 import betterplotlib as bpl
+
+import utils
 
 bpl.set_style()
 
@@ -16,12 +19,64 @@ bpl.set_style()
 #
 # ======================================================================================
 plot_name = Path(sys.argv[1])
-catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[2:]]
+oversampling_factor = int(sys.argv[2])
+psf_width = int(sys.argv[3])
+psf_source = sys.argv[4]
+catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[5:]]
 # then stack them together in one master catalog
 big_catalog = table.vstack(catalogs, join_type="inner")
-ages = big_catalog["age_yr"]
-masses = big_catalog["mass_msun"][ages <= 200e6]
-radii = big_catalog["r_eff_pc_rmax_15pix_best"][ages <= 200e6]
+
+# Calculate the fractional error
+big_catalog["fractional_err-"] = (
+    big_catalog["r_eff_pc_rmax_15pix_e-_with_dist"]
+    / big_catalog["r_eff_pc_rmax_15pix_best"]
+)
+big_catalog["fractional_err+"] = (
+    big_catalog["r_eff_pc_rmax_15pix_e+_with_dist"]
+    / big_catalog["r_eff_pc_rmax_15pix_best"]
+)
+big_catalog["fractional_err_max"] = np.maximum(
+    big_catalog["fractional_err-"], big_catalog["fractional_err+"]
+)
+
+# then filter out some clusters
+print(f"Total Clusters: {len(big_catalog)}")
+mask = big_catalog["age_yr"] <= 200e6
+print(f"Clusters with age < 200 Myr: {np.sum(mask)}")
+
+mask = np.logical_and(mask, big_catalog["scale_radius_pixels_best"] != 1.0)
+print(f"Clusters with scale radius > 1 pixel: {np.sum(mask)}")
+
+mask = np.logical_and(mask, big_catalog["scale_radius_pixels_best"] != 15.0)
+print(f"Clusters with scale radius < 15 pixels: {np.sum(mask)}")
+
+mask = np.logical_and(mask, big_catalog["axis_ratio_best"] != 0.3)
+print(f"Clusters with axis ratio > 0.3: {np.sum(mask)}")
+
+mask = np.logical_and(mask, big_catalog["power_law_slope_best"] != 0.6)
+print(f"Clusters with eta > 0.6: {np.sum(mask)}")
+
+mask = np.logical_and(mask, big_catalog["power_law_slope_best"] != 10)
+print(f"Clusters with eta < 10: {np.sum(mask)}")
+
+mask = np.logical_and(mask, big_catalog["fractional_err_max"] < 0.8)
+print(f"Clusters with small errors: {np.sum(mask)}")
+
+
+print(
+    f"a lo: {np.sum(big_catalog['scale_radius_pixels_best'] == 1.0) / len(big_catalog)}"
+)
+print(
+    f"a hi: {np.sum(big_catalog['scale_radius_pixels_best'] == 15.0) / len(big_catalog)}"
+)
+print(f"q: {np.sum(big_catalog['axis_ratio_best'] == 0.3) / len(big_catalog)}")
+print(
+    f"eta lo: {np.sum(big_catalog['power_law_slope_best'] == 0.6) / len(big_catalog)}"
+)
+print(
+    f"eta hi: {np.sum(big_catalog['power_law_slope_best'] == 10.0) / len(big_catalog)}"
+)
+print(f"err lo: {np.sum(big_catalog['fractional_err_max'] > 0.8) / len(big_catalog)}")
 # ======================================================================================
 #
 # make the plot
@@ -50,23 +105,140 @@ def get_r_percentiles(radii, masses, percentile, d_log_M):
     return bin_centers, radii_percentiles
 
 
+def distance(x1, y1, x2, y2):
+    return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+
+
+def measure_psf_reff(psf):
+    # the center is the central pixel of the image
+    x_cen = int((psf.shape[1] - 1.0) / 2.0)
+    y_cen = int((psf.shape[0] - 1.0) / 2.0)
+    total = np.sum(psf)
+    half_light = total / 2.0
+    # then go through all the pixel values to determine the distance from the center.
+    # Then we can go through them in order to determine the half mass radius
+    radii = []
+    values = []
+    for x in range(psf.shape[1]):
+        for y in range(psf.shape[1]):
+            # need to include the oversampling factor in the distance
+            radii.append(distance(x, y, x_cen, y_cen) / oversampling_factor)
+            values.append(psf[y][x])
+
+    idxs_sort = np.argsort(radii)
+    sorted_radii = np.array(radii)[idxs_sort]
+    sorted_values = np.array(values)[idxs_sort]
+
+    cumulative_light = 0
+    for idx in range(len(sorted_radii)):
+        cumulative_light += sorted_values[idx]
+        if cumulative_light >= half_light:
+            return sorted_radii[idx]
+
+
+masses = big_catalog["mass_msun"][mask]
+for unit in ["pc", "pixels"]:
+    radii = big_catalog[f"r_eff_{unit}_rmax_15pix_best"][mask]
+    fig, ax = bpl.subplots()
+
+    ax.scatter(masses, radii, alpha=1.0, s=2)
+    if unit == "pc":
+        # plot the median and the IQR
+        d_log_M = 0.5
+        for percentile in [5, 10, 25, 50, 75, 90, 95]:
+            mass_bins, radii_percentile = get_r_percentiles(
+                radii, masses, percentile, d_log_M
+            )
+            ax.plot(
+                mass_bins,
+                radii_percentile,
+                c=bpl.almost_black,
+                lw=4 * (1 - (abs(percentile - 50) / 50)) + 0.5,
+                zorder=1,
+            )
+            ax.text(
+                x=mass_bins[0],
+                y=radii_percentile[0],
+                ha="center",
+                va="bottom",
+                s=percentile,
+                fontsize=16,
+            )
+
+    # then add all the PSF widths. Here we load the PSF and directly measure it's R_eff,
+    # so we can have a fair comparison to the clusters
+    for cat_loc in sys.argv[5:]:
+        size_home_dir = Path(cat_loc).parent
+        home_dir = size_home_dir.parent
+
+        psf_name = (
+            f"psf_"
+            f"{psf_source}_stars_"
+            f"{psf_width}_pixels_"
+            f"{oversampling_factor}x_oversampled.fits"
+        )
+
+        psf = fits.open(size_home_dir / psf_name)["PRIMARY"].data
+        psf_size = measure_psf_reff(psf)
+        if unit == "pc":
+            psf_size, _, _ = utils.pixels_to_pc_with_errors(
+                home_dir, psf_size, 0, 0, False, False
+            )
+        ax.plot([7e5, 1e6], [psf_size, psf_size], lw=1, c=bpl.almost_black, zorder=3)
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_limits(1e2, 1e6, 0.2, 40)
+    ax.add_labels("Cluster Mass [M$_\odot$]", f"Cluster Effective Radius [{unit}]")
+    ax.xaxis.set_ticks_position("both")
+    ax.yaxis.set_ticks_position("both")
+
+    if unit == "pc":
+        fig.savefig(plot_name)
+    else:
+        new_name = plot_name.name.strip(".png")
+        new_name += "pix.png"
+        fig.savefig(plot_name.parent / new_name)
+
+
+# ======================================================================================
+#
+# similar plot
+#
+# ======================================================================================
+radii_pc = big_catalog[f"r_eff_pc_rmax_15pix_best"][mask]
+radii_px = big_catalog[f"r_eff_pixels_rmax_15pix_best"][mask]
+
 fig, ax = bpl.subplots()
 
-ax.scatter(masses, radii, alpha=1.0, s=1)
-# plot the median and the IQR
-d_log_M = 0.5
-bin_centers, median = get_r_percentiles(radii, masses, 50, d_log_M)
-bin_centers2, lower_bound = get_r_percentiles(radii, masses, 25, d_log_M)
-bin_centers3, upper_bound = get_r_percentiles(radii, masses, 75, d_log_M)
-assert np.array_equal(bin_centers, bin_centers2)
-assert np.array_equal(bin_centers, bin_centers3)
+ax.scatter(radii_pc, radii_px, alpha=1.0, s=2)
+# then add all the PSF widths. Here we load the PSF and directly measure it's R_eff,
+# so we can have a fair comparison to the clusters
+for cat_loc in sys.argv[5:]:
+    size_home_dir = Path(cat_loc).parent
+    home_dir = size_home_dir.parent
 
-ax.plot(bin_centers, median, c=bpl.almost_black, lw=4)
-ax.fill_between(x=bin_centers, y1=lower_bound, y2=upper_bound, color="0.8", zorder=0)
+    psf_name = (
+        f"psf_"
+        f"{psf_source}_stars_"
+        f"{psf_width}_pixels_"
+        f"{oversampling_factor}x_oversampled.fits"
+    )
 
+    psf = fits.open(size_home_dir / psf_name)["PRIMARY"].data
+    psf_size = measure_psf_reff(psf)
+    # plot it in pixels
+    ax.plot([0.2, 0.24], [psf_size, psf_size], lw=1, c=bpl.almost_black, zorder=3)
+    psf_size, _, _ = utils.pixels_to_pc_with_errors(
+        home_dir, psf_size, 0, 0, False, False
+    )
+    ax.plot([psf_size, psf_size], [0.2, 0.24], lw=1, c=bpl.almost_black, zorder=3)
 
 ax.set_xscale("log")
 ax.set_yscale("log")
-ax.set_limits(1e2, 1e6, 0.2, 40)
-ax.add_labels("Cluster Mass [M$_\odot$]", "Cluster Effective Radius [pc]")
-fig.savefig(plot_name)
+ax.set_limits(0.2, 40, 0.2, 40)
+ax.add_labels("Cluster Effective Radius [pc]", f"Cluster Effective Radius [pixels]")
+ax.xaxis.set_ticks_position("both")
+ax.yaxis.set_ticks_position("both")
+ax.equal_scale()
+fig.savefig(plot_name.parent / "pix_vs_pc.png", bbox_inches="tight")
