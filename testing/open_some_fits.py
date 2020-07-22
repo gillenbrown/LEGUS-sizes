@@ -106,6 +106,7 @@ class MainWindow(QMainWindow):
         self.image.setPixmap(pixmap)
         self.image.repaint()
 
+
 app = QApplication()
 
 # The MainWindow class holds all the structure
@@ -113,5 +114,3 @@ window = MainWindow()
 
 # Execute application
 app.exec_()
-
-

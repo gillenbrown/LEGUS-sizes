@@ -45,6 +45,7 @@ comparison_script = ./legus_sizes/ryon_comparison.py
 radii_def_plot_script = ./legus_sizes/radii_def_comp_plot.py
 parameters_dist_script = ./legus_sizes/parameter_distribution.py
 all_fields_script = ./legus_sizes/all_fields_hist.py
+mass_size_script = ./legus_sizes/mass_size.py
 
 # ------------------------------------------------------------------------------
 #
@@ -114,7 +115,8 @@ radii_def_comp_plot = $(local_plots_dir)radii_def_comp_plot_$(fit_region_size).p
 param_dist_plot = $(local_plots_dir)parameter_distribution_size_$(fit_region_size).png
 param_dist_plot_no_mask = $(local_plots_dir)parameter_distribution_ryon_galaxies_size_$(fit_region_size).png
 all_fields_hist_plot = $(local_plots_dir)all_fields_$(fit_region_size).png
-plots = $(psf_comp_plots) $(comparison_plot) $(radii_def_comp_plot) $(param_dist_plot) $(param_dist_plot_no_mask) $(all_fields_hist_plot)
+mass_size_plot = $(local_plots_dir)mass_size_relation_$(fit_region_size).png
+plots = $(psf_comp_plots) $(comparison_plot) $(radii_def_comp_plot) $(param_dist_plot) $(param_dist_plot_no_mask) $(all_fields_hist_plot) $(mass_size_plot)
 
 # ------------------------------------------------------------------------------
 #
@@ -228,3 +230,6 @@ $(param_dist_plot_no_mask): $(parameters_dist_script) $(final_cats_no_mask)
 
 $(all_fields_hist_plot): $(final_cats) $(all_fields_script)
 	python $(all_fields_script) $@ $(final_cats)
+
+$(mass_size_plot): $(final_cats) $(mass_size_script)
+	python $(mass_size_script) $@ $(final_cats)
