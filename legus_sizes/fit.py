@@ -380,28 +380,29 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
 
     """
     # Create the initial guesses for the parameters
+    center = snapshot_size_oversampled / 2.0
     params = (
         np.log10(np.max(data_snapshot) * 3),  # log of peak brightness.
         # Increase that to account for bins, as peaks will be averaged lower.
-        snapshot_size_oversampled / 2.0,  # X center in the oversampled snapshot
-        snapshot_size_oversampled / 2.0,  # Y center in the oversampled snapshot
-        1,  # scale radius, in regular pixels. Start small to avoid fitting other things
-        0.8,  # axis ratio
+        center,  # X center in the oversampled snapshot
+        center,  # Y center in the oversampled snapshot
+        0.5,  # scale radius, in regular pixels. Start small to avoid fitting other things
+        1.0,  # axis ratio
         np.pi / 2.0,  # position angle
-        3.0,  # power law slope. Start high to give a sharp cutoff and avoid other stuff
+        5.0,  # power law slope. Start high to give a sharp cutoff and avoid other stuff
         np.min(data_snapshot),  # background
     )
 
     bounds = [
         # log of peak brightness. The minimum allowed will be the sky value, and the
-        # maximum will be 1 order of magnitude above the first guess.
-        (np.log10(np.min(uncertainty_snapshot)), params[0] + 1),
-        # X and Y center in oversampled pixels
-        (0.4 * snapshot_size_oversampled, 0.6 * snapshot_size_oversampled),
-        (0.4 * snapshot_size_oversampled, 0.6 * snapshot_size_oversampled),
-        # scale radius in regular pixels. Choose the limit to be one regular pixel
-        # to the radius of the image
-        (1, snapshot_size / 2.0),
+        # maximum will be 2 orders of magnitude above the first guess.
+        (np.log10(np.min(uncertainty_snapshot)), params[0] + 2),
+        # X and Y center in oversampled pixels. 3 regular pixels in each direction
+        (center - 3 * oversampling_factor, center + 3 * oversampling_factor),
+        (center - 3 * oversampling_factor, center + 3 * oversampling_factor),
+        # scale radius in regular pixels. Choose the limit to be one/tenth of a regular
+        # pixel to the radius of the image
+        (0.1, snapshot_size / 2.0),
         (0.3, 1),  # axis ratio
         (0, np.pi),  # position angle
         (0.6, 10),  # power law slope
@@ -437,9 +438,9 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
     param_history = [[] for _ in range(n_variables)]
     param_std_last = [np.inf for _ in range(n_variables)]
 
-    converge_criteria = 0.1
+    converge_criteria = 0.5
     converged = [False for _ in range(n_variables)]
-    check_spacing = 40
+    check_spacing = 10
     # larger spacing is more computationally efficient, plots take a while to make, so
     # don't do them that frequently.
     iteration = 0
@@ -479,14 +480,14 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
                 # then set the new last value
                 param_std_last[param_idx] = this_std
 
-            # plot this iteration
-            plot_model_set(
-                data_snapshot,
-                uncertainty_snapshot,
-                temp_mask,
-                this_result.x,
-                create_plot_name(id_num, iteration),
-            )
+            # # plot this iteration
+            # plot_model_set(
+            #     data_snapshot,
+            #     uncertainty_snapshot,
+            #     temp_mask,
+            #     this_result.x,
+            #     create_plot_name(id_num, iteration),
+            # )
 
     # then we're done!
     return initial_result.x, np.array(param_history)
@@ -515,15 +516,11 @@ def oversampled_to_image(x):
 def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savename):
     model_image, model_psf_image, model_psf_bin_image = create_model_image(*params)
 
-    # background subtract everything at this point, to make better plots
-    cluster_snapshot -= params[7]
-    model_image -= params[7]
-    model_psf_image -= params[7]
-    model_psf_bin_image -= params[7]
-
     diff_image = cluster_snapshot - model_psf_bin_image
     sigma_image = diff_image / uncertainty_snapshot
-    # don't modify the sigma image based on the mask
+    # have zeros in the sigma image where the mask has zeros, but leave it unmodified
+    # otherwise
+    sigma_image *= np.minimum(mask, 1.0)
 
     # set up the normalizations and colormaps
     # Use the data image to get the normalization that will be used in all plots. Base
@@ -580,7 +577,7 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
 
     ax_r.set_title("Raw Cluster Model")
     ax_f.set_title("Model Convolved\nwith PSF and Binned")
-    ax_d.set_title("Data\nBackground Subtracted")
+    ax_d.set_title("Data")
     ax_s.set_title("(Data - Model)/Uncertainty")
     ax_u.set_title("Uncertainty")
     ax_m.set_title("Mask")
@@ -589,7 +586,12 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
         ax.remove_labels("both")
         ax.remove_spines(["all"])
 
-    # Then make the radial plots
+    # Then make the radial plots. first background subtract
+    cluster_snapshot -= params[7]
+    model_image -= params[7]
+    model_psf_image -= params[7]
+    model_psf_bin_image -= params[7]
+
     c_d = bpl.color_cycle[0]
     c_m = bpl.color_cycle[1]
     # the center is in oversampled coords, fix that
@@ -603,7 +605,7 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
             if mask[y][x] > 0:
                 radii.append(distance(x, y, x_c, y_c))
                 model_ys.append(model_psf_bin_image[y, x])
-                data_ys.append(data_snapshot[y, x])
+                data_ys.append(cluster_snapshot[y, x])
 
     ax_pd.scatter(radii, data_ys, c=c_d, s=5, alpha=1.0, label="Data")
     ax_pd.scatter(radii, model_ys, c=c_m, s=5, alpha=1.0, label="Model")
@@ -632,7 +634,7 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
     ax_pd.plot(binned_radii, binned_model_ys, c=c_m, lw=5, label="Binned Model")
 
     ax_pd.legend(loc="upper right")
-    ax_pd.add_labels("Radius (pixels)", "Pixel Value [$e^{-}$]")
+    ax_pd.add_labels("Radius (pixels)", "Background Subtracted Pixel Value [$e^{-}$]")
     # set min and max values so it's easier to flip through bootstrapping plots
     y_min = np.min(data_snapshot)
     y_max = np.max(data_snapshot)
@@ -655,7 +657,9 @@ def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savenam
     )
     ax_pc.set_limits(0, np.ceil(max(radii)), 0, 1.2 * np.max(data_ys_cumulative))
     ax_pc.legend(loc="upper left")
-    ax_pc.add_labels("Radius (pixels)", "Cumulative Pixel Values [$e^{-}$]")
+    ax_pc.add_labels(
+        "Radius (pixels)", "Cumulative Background Subtracted Pixel Values [$e^{-}$]"
+    )
 
     # the last one just has the list of parameters
     ax_pc.easy_add_text(
