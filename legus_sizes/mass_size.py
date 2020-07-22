@@ -206,15 +206,14 @@ for unit in ["pc", "pixels"]:
 # similar plot
 #
 # ======================================================================================
-radii_pc = big_catalog[f"r_eff_pc_rmax_15pix_best"][mask]
-radii_px = big_catalog[f"r_eff_pixels_rmax_15pix_best"][mask]
-
 fig, ax = bpl.subplots()
 
-ax.scatter(radii_pc, radii_px, alpha=1.0, s=2)
 # then add all the PSF widths. Here we load the PSF and directly measure it's R_eff,
 # so we can have a fair comparison to the clusters
+all_ratios = np.array([])
 for cat_loc in sys.argv[5:]:
+    cat = table.Table.read(cat_loc, format="ascii.ecsv")
+
     size_home_dir = Path(cat_loc).parent
     home_dir = size_home_dir.parent
 
@@ -227,18 +226,19 @@ for cat_loc in sys.argv[5:]:
 
     psf = fits.open(size_home_dir / psf_name)["PRIMARY"].data
     psf_size = measure_psf_reff(psf)
-    # plot it in pixels
-    ax.plot([0.2, 0.24], [psf_size, psf_size], lw=1, c=bpl.almost_black, zorder=3)
-    psf_size, _, _ = utils.pixels_to_pc_with_errors(
-        home_dir, psf_size, 0, 0, False, False
-    )
-    ax.plot([psf_size, psf_size], [0.2, 0.24], lw=1, c=bpl.almost_black, zorder=3)
 
+    this_ratio = cat[f"r_eff_pixels_rmax_15pix_best"].data / psf_size
+    all_ratios = np.concatenate([all_ratios, this_ratio])
+
+ax.hist(
+    all_ratios, alpha=1.0, lw=1, color=bpl.color_cycle[3], bins=np.logspace(-1, 1, 21),
+)
+
+ax.axvline(1.0)
 ax.set_xscale("log")
-ax.set_yscale("log")
-ax.set_limits(0.2, 40, 0.2, 40)
-ax.add_labels("Cluster Effective Radius [pc]", f"Cluster Effective Radius [pixels]")
+# ax.set_yscale("log")
+ax.set_limits(0.1, 10)
+ax.add_labels("Cluster Effective Radius / PSF Effective Radius", "Number of Clusters")
 ax.xaxis.set_ticks_position("both")
 ax.yaxis.set_ticks_position("both")
-ax.equal_scale()
-fig.savefig(plot_name.parent / "pix_vs_pc.png", bbox_inches="tight")
+fig.savefig(plot_name.parent / "r_eff_over_psf.png", bbox_inches="tight")
