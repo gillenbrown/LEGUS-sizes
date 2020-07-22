@@ -12,7 +12,9 @@ import sys
 from pathlib import Path
 
 import betterplotlib as bpl
+from matplotlib import pyplot as plt
 from matplotlib import colors
+from matplotlib import gridspec
 import numpy as np
 from astropy.nddata import NDData
 from astropy import table
@@ -62,6 +64,24 @@ star_table_legus, psf_legus = get_star_list_and_psf("legus")
 cmap = bpl.cm.lapaz
 cmap.set_bad(cmap(0))  # for negative values in log plot
 
+
+def visualize_psf(fig, ax, psf_data, scale="log"):
+    """
+    Make a 2D visualization of the PSF. It can be either log or linear scaled.
+    """
+    vmax = 0.035
+    if scale == "log":
+        norm = colors.LogNorm(vmin=1e-6, vmax=vmax)
+    elif scale == "linear":
+        norm = colors.Normalize(vmin=0, vmax=vmax)
+
+    im_data = ax.imshow(psf_data, norm=norm, cmap=cmap, origin="lower")
+    fig.colorbar(im_data, ax=ax, pad=0)
+
+    ax.remove_labels("both")
+    # ax.remove_spines(["all"])
+
+
 for psf, star_source in zip([psf_legus, psf_me], ["legus", "my"]):
     fig, axs = bpl.subplots(
         ncols=2,
@@ -70,19 +90,8 @@ for psf, star_source in zip([psf_legus, psf_me], ["legus", "my"]):
         gridspec_kw={"top": 0.9, "left": 0.05, "right": 0.95, "wspace": 0.1},
     )
 
-    vmax = 0.035
-    norm_log = colors.LogNorm(vmin=1e-6, vmax=vmax)
-    norm_lin = colors.Normalize(vmin=0, vmax=vmax)
-
-    im_lin = axs[0].imshow(psf, norm=norm_lin, cmap=cmap, origin="lower")
-    im_log = axs[1].imshow(psf, norm=norm_log, cmap=cmap, origin="lower")
-
-    fig.colorbar(im_lin, ax=axs[0])
-    fig.colorbar(im_log, ax=axs[1])
-
-    for ax in axs:
-        ax.remove_labels("both")
-        ax.remove_spines(["all"])
+    visualize_psf(fig, axs[0], psf, "linear")
+    visualize_psf(fig, axs[1], psf, "log")
 
     # reformat the name
     if star_source == "my":
@@ -138,40 +147,7 @@ def bin(bin_size, xs, ys):
     return np.array(binned_xs), np.array(binned_ys)
 
 
-fig, ax = bpl.subplots()
-c_me = "#9EA4CA"
-c_legus = "#CD8486"
-# first go through all the stars
-for star_table, color in zip([star_table_legus, star_table_me], [c_legus, c_me]):
-    for star in star_table:
-        # use the centers given in the tables
-        x_cen = star["x_center"]
-        y_cen = star["y_center"]
-        # then go through all the pixel values to determine the distance from the center
-        half_width = psf_width / 2.0
-        radii = []
-        values = []
-        for x in range(int(x_cen - half_width), int(x_cen + half_width)):
-            for y in range(int(y_cen - half_width), int(y_cen + half_width)):
-                radii.append(distance(x, y, x_cen, y_cen))
-                values.append(image_data[y][x])
-        values = np.array(values)
-        # background subtract (rough approximation)
-        values -= np.percentile(values, 25)
-        # normalize the profile
-        values /= np.sum(values)
-        # then make the normalization match the PSF normalization, which is off by a
-        # factor of oversampling_factor**2
-        values /= oversampling_factor ** 2
-        # then bin then
-        radii, values = bin(0.2, radii, values)
-
-        ax.plot(radii, values, c=color, lw=0.5)
-
-# Then do the same for the psfs
-c_me = bpl.color_cycle[0]
-c_legus = bpl.color_cycle[3]
-for psf, color, label in zip([psf_legus, psf_me], [c_legus, c_me], ["LEGUS", "Me"]):
+def radial_profile_psf(ax, psf, color, label):
     # the center is the central pixel of the image
     x_cen = int((psf.shape[1] - 1.0) / 2.0)
     y_cen = int((psf.shape[0] - 1.0) / 2.0)
@@ -190,12 +166,86 @@ for psf, color, label in zip([psf_legus, psf_me], [c_legus, c_me], ["LEGUS", "Me
 
     ax.plot(radii, values, c=color, lw=3, label=label)
 
+
+fig, ax = bpl.subplots()
+c_me = "#9EA4CA"
+c_legus = "#CD8486"
+# first go through all the stars
+for star_table, color in zip([star_table_legus, star_table_me], [c_legus, c_me]):
+    for star in star_table:
+        # use the centers given in the tables
+        x_cen = star["x_center"]
+        y_cen = star["y_center"]
+        # then go through all the pixel values to determine the distance from the center
+        half_width = psf_width / 2.0
+        radii = []
+        values = []
+        background_values = []
+        for x in range(int(x_cen - half_width), int(x_cen + half_width)):
+            for y in range(int(y_cen - half_width), int(y_cen + half_width)):
+                dist = distance(x, y, x_cen, y_cen)
+                radii.append(dist)
+                values.append(image_data[y][x])
+                if dist > 8.0:
+                    background_values.append(image_data[y][x])
+
+        values = np.array(values)
+        # background subtract
+        values -= np.median(background_values)
+        # normalize the profile
+        values /= np.sum(values)
+        # then make the normalization match the PSF normalization, which is off by a
+        # factor of oversampling_factor**2
+        values /= oversampling_factor ** 2
+        # then bin then
+        radii, values = bin(0.2, radii, values)
+
+        ax.plot(radii, values, c=color, lw=0.5)
+
+# Then do the same for the psfs
+c_me = bpl.color_cycle[0]
+c_legus = bpl.color_cycle[3]
+for psf, color, label in zip([psf_legus, psf_me], [c_legus, c_me], ["LEGUS", "Me"]):
+    radial_profile_psf(ax, psf, color, label)
+
 ax.add_labels("Radius (pixels)", "Normalized Pixel Value", home_dir.name.upper())
 ax.set_limits(0, 12, 1e-6, 0.04)
 ax.axhline(0, ls=":")
 ax.legend()
 ax.set_yscale("log")
 
-fig.savefig(
-    plot_path, dpi=500,
+figname = (
+    f"psf_comparison_"
+    + f"{psf_width}_pixels_"
+    + f"{oversampling_factor}x_oversampled.png"
 )
+fig.savefig(size_home_dir / "plots" / figname, bbox_inches="tight")
+
+# ======================================================================================
+#
+# Then have the paper plot - one panel is the PSF, the other is the radial profile
+#
+# ======================================================================================
+# fig = plt.figure(figsize=[6, 10.5])
+# gs = gridspec.GridSpec(
+#     ncols=20, nrows=20, left=0, right=1, bottom=0.07, top=1, hspace=0, wspace=0
+# )
+# ax0 = fig.add_subplot(gs[:10, :], projection="bpl")
+# ax1 = fig.add_subplot(gs[11:, 4:19], projection="bpl")
+
+fig = plt.figure(figsize=[9, 4])
+gs = gridspec.GridSpec(
+    ncols=40, nrows=20, left=0.01, right=0.97, bottom=0.03, top=0.99, hspace=0, wspace=0
+)
+ax0 = fig.add_subplot(gs[:, :22], projection="bpl")
+ax1 = fig.add_subplot(gs[:17, 27:], projection="bpl")
+
+visualize_psf(fig, ax0, psf_me, "log")
+radial_profile_psf(ax1, psf_me, c_me, "")
+
+ax1.add_labels("Radius (pixels)", "Normalized Pixel Value")
+ax1.set_limits(0, 10, 1e-6, 0.035)
+ax1.set_yscale("log")
+ax1.xaxis.set_ticks([0, 2, 4, 6, 8, 10])
+
+fig.savefig(plot_path)
