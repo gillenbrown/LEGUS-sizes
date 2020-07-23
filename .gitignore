@@ -6,6 +6,7 @@ data/
 
 # temporary images used in PSF selection
 *.png
+*.pdf
 
 # other
 __pycache__

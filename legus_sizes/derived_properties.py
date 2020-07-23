@@ -76,11 +76,11 @@ def logistic(eta):
     :param eta: Eta (power law slope)
     :return: The slope to go in ellipticity_correction
     """
-    ymax = 0.57902872
-    scale = -3.75273761
-    eta_0 = 0.92404308
-    offset = 0.07298472
-    return ymax / (1 + np.exp(scale * (eta - eta_0))) - offset
+    ymax = 0.57902801
+    scale = 0.2664717
+    eta_0 = 0.92404378
+    offset = 0.07298404
+    return ymax / (1 + np.exp((eta_0 - eta) / scale)) - offset
 
 
 def ellipticy_correction(q, eta):

@@ -213,10 +213,7 @@ catalog.rename_columns(old_colnames, new_colnames)
 # Then restrict to classes 1 and 2, which are the more normal ones. We have to be more
 # careful about which one we use, since not all clusters have the same classifcation
 # system. These are in order of the preferred scheme to use.
-if "class_hybrid" in new_colnames:
-    class_col = "class_hybrid"
-    print(f"\n------ {home_dir.name} uses hybrid scheme\n")
-elif "class_mode_human" in new_colnames:
+if "class_mode_human" in new_colnames:
     class_col = "class_mode_human"
 elif "class_linden_whitmore" in new_colnames:
     class_col = "class_linden_whitmore"

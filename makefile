@@ -111,7 +111,7 @@ endif
 # Various plots that will be here in this directory
 #
 # ------------------------------------------------------------------------------
-comparison_plot = $(local_plots_dir)comparison_plot_size_$(fit_region_size).png
+comparison_plot = $(local_plots_dir)comparison_plot_size_$(fit_region_size).pdf
 radii_def_comp_plot = $(local_plots_dir)radii_def_comp_plot_$(fit_region_size).png
 param_dist_plot = $(local_plots_dir)parameter_distribution_size_$(fit_region_size).png
 param_dist_plot_no_mask = $(local_plots_dir)parameter_distribution_ryon_galaxies_size_$(fit_region_size).png
