@@ -44,8 +44,8 @@ print(f"Total Clusters: {len(big_catalog)}")
 mask = big_catalog["age_yr"] <= 200e6
 print(f"Clusters with age < 200 Myr: {np.sum(mask)}")
 
-mask = np.logical_and(mask, big_catalog["scale_radius_pixels_best"] != 1.0)
-print(f"Clusters with scale radius > 1 pixel: {np.sum(mask)}")
+mask = np.logical_and(mask, big_catalog["scale_radius_pixels_best"] != 0.1)
+print(f"Clusters with scale radius > 0.1 pixel: {np.sum(mask)}")
 
 mask = np.logical_and(mask, big_catalog["scale_radius_pixels_best"] != 15.0)
 print(f"Clusters with scale radius < 15 pixels: {np.sum(mask)}")
@@ -64,7 +64,7 @@ print(f"Clusters with small errors: {np.sum(mask)}")
 
 
 print(
-    f"a lo: {np.sum(big_catalog['scale_radius_pixels_best'] == 1.0) / len(big_catalog)}"
+    f"a lo: {np.sum(big_catalog['scale_radius_pixels_best'] == 0.1) / len(big_catalog)}"
 )
 print(
     f"a hi: {np.sum(big_catalog['scale_radius_pixels_best'] == 15.0) / len(big_catalog)}"
@@ -144,7 +144,7 @@ for unit in ["pc", "pixels"]:
     ax.scatter(masses, radii, alpha=1.0, s=2)
     if unit == "pc":
         # plot the median and the IQR
-        d_log_M = 0.5
+        d_log_M = 0.25
         for percentile in [5, 10, 25, 50, 75, 90, 95]:
             mass_bins, radii_percentile = get_r_percentiles(
                 radii, masses, percentile, d_log_M
