@@ -20,7 +20,8 @@ from astropy.nddata import NDData
 from astropy import table
 from astropy.io import fits
 
-sys.path.append(str(Path("../legus_sizes").resolve()))
+# need to add the correct path to import utils
+sys.path.append(str(Path(__file__).resolve().parent.parent / "pipeline"))
 import utils
 
 bpl.set_style()
