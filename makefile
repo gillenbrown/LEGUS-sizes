@@ -37,6 +37,7 @@ v1_star_list_script = ./legus_sizes/preliminary_star_list.py
 psf_star_list_script = ./legus_sizes/select_psf_stars.py
 psf_creation_script = ./legus_sizes/make_psf.py
 psf_comparison_script = ./legus_sizes/psf_compare.py
+psf_demo_image_script = ./legus_sizes/psf_demo_image.py
 sigma_script = ./legus_sizes/make_sigma_image.py
 fitting_script = ./legus_sizes/fit.py
 final_catalog_script = ./legus_sizes/derived_properties.py
@@ -111,13 +112,14 @@ endif
 # Various plots that will be here in this directory
 #
 # ------------------------------------------------------------------------------
+psf_demo_image = $(local_plots_dir)psf_demo_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.pdf
 comparison_plot = $(local_plots_dir)comparison_plot_size_$(fit_region_size).pdf
 radii_def_comp_plot = $(local_plots_dir)radii_def_comp_plot_$(fit_region_size).png
 param_dist_plot = $(local_plots_dir)parameter_distribution_size_$(fit_region_size).png
 param_dist_plot_no_mask = $(local_plots_dir)parameter_distribution_ryon_galaxies_size_$(fit_region_size).png
 all_fields_hist_plot = $(local_plots_dir)all_fields_$(fit_region_size).png
 mass_size_plot = $(local_plots_dir)mass_size_relation_$(fit_region_size).png
-plots = $(psf_comp_plots) $(comparison_plot) $(radii_def_comp_plot) $(param_dist_plot) $(param_dist_plot_no_mask) $(all_fields_hist_plot) $(mass_size_plot)
+plots = $(psf_demo_image) $(psf_comp_plots) $(comparison_plot) $(radii_def_comp_plot) $(param_dist_plot) $(param_dist_plot_no_mask) $(all_fields_hist_plot) $(mass_size_plot)
 experiments_sentinel = ./testing/experiments_done.txt
 
 # ------------------------------------------------------------------------------
@@ -127,7 +129,7 @@ experiments_sentinel = ./testing/experiments_done.txt
 # ------------------------------------------------------------------------------
 # https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
 
-all: $(all_my_dirs) $(plots) $(experiments_sentinel)
+all: $(all_my_dirs) $(psf_demo_image)
 
 # When we clean we will only clean the things after the fitting, since that
 # takes so long. The "or true" thing there stops make from throwing an error
@@ -188,6 +190,10 @@ $(psfs_legus): %: $(psf_creation_script)
 .SECONDEXPANSION:
 $(psf_comp_plots): %: $$(dir %)$$(psf_legus) $$(dir %)$$(psf_my) $$(dir %)$$(star_psf) $(psf_comparison_script)
 	python $(psf_comparison_script) $@ $(psf_oversampling_factor) $(psf_pixel_size)
+
+# And the demo image that will go in the paper
+$(psf_demo_image): $(fit_psfs) $(psf_demo_image_script)
+	python $(psf_demo_image_script) $@ $(psf_oversampling_factor) $(fit_psfs)
 
 # The first step in the fitting is the creation of the sigma image
 $(sigma_images): $(sigma_script)
