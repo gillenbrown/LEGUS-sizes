@@ -32,21 +32,21 @@ fit_region_size = 30
 # Python scripts
 #
 # ------------------------------------------------------------------------------
-catalog_script = ./legus_sizes/format_catalogs.py
-v1_star_list_script = ./legus_sizes/preliminary_star_list.py
-psf_star_list_script = ./legus_sizes/select_psf_stars.py
-psf_creation_script = ./legus_sizes/make_psf.py
-psf_comparison_script = ./legus_sizes/psf_compare.py
-psf_demo_image_script = ./legus_sizes/psf_demo_image.py
-sigma_script = ./legus_sizes/make_sigma_image.py
-fitting_script = ./legus_sizes/fit.py
-final_catalog_script = ./legus_sizes/derived_properties.py
-final_catalog_script_no_mask = ./legus_sizes/derived_properties_ryon.py
-comparison_script = ./legus_sizes/ryon_comparison.py
-radii_def_plot_script = ./legus_sizes/radii_def_comp_plot.py
-parameters_dist_script = ./legus_sizes/parameter_distribution.py
-all_fields_script = ./legus_sizes/all_fields_hist.py
-mass_size_script = ./legus_sizes/mass_size.py
+catalog_script = ./pipeline/format_catalogs.py
+v1_star_list_script = ./pipeline/preliminary_star_list.py
+psf_star_list_script = ./pipeline/select_psf_stars.py
+psf_creation_script = ./pipeline/make_psf.py
+psf_comparison_script = ./analysis/psf_compare.py
+psf_demo_image_script = ./analysis/psf_demo_image.py
+sigma_script = ./pipeline/make_sigma_image.py
+fitting_script = ./pipeline/fit.py
+final_catalog_script = ./pipeline/derived_properties.py
+final_catalog_script_no_mask = ./pipeline/derived_properties_ryon.py
+comparison_script = ./analysis/ryon_comparison.py
+radii_def_plot_script = ./analysis/radii_def_comp_plot.py
+parameters_dist_script = ./analysis/parameter_distribution.py
+all_fields_script = ./analysis/all_fields_hist.py
+mass_size_script = ./analysis/mass_size.py
 experiment_script = ./testing/experiments.py
 
 # ------------------------------------------------------------------------------
@@ -129,7 +129,7 @@ experiments_sentinel = ./testing/experiments_done.txt
 # ------------------------------------------------------------------------------
 # https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
 
-all: $(all_my_dirs) $(psf_demo_image)
+all: $(all_my_dirs) $(plots) $(experiments_sentinel)
 
 # When we clean we will only clean the things after the fitting, since that
 # takes so long. The "or true" thing there stops make from throwing an error

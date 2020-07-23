@@ -9,6 +9,8 @@ from astropy import table
 from astropy.io import fits
 import betterplotlib as bpl
 
+# need to add the correct path to import utils
+sys.path.append(str(Path(__file__).resolve().parent.parent / "pipeline"))
 import utils
 
 bpl.set_style()
