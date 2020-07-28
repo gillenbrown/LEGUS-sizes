@@ -15,18 +15,14 @@ from pathlib import Path
 import sys
 from collections import defaultdict
 
-from astropy import table
-from astropy import nddata
-from astropy import stats
+from astropy import table, nddata, stats
 from astropy.io import fits
 import photutils
 import betterplotlib as bpl
-from matplotlib import colors
-from matplotlib import gridspec
+from matplotlib import colors, gridspec
 from matplotlib import pyplot as plt
 import numpy as np
-from scipy import optimize
-from scipy import signal
+from scipy import optimize, signal, special
 import cmocean
 from tqdm import tqdm
 
@@ -221,6 +217,107 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
     return sum_squared / dof
 
 
+def gamma(x, k, theta):
+    """
+    Gamme distribution PDF: https://en.wikipedia.org/wiki/Gamma_distribution
+
+    :param x: X values to determine the value of the PDF at
+    :param k: Shape parameter
+    :param theta: Scale parameter
+    :return: Value of the gamma PDF at this location
+    """
+    return x ** (k - 1) * np.exp(-x / theta) / (special.gamma(k) * theta ** k)
+
+
+def gaussian(x, mean, sigma):
+    """
+    Normal distribution PDF.
+
+    :param x: X values to determine the value of the PDF at
+    :param mean: Mean of the Gaussian
+    :param sigma: Standard deviation of the Gaussian
+    :return: Value of the gamma PDF at this location
+    """
+    return np.exp(-0.5 * ((x - mean) / sigma) ** 2) / (sigma * np.sqrt(2 * np.pi))
+
+
+def trapezoid(x, breakpoint, max_value):
+    """
+    PSF (not normalized) of a simple trapezoid shape with one breakpoint.
+
+    Below the breakpoint it is linear to zero, while above it is constant at 1
+    to `max_value`
+
+    :param x: X values to determine the value of the PDF at
+    :param breakpoint: Value at which the PDF trasitions from the linearly increasing
+                       portion to the flat portion
+    :param max_value: Maximum allowed value for X. Above this zero will be returned.
+    :return: Value of this PDF at this location
+    """
+    if x > max_value:
+        return 1e-20
+    return np.max([np.min([x / breakpoint, 1.0]), 1e-20])
+
+
+def priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
+    """
+    Calculate the prior probability for a given model.
+
+    The parameters passed in are the ones for the EFF profile. The parameters are
+    treated independently:
+    - For the center we use a Gaussian centered on the center of the image with a
+      width of 3 image pixels
+    - for the scale radius and power law slope we use a Gamma distribution
+      with k=1.5, theta=3
+    - for the axis ratio we use a simple trapezoid shape, where it's linearly increasing
+      up to 0.3, then flat above that.
+    All these independent values are multiplied together then returned.
+
+    :return: Total prior probability for the given model.
+    """
+    prior = 1
+    # x and y center have a Gaussian with width of 2 regular pixels, centered on
+    # the center of the snapshot
+    prior *= gaussian(x_c, snapshot_size_oversampled / 2.0, 3 * oversampling_factor)
+    prior *= gaussian(y_c, snapshot_size_oversampled / 2.0, 3 * oversampling_factor)
+    prior *= gamma(a, 1.5, 3)
+    prior *= gamma(eta, 1.5, 3)
+    prior *= trapezoid(q, 0.3, 1.0)
+    # have a minimum allowed value, to stop it from being zero if several of these
+    # parameters are bad.
+    return np.maximum(prior, 1e-50)
+
+
+def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
+    """
+    Calculate the negative log likelihood for a model
+
+    We do the negative likelihood becuase scipy likes minimize rather than maximize,
+    so minimizing the negative likelihood is maximizing the likelihood
+
+    :param params: Tuple of parameters of the EFF profile
+    :param cluster_snapshot: Cluster snapshot
+    :param error_snapshot: Error snapshot
+    :param mask: 2D array used as the mask, that contains 1 where there are pixels to
+                 use, and zero where the pixels are not to be used.
+    :return:
+    """
+    chi_sq = calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask)
+    # the exponential gives zeros for very large chi squared values, have a bit of a
+    # normalization to correct for that.
+    log_data_likelihood = -chi_sq
+    log_prior = np.log(priors(*params))
+    log_likelihood = log_data_likelihood + log_prior
+    assert not np.isnan(log_prior)
+    assert not np.isnan(log_data_likelihood)
+    assert not np.isinf(log_prior)
+    assert not np.isinf(log_data_likelihood)
+    assert not np.isneginf(log_prior)
+    assert not np.isneginf(log_data_likelihood)
+    # return the negative of this so we can minimize this value
+    return -log_likelihood
+
+
 def distance(x1, y1, x2, y2):
     return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
@@ -393,19 +490,20 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
         np.min(data_snapshot),  # background
     )
 
+    # some of the bounds are not used because we put priors on them. We don't use priors
+    # for the background or max, as these would depend on the individual cluster, so
+    # I don't use them. Some are not allowed to be zero, so I don't set zero as the
+    # limit, but have a value very close.
     bounds = [
         # log of peak brightness. The minimum allowed will be the sky value, and the
         # maximum will be 2 orders of magnitude above the first guess.
         (np.log10(np.min(uncertainty_snapshot)), params[0] + 2),
-        # X and Y center in oversampled pixels. 3 regular pixels in each direction
-        (center - 3 * oversampling_factor, center + 3 * oversampling_factor),
-        (center - 3 * oversampling_factor, center + 3 * oversampling_factor),
-        # scale radius in regular pixels. Choose the limit to be one/tenth of a regular
-        # pixel to the radius of the image
-        (0.1, snapshot_size / 2.0),
-        (0.3, 1),  # axis ratio
+        (0, snapshot_size_oversampled),  # X center
+        (0, snapshot_size_oversampled),  # Y center
+        (1e-10, None),  # scale radius in regular pixels.
+        (1e-10, 1),  # axis ratio
         (0, np.pi),  # position angle
-        (0.6, 10),  # power law slope
+        (1e-10, None),  # power law slope
         # the minimum background allowed will be the smaller of the background level
         # determined above or the minimum pixel value in the shapshot.
         (min(background_min, np.min(data_snapshot)), np.max(data_snapshot)),
@@ -418,7 +516,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
     # first get the results when all good pixels are used, to be used as a starting
     # point when bootstrapping is done, to save time.
     initial_result = optimize.minimize(
-        calculate_chi_squared,
+        negative_log_likelihood,
         args=(data_snapshot, uncertainty_snapshot, mask),
         x0=params,
         bounds=bounds,
@@ -440,7 +538,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
 
     converge_criteria = 0.5
     converged = [False for _ in range(n_variables)]
-    check_spacing = 10
+    check_spacing = 1
     # larger spacing is more computationally efficient, plots take a while to make, so
     # don't do them that frequently.
     iteration = 0
