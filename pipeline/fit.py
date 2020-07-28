@@ -217,15 +217,18 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
     return sum_squared / dof
 
 
-def gamma(x, k, theta):
+def gamma(x, k, theta, offset):
     """
     Gamme distribution PDF: https://en.wikipedia.org/wiki/Gamma_distribution
 
     :param x: X values to determine the value of the PDF at
     :param k: Shape parameter
     :param theta: Scale parameter
+    :param offset: Value at which the distribution starts (other than zero)
     :return: Value of the gamma PDF at this location
     """
+    x = x - offset
+    x = np.maximum(x, 0.0)
     return x ** (k - 1) * np.exp(-x / theta) / (special.gamma(k) * theta ** k)
 
 
@@ -280,8 +283,8 @@ def priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
     # the center of the snapshot
     prior *= gaussian(x_c, snapshot_size_oversampled / 2.0, 3 * oversampling_factor)
     prior *= gaussian(y_c, snapshot_size_oversampled / 2.0, 3 * oversampling_factor)
-    prior *= gamma(a, 1.5, 3)
-    prior *= gamma(eta, 1.5, 3)
+    prior *= gamma(a, 1.05, 20, 0)
+    prior *= gamma(eta, 1.05, 20, 0.6)
     prior *= trapezoid(q, 0.3, 1.0)
     # have a minimum allowed value, to stop it from being zero if several of these
     # parameters are bad.
