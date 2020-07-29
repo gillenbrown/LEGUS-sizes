@@ -227,6 +227,7 @@ def gamma(x, k, theta):
     :param offset: Value at which the distribution starts (other than zero)
     :return: Value of the gamma PDF at this location
     """
+    x = np.maximum(x, 0)
     return x ** (k - 1) * np.exp(-x / theta) / (special.gamma(k) * theta ** k)
 
 
@@ -242,7 +243,7 @@ def gaussian(x, mean, sigma):
     return np.exp(-0.5 * ((x - mean) / sigma) ** 2) / (sigma * np.sqrt(2 * np.pi))
 
 
-def trapezoid(x, breakpoint, max_value):
+def trapezoid(x, breakpoint):
     """
     PSF (not normalized) of a simple trapezoid shape with one breakpoint.
 
@@ -255,8 +256,6 @@ def trapezoid(x, breakpoint, max_value):
     :param max_value: Maximum allowed value for X. Above this zero will be returned.
     :return: Value of this PDF at this location
     """
-    if x > max_value:
-        return 1e-20
     return np.max([np.min([x / breakpoint, 1.0]), 1e-20])
 
 
@@ -282,8 +281,8 @@ def priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
     prior *= gaussian(x_c, snapshot_size_oversampled / 2.0, 3 * oversampling_factor)
     prior *= gaussian(y_c, snapshot_size_oversampled / 2.0, 3 * oversampling_factor)
     prior *= gamma(a, 1.05, 20)
-    prior *= gamma(eta, 1.2, 10)
-    prior *= trapezoid(q, 0.3, 1.0)
+    prior *= gamma(eta - 0.6, 1.05, 20)
+    prior *= trapezoid(q, 0.3)
     # have a minimum allowed value, to stop it from being zero if several of these
     # parameters are bad.
     return np.maximum(prior, 1e-50)
@@ -504,7 +503,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
         (1e-10, None),  # scale radius in regular pixels.
         (1e-10, 1),  # axis ratio
         (0, np.pi),  # position angle
-        (1e-10, None),  # power law slope
+        (0.6, None),  # power law slope
         # the minimum background allowed will be the smaller of the background level
         # determined above or the minimum pixel value in the shapshot.
         (min(background_min, np.min(data_snapshot)), np.max(data_snapshot)),

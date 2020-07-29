@@ -4,6 +4,7 @@ buttons to approve or reject. It shows 10 randomly selected clusters per field
 """
 import shutil
 
+import numpy as np
 from astropy import table
 from pathlib import Path
 import random
@@ -27,7 +28,10 @@ from PySide2.QtCore import Qt
 #
 # ======================================================================================
 def criteria(catalog):
-    catalog["check_this"] = catalog["power_law_slope_best"] == 10.0
+    mask_1 = catalog["axis_ratio_best"] > 0
+    mask_2 = catalog["axis_ratio_best"] < 0.3
+    mask = np.logical_and(mask_1, mask_2)
+    catalog["check_this"] = mask
 
 
 plots_to_show = []
@@ -129,6 +133,8 @@ class MainWindow(QMainWindow):
 
     def showCluster(self):
         # add the appropriate image to the GUI
+        if self.idx >= len(plots_to_show):
+            QApplication.quit()
         pixmap = QPixmap(plots_to_show[self.idx])
         pixmap = pixmap.scaled(800, 800, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.image.setPixmap(pixmap)
