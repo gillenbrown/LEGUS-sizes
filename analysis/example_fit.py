@@ -51,8 +51,8 @@ for row in cat:
         break
 
 # Then get the snapshot of this cluster
-x_cen = int(np.ceil(row["x_pix_single_fitted_best"])) + 10
-y_cen = int(np.ceil(row["y_pix_single_fitted_best"])) + 10
+x_cen = int(np.ceil(row["x_pix_single_fitted_best"]))
+y_cen = int(np.ceil(row["y_pix_single_fitted_best"]))
 
 # Get the snapshot, based on the size desired
 x_min = x_cen - 15
@@ -65,8 +65,8 @@ error_snapshot = error_data[y_min:y_max, x_min:x_max]
 
 # then have new centers for the fit within this snapshot. See the code in fit.py to
 # correct for the oversampling factor
-x_cen_snap = row["x_pix_single_fitted_best"] - x_min + 10
-y_cen_snap = row["y_pix_single_fitted_best"] - y_min + 10
+x_cen_snap = row["x_pix_single_fitted_best"] - x_min
+y_cen_snap = row["y_pix_single_fitted_best"] - y_min
 x_cen_snap_oversampled = (x_cen_snap + 0.25) * 2
 y_cen_snap_oversampled = (y_cen_snap + 0.25) * 2
 
