@@ -47,6 +47,7 @@ radii_def_plot_script = ./analysis/radii_def_comp_plot.py
 parameters_dist_script = ./analysis/parameter_distribution.py
 all_fields_script = ./analysis/all_fields_hist.py
 mass_size_script = ./analysis/mass_size.py
+example_plot_script = ./analysis/example_fit.py
 experiment_script = ./testing/experiments.py
 
 # ------------------------------------------------------------------------------
@@ -113,13 +114,16 @@ endif
 #
 # ------------------------------------------------------------------------------
 psf_demo_image = $(local_plots_dir)psf_demo_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.pdf
-comparison_plot = $(local_plots_dir)comparison_plot_size_$(fit_region_size).pdf
+comparison_plot = $(local_plots_dir)comparison_plot_size_$(fit_region_size).png
 radii_def_comp_plot = $(local_plots_dir)radii_def_comp_plot_$(fit_region_size).png
 param_dist_plot = $(local_plots_dir)parameter_distribution_size_$(fit_region_size).png
 param_dist_plot_no_mask = $(local_plots_dir)parameter_distribution_ryon_galaxies_size_$(fit_region_size).png
 all_fields_hist_plot = $(local_plots_dir)all_fields_$(fit_region_size).png
 mass_size_plot = $(local_plots_dir)mass_size_relation_$(fit_region_size).png
-plots = $(psf_demo_image) $(psf_comp_plots) $(comparison_plot) $(radii_def_comp_plot) $(param_dist_plot) $(param_dist_plot_no_mask) $(all_fields_hist_plot) $(mass_size_plot)
+example_fit_plot = $(local_plots_dir)example_fit.png
+plots = $(psf_demo_image) $(psf_comp_plots) $(comparison_plot)\
+        $(radii_def_comp_plot) $(param_dist_plot) $(param_dist_plot_no_mask) \
+        $(all_fields_hist_plot) $(mass_size_plot) $(example_fit_plot)
 experiments_sentinel = ./testing/experiments_done.txt
 
 # ------------------------------------------------------------------------------
@@ -241,6 +245,9 @@ $(all_fields_hist_plot): $(final_cats) $(all_fields_script)
 
 $(mass_size_plot): $(final_cats) $(mass_size_script)
 	python $(mass_size_script) $@  $(psf_oversampling_factor) $(psf_pixel_size) $(psf_type) $(final_cats)
+
+$(example_fit_plot): $(final_cats) $(example_plot_script)
+	python $(example_plot_script) $@
 
 $(experiments_sentinel): $(final_cats) $(experiment_script)
 	python $(experiment_script) $@ $(final_cats)

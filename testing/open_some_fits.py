@@ -29,14 +29,14 @@ from PySide2.QtCore import Qt
 # ======================================================================================
 def criteria(catalog):
     mask_1 = catalog["axis_ratio_best"] > 0
-    mask_2 = catalog["axis_ratio_best"] < 0.3
+    mask_2 = catalog["axis_ratio_best"] == 1.0
     mask = np.logical_and(mask_1, mask_2)
     catalog["check_this"] = mask
 
 
 plots_to_show = []
 data_dir = Path("../data").resolve()
-for item in data_dir.iterdir():
+for item in sorted(data_dir.iterdir()):
     if item.is_dir():
         size_dir = item / "size"
         fits_dir = size_dir / "cluster_fit_plots"
@@ -50,7 +50,7 @@ for item in data_dir.iterdir():
         these_plots = []
         for plot in fits_dir.iterdir():
             name = plot.name
-            if "30" in name and "best_fit.png" in name:
+            if "30" in name and "final_best_fit.png" in name:
                 this_id = int(name.split("_")[1])
                 if this_id in ids_to_check:
                     these_plots.append(plot)
@@ -143,6 +143,7 @@ class MainWindow(QMainWindow):
 
         # and adjust the text
         self.label.setText(Path(plots_to_show[self.idx]).name)
+        self.label.repaint()
 
 
 app = QApplication()
