@@ -16,17 +16,18 @@ from pathlib import Path
 import sys
 from collections import defaultdict
 
-from astropy import table, nddata, stats
+from astropy import table, stats
 from astropy.io import fits
 import betterplotlib as bpl
 from matplotlib import colors, gridspec
 from matplotlib import pyplot as plt
 import numpy as np
-from scipy import optimize, signal, special
+from scipy import optimize, special
 import cmocean
 from tqdm import tqdm
 
 import utils
+import fit_utils
 
 bpl.set_style()
 
@@ -114,89 +115,9 @@ clusters_table["num_boostrapping_iterations"] = -99
 
 # ======================================================================================
 #
-# Create the functions that will be used in the fitting procedure
+# Functions to be used in the fitting
 #
 # ======================================================================================
-def eff_profile_2d(x, y, log_mu_0, x_c, y_c, a, q, theta, eta):
-    """
-    2-dimensional EFF profile, in pixel units
-
-    :param x: X pixel values
-    :param y: Y pixel values
-    :param log_mu_0: Log of the central surface brightness
-    :param x_c: Center X pixel coordinate
-    :param y_c: Center Y pixel coordinate
-    :param a: Scale radius in the major axis direction
-    :param q: Axis ratio. The small axis will have scale length qa
-    :param theta: Position angle
-    :param eta: Power law slope
-    :return: Values of the function at the x,y coordinates passed in
-    """
-    x_prime = (x - x_c) * np.cos(theta) + (y - y_c) * np.sin(theta)
-    y_prime = -(x - x_c) * np.sin(theta) + (y - y_c) * np.cos(theta)
-
-    x_term = (x_prime / a) ** 2
-    y_term = (y_prime / (q * a)) ** 2
-    return (10 ** log_mu_0) * (1 + x_term + y_term) ** (-eta)
-
-
-def convolve_with_psf(in_array):
-    """ Convolve an array with the PSF """
-    # Scipy FFT based convolution was tested to be the fastest. It does have edge
-    # affects, but those are minimized by using our padding. We do have to modify the
-    # psf to have
-    return signal.fftconvolve(in_array, psf, mode="same")
-
-
-def bin_data_2d(data):
-    """ Bin a 2d array into square bins determined by the oversampling factor """
-    # Astropy has a convenient function to do this
-    bin_factors = [oversampling_factor, oversampling_factor]
-    return nddata.block_reduce(data, bin_factors, np.mean)
-
-
-def create_model_image(log_mu_0, x_c, y_c, a, q, theta, eta, background):
-    """ Create a model image using the EFF parameters. """
-    # a is passed in in regular coordinates, shift it to the oversampled ones
-    a *= oversampling_factor
-
-    # first generate the x and y pixel coordinates of the model image. We will have
-    # an array that's the same size as the cluster snapshot in oversampled pixels,
-    # plus padding to account for zero-padded boundaries in the FFT convolution
-    padding = 5 * oversampling_factor  # 5 regular pixels on each side
-    box_length = snapshot_size_oversampled + 2 * padding
-
-    # correct the center to be at the center of this new array
-    x_c_internal = x_c + padding
-    y_c_internal = y_c + padding
-
-    x_values = np.zeros([box_length, box_length])
-    y_values = np.zeros([box_length, box_length])
-
-    for x in range(box_length):
-        x_values[:, x] = x
-    for y in range(box_length):
-        y_values[y, :] = y
-
-    model_image = eff_profile_2d(
-        x_values, y_values, log_mu_0, x_c_internal, y_c_internal, a, q, theta, eta
-    )
-    # convolve without the background first, to do an ever better job avoiding edge
-    # effects, as the model should be zero near the boundaries anyway, matching the zero
-    # padding scipy does.
-    model_psf_image = convolve_with_psf(model_image)
-    model_image += background
-    model_psf_image += background
-
-    # crop out the padding before binning the data
-    model_image = model_image[padding:-padding, padding:-padding]
-    model_psf_image = model_psf_image[padding:-padding, padding:-padding]
-    model_psf_bin_image = bin_data_2d(model_psf_image)
-
-    # return all of these, since we'll want to use them when plotting
-    return model_image, model_psf_image, model_psf_bin_image
-
-
 def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
     """
     Calculate the chi-squared value for a given set of parameters.
@@ -208,7 +129,9 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
                  use, and zero where the pixels are not to be used.
     :return:
     """
-    _, _, model_snapshot = create_model_image(*params)
+    _, _, model_snapshot = fit_utils.create_model_image(
+        *params, psf, snapshot_size_oversampled, oversampling_factor
+    )
     assert model_snapshot.shape == cluster_snapshot.shape
     assert model_snapshot.shape == error_snapshot.shape
 
@@ -568,7 +491,9 @@ def oversampled_to_image(x):
 
 
 def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savename):
-    model_image, model_psf_image, model_psf_bin_image = create_model_image(*params)
+    model_image, model_psf_image, model_psf_bin_image = fit_utils.create_model_image(
+        *params, psf, snapshot_size_oversampled, oversampling_factor
+    )
 
     diff_image = cluster_snapshot - model_psf_bin_image
     sigma_image = diff_image / uncertainty_snapshot

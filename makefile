@@ -41,6 +41,7 @@ psf_demo_image_script = ./analysis/psf_demo_image.py
 sigma_script = ./pipeline/make_sigma_image.py
 mask_script = ./pipeline/make_mask_image.py
 fitting_script = ./pipeline/fit.py
+fit_utils = ./pipeline/fit_utils.py
 final_catalog_script = ./pipeline/derived_properties.py
 final_catalog_script_no_mask = ./pipeline/derived_properties_ryon.py
 comparison_script = ./analysis/ryon_comparison.py
@@ -217,12 +218,12 @@ $(masks): %: $(mask_script) $$(dir %)$$(cat) $$(dir %)$$(sigma_image)
 # will be needed, and we want to make sure all plots come from the same run.
 to_rm_debug_plots =  $(1)cluster_fit_plots/*size_$(fit_region_size)_$(2)*
 .SECONDEXPANSION:
-$(fits): %: $(fitting_script) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask) $$(dir %)$$(cat)
+$(fits): %: $(fitting_script) $(fit_utils) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask) $$(dir %)$$(cat)
 	rm $(call to_rm_debug_plots,$(dir $@),final) || true
 	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(dir $@)$(cat) $(fit_region_size)
 
 # for the no masking case we pass an extra parameter
-$(fits_no_mask): %: $(fitting_script) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask) $$(dir %)$$(cat)
+$(fits_no_mask): %: $(fitting_script) $(fit_utils) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask) $$(dir %)$$(cat)
 	rm $(call to_rm_debug_plots,$(dir $@),ryon_like) || true
 	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(dir $@)$(cat) $(fit_region_size) ryon_like
 
