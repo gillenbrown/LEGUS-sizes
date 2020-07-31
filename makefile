@@ -39,6 +39,7 @@ psf_creation_script = ./pipeline/make_psf.py
 psf_comparison_script = ./analysis/psf_compare.py
 psf_demo_image_script = ./analysis/psf_demo_image.py
 sigma_script = ./pipeline/make_sigma_image.py
+mask_script = ./pipeline/make_mask_image.py
 fitting_script = ./pipeline/fit.py
 final_catalog_script = ./pipeline/derived_properties.py
 final_catalog_script_no_mask = ./pipeline/derived_properties_ryon.py
@@ -75,6 +76,7 @@ psf_legus = psf_legus_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x
 psf_my = psf_my_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.fits
 psf_comp_plot = psf_paper_my_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.pdf
 sigma_image = sigma_electrons.fits
+mask = mask_image.fits
 fit = cluster_fits_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.h5
 fit_no_mask = cluster_fits_no_masking_size_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.h5
 final_cat = final_catalog_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.txt
@@ -92,6 +94,7 @@ psfs_legus = $(foreach dir,$(my_dirs),$(dir)$(psf_legus))
 psfs_my = $(foreach dir,$(my_dirs),$(dir)$(psf_my))
 psf_comp_plots = $(foreach dir,$(my_dirs),$(dir)$(psf_comp_plot))
 sigma_images = $(foreach dir,$(my_dirs),$(dir)$(sigma_image))
+masks = $(foreach dir,$(my_dirs),$(dir)$(mask))
 fits = $(foreach dir,$(my_dirs),$(dir)$(fit))
 fits_no_mask = $(foreach dir,$(my_dirs_ryon),$(dir)$(fit_no_mask))
 final_cats = $(foreach dir,$(my_dirs),$(dir)$(final_cat))
@@ -203,20 +206,25 @@ $(psf_demo_image): $(fit_psfs) $(psf_demo_image_script)
 $(sigma_images): $(sigma_script)
 	python $(sigma_script) $@
 
+# We only mask regions near clusters to save time, so we need the catalogs
+# to do the masking
+$(masks): %: $(mask_script) $$(dir %)$$(cat) $$(dir %)$$(sigma_image)
+	python $(mask_script) $@ $(dir $@)$(cat) $(dir $@)$(sigma_image)
+
 # Then we can actually do the fitting, which depends on
-# the sigma image, psf, and cluster catalog. First we remove all the debug plots
-# associated with this run, as we don't know how many bootstrap iterations
+# the sigma image, psf, mask, and cluster catalog. First we remove all the debug
+# plots associated with this run, as we don't know how many bootstrap iterations
 # will be needed, and we want to make sure all plots come from the same run.
 to_rm_debug_plots =  $(1)cluster_fit_plots/*size_$(fit_region_size)_$(2)*
 .SECONDEXPANSION:
-$(fits): %: $(fitting_script) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(cat)
+$(fits): %: $(fitting_script) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask) $$(dir %)$$(cat)
 	rm $(call to_rm_debug_plots,$(dir $@),final) || true
-	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat) $(fit_region_size)
+	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(dir $@)$(cat) $(fit_region_size)
 
 # for the no masking case we pass an extra parameter
-$(fits_no_mask): %: $(fitting_script) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(cat)
+$(fits_no_mask): %: $(fitting_script) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask) $$(dir %)$$(cat)
 	rm $(call to_rm_debug_plots,$(dir $@),ryon_like) || true
-	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(cat) $(fit_region_size) ryon_like
+	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(dir $@)$(cat) $(fit_region_size) ryon_like
 
 # Add the derived properties to these catalogs
 .SECONDEXPANSION:

@@ -1,11 +1,12 @@
 """
 fit.py - Do the fitting of the clusters in the image
 
-This takes 6 or 7 arguments:
+This takes 7 or 8 arguments:
 - Path where the resulting cluster catalog will be saved
 - Path to the fits image containing the PSF
 - Oversampling factor used when creating the PSF
 - Path to the sigma image containing uncertainties for each pixel
+- Path to the mask image containing whether or not to use each pixel
 - Path to the cleaned cluster catalog
 - Size of the fitting region to be used
 - Optional argument that must be "ryon_like" if present. If it is present, masking will
@@ -17,7 +18,6 @@ from collections import defaultdict
 
 from astropy import table, nddata, stats
 from astropy.io import fits
-import photutils
 import betterplotlib as bpl
 from matplotlib import colors, gridspec
 from matplotlib import pyplot as plt
@@ -39,10 +39,11 @@ final_catalog = Path(sys.argv[1]).absolute()
 psf_path = Path(sys.argv[2]).absolute()
 oversampling_factor = int(sys.argv[3])
 sigma_image_path = Path(sys.argv[4]).absolute()
-cluster_catalog_path = Path(sys.argv[5]).absolute()
-snapshot_size = int(sys.argv[6])
-if len(sys.argv) > 7:
-    if len(sys.argv) != 8 or sys.argv[7] != "ryon_like":
+mask_image_path = Path(sys.argv[5]).absolute()
+cluster_catalog_path = Path(sys.argv[6]).absolute()
+snapshot_size = int(sys.argv[7])
+if len(sys.argv) > 8:
+    if len(sys.argv) != 9 or sys.argv[8] != "ryon_like":
         raise ValueError("Bad list of parameters to fit.py")
     else:
         ryon_like = True
@@ -58,7 +59,11 @@ psf = np.maximum(psf, 0)
 psf /= np.sum(psf)
 
 sigma_data = fits.open(sigma_image_path)["PRIMARY"].data
+mask_data = fits.open(mask_image_path)["PRIMARY"].data
 clusters_table = table.Table.read(cluster_catalog_path, format="ascii.ecsv")
+# if we're Ryon-like, do no masking, so the mask will just be ones
+if ryon_like:
+    mask_data = np.ones(mask_data.shape)
 
 snapshot_size_oversampled = snapshot_size * oversampling_factor
 
@@ -322,74 +327,25 @@ def distance(x1, y1, x2, y2):
     return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
 
-def mask_image(data_snapshot, uncertainty_snapshot):
+def handle_mask(mask_snapshot, x_c, y_c):
     """
-    Create mask image
+    Mask/unmask the cluster appropriately
 
-    This wil use IRAFStarFinder from photutils to find stars in the snapshot. Anything
-    more than 5 pixels from the center will be masked, with a radius of FWHM. This
-    makes the full width masked twice the FWHM.
-
-    :param data_snapshot: Snapshot to be used to identify sources
-    :param uncertainty_snapshot: Snapshow showing the uncertainty.
-    :return: masked image, where values with 1 are good, zero is bad.
+    :param mask_snapshot: The original unmodified mask image snapshot
+    :return: A modified mask image snapshot where the previously identified cluster is
+             now unmasked, but any nearby clusters are masked
     """
-    mask = np.ones(data_snapshot.shape)
-    if ryon_like:  # Ryon did no masking
-        return mask
-
-    threshold = 5 * np.min(uncertainty_snapshot)
-    star_finder = photutils.detection.IRAFStarFinder(
-        threshold=threshold + np.min(data_snapshot),
-        fwhm=2.0,  # slightly larger than real PSF, to get extended sources
-        exclude_border=False,
-        sharplo=0.8,
-        sharphi=5,
-        roundlo=0.0,
-        roundhi=0.5,
-        minsep_fwhm=1.0,
-    )
-    peaks_table = star_finder.find_stars(data_snapshot)
-
-    # this will be None if nothing was found
-    if peaks_table is None:
-        return mask
-
-    # then delete any stars near the center
-    center = data_snapshot.shape[0] / 2
-    to_remove = []
-    for idx in range(len(peaks_table)):
-        row = peaks_table[idx]
-        x = row["xcentroid"]
-        y = row["ycentroid"]
-        if (
-            distance(center, center, x, y) < 6
-            or row["peak"] < row["sky"]
-            # peak is sky-subtracted. This ^ removes ones that aren't very far above
-            # a high sky background. This cut stops substructure in clusters from
-            # being masked.
-            or row["peak"] < threshold
-        ):
-            to_remove.append(idx)
-    peaks_table.remove_rows(to_remove)
-
-    # we may have gotten rid of all the peaks, if so return
-    if len(peaks_table) == 0:
-        return mask
-
-    # then remove any pixels within 2 FWHM of each source
-    for x_idx in range(data_snapshot.shape[1]):
-        x = x_idx + 0.5  # to get pixel center
-        for y_idx in range(data_snapshot.shape[0]):
-            y = y_idx + 0.5  # to get pixel center
-            # then go through each row and see if it's close
-            for row in peaks_table:
-                x_cen = row["xcentroid"]
-                y_cen = row["ycentroid"]
-                radius = 2.0 * row["fwhm"]
-                if distance(x, y, x_cen, y_cen) < radius:
-                    mask[y_idx][x_idx] = 0.0
-    return mask
+    for x in range(mask_snapshot.shape[1]):
+        for y in range(mask_snapshot.shape[0]):
+            if mask_snapshot[y, x] == 2:  # only look at cluster pixels
+                # have a bit of wiggle room on which are classified as close enough
+                # to be cluster, I want to be a little careful. Use nearby pixels,
+                # but not far away ones
+                if distance(x, y, x_c, y_c) < 7:
+                    mask_snapshot[y, x] = 1
+                else:
+                    mask_snapshot[y, x] = 0
+    return mask_snapshot
 
 
 def create_plot_name(id, bootstrapping_iteration=None):
@@ -432,8 +388,8 @@ def create_boostrap_mask(original_mask, x_c, y_c):
     # of all the pixels in that box.
     outside_boxes = defaultdict(list)
     center_pixels = []
-    for x in range(mask.shape[1]):
-        for y in range(mask.shape[0]):
+    for x in range(original_mask.shape[1]):
+        for y in range(original_mask.shape[0]):
             if original_mask[y, x] == 1:  # only keep pixels not already masked out
                 if distance(x, y, x_c, y_c) <= 9:
                     center_pixels.append((x, y))
@@ -789,28 +745,26 @@ for row in tqdm(clusters_table):
     x_cen = int(np.ceil(row["x_pix_single"]))
     y_cen = int(np.ceil(row["y_pix_single"]))
 
-    # Get the snapshot, based on the size desired. I start out creating snapshots a
-    # bit larger than desired, so that we can select stars on the borders of the image.
+    # Get the snapshot, based on the size desired.
     # Since we took the ceil of the center, go more in the negative direction (i.e.
     # use ceil to get the minimum values). This only matters if the snapshot size is odd
-    buffer = 10
-    x_min = x_cen - int(np.ceil(snapshot_size / 2.0) + buffer)
-    x_max = x_cen + int(np.floor(snapshot_size / 2.0) + buffer)
-    y_min = y_cen - int(np.ceil(snapshot_size / 2.0) + buffer)
-    y_max = y_cen + int(np.floor(snapshot_size / 2.0) + buffer)
+    x_min = x_cen - int(np.ceil(snapshot_size / 2.0))
+    x_max = x_cen + int(np.floor(snapshot_size / 2.0))
+    y_min = y_cen - int(np.ceil(snapshot_size / 2.0))
+    y_max = y_cen + int(np.floor(snapshot_size / 2.0))
 
     data_snapshot = image_data[y_min:y_max, x_min:x_max]
     error_snapshot = sigma_data[y_min:y_max, x_min:x_max]
-    # create the mask
-    mask = mask_image(data_snapshot, error_snapshot)
+    mask_snapshot = mask_data[y_min:y_max, x_min:x_max]
 
-    # then crop the images back to the desired size
-    data_snapshot = data_snapshot[buffer:-buffer, buffer:-buffer]
-    error_snapshot = error_snapshot[buffer:-buffer, buffer:-buffer]
-    mask = mask[buffer:-buffer, buffer:-buffer]
+    mask_snapshot = handle_mask(
+        mask_snapshot, row["x_pix_single"] - x_min, row["y_pix_single"] - y_min
+    )
 
     # then do this fitting!
-    results, history = fit_model(data_snapshot, error_snapshot, mask, row["ID"])
+    results, history = fit_model(
+        data_snapshot, error_snapshot, mask_snapshot, row["ID"]
+    )
 
     # Then add these values to the table
     row["num_boostrapping_iterations"] = len(history[0])
