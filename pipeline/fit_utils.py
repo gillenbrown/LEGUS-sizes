@@ -100,3 +100,62 @@ def create_model_image(
 
     # return all of these, since we'll want to use them when plotting
     return model_image, model_psf_image, model_psf_bin_image
+
+
+def handle_mask(mask_snapshot, x_c, y_c):
+    """
+    Mask/unmask the cluster appropriately
+
+    :param mask_snapshot: The original unmodified mask image snapshot
+    :return: A modified mask image snapshot where the previously identified cluster is
+             now unmasked, but any nearby clusters are masked
+    """
+    for x in range(mask_snapshot.shape[1]):
+        for y in range(mask_snapshot.shape[0]):
+            if mask_snapshot[y, x] == 2:  # only look at cluster pixels
+                # have a bit of wiggle room on which are classified as close enough
+                # to be cluster, I want to be a little careful. Use nearby pixels,
+                # but not far away ones
+                if distance(x, y, x_c, y_c) < 8:
+                    mask_snapshot[y, x] = 1
+                else:
+                    mask_snapshot[y, x] = 0
+    return mask_snapshot
+
+
+def oversampled_to_image(x, oversampling_factor):
+    """
+    Turn oversampled pixel coordinates into regular pixel coordinates.
+
+    There are two affects here: first the pixel size is different, and the centers
+    (where the pixel is defined to be) are not aligned.
+
+    :param x: Location in oversampled pixel coordinates
+    :return: Location in regular pixel coordinates
+    """
+    # first have to correct for the pixel size
+    x /= oversampling_factor
+    # then the oversampled pixel centers are offset from the regular pixels,
+    # so we need to correct for that too
+    if oversampling_factor == 2:
+        return x - 0.25
+    else:
+        raise ValueError("Think about this more")
+
+
+def image_to_oversampled(x, oversampling_factor):
+    """
+    inverse of oversampled_to_image()
+
+    :param x: Location in regular pixel coordinates
+    :param oversampling_factor: PSF oversampling factor used for the snapshot
+    :return: Location in the oversampled coordinates
+    """
+    if oversampling_factor == 2:
+        return (x + 0.25) * 2
+    else:
+        raise ValueError("Think about this more")
+
+
+def distance(x1, y1, x2, y2):
+    return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)

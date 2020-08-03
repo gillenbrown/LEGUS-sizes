@@ -18,18 +18,13 @@ from collections import defaultdict
 
 from astropy import table, stats
 from astropy.io import fits
-import betterplotlib as bpl
-from matplotlib import colors, gridspec
-from matplotlib import pyplot as plt
+
 import numpy as np
 from scipy import optimize, special
-import cmocean
 from tqdm import tqdm
 
 import utils
 import fit_utils
-
-bpl.set_style()
 
 # ======================================================================================
 #
@@ -246,47 +241,6 @@ def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
     return -log_likelihood
 
 
-def distance(x1, y1, x2, y2):
-    return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-
-
-def handle_mask(mask_snapshot, x_c, y_c):
-    """
-    Mask/unmask the cluster appropriately
-
-    :param mask_snapshot: The original unmodified mask image snapshot
-    :return: A modified mask image snapshot where the previously identified cluster is
-             now unmasked, but any nearby clusters are masked
-    """
-    for x in range(mask_snapshot.shape[1]):
-        for y in range(mask_snapshot.shape[0]):
-            if mask_snapshot[y, x] == 2:  # only look at cluster pixels
-                # have a bit of wiggle room on which are classified as close enough
-                # to be cluster, I want to be a little careful. Use nearby pixels,
-                # but not far away ones
-                if distance(x, y, x_c, y_c) < 7:
-                    mask_snapshot[y, x] = 1
-                else:
-                    mask_snapshot[y, x] = 0
-    return mask_snapshot
-
-
-def create_plot_name(id, bootstrapping_iteration=None):
-    name = f"{galaxy_name}_{id:04}_size_{snapshot_size}_"
-
-    if ryon_like:
-        name += "ryon_like_"
-    else:
-        name += "final_"
-
-    if bootstrapping_iteration is None:
-        name += "best_fit"
-    else:
-        name += f"bootstrapping_i{bootstrapping_iteration:04}"
-
-    return name + ".png"
-
-
 def create_boostrap_mask(original_mask, x_c, y_c):
     """
     Create a temporary mask used during a given bootstrapping iteration.
@@ -314,7 +268,7 @@ def create_boostrap_mask(original_mask, x_c, y_c):
     for x in range(original_mask.shape[1]):
         for y in range(original_mask.shape[0]):
             if original_mask[y, x] == 1:  # only keep pixels not already masked out
-                if distance(x, y, x_c, y_c) <= 9:
+                if fit_utils.distance(x, y, x_c, y_c) <= 9:
                     center_pixels.append((x, y))
                 else:
                     idx_box_x = x // box_size
@@ -342,7 +296,7 @@ def create_boostrap_mask(original_mask, x_c, y_c):
     return temp_mask
 
 
-def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
+def fit_model(data_snapshot, uncertainty_snapshot, mask):
     """
     Fits an EFF model to the data passed in, using bootstrapping.
 
@@ -401,15 +355,6 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
         bounds=bounds,
     )
 
-    # plot this initial result
-    plot_model_set(
-        data_snapshot,
-        uncertainty_snapshot,
-        mask,
-        initial_result.x,
-        create_plot_name(id_num),
-    )
-
     # Then we do bootstrapping
     n_variables = len(initial_result.x)
     param_history = [[] for _ in range(n_variables)]
@@ -457,205 +402,8 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, id_num):
                 # then set the new last value
                 param_std_last[param_idx] = this_std
 
-            # # plot this iteration
-            # plot_model_set(
-            #     data_snapshot,
-            #     uncertainty_snapshot,
-            #     temp_mask,
-            #     this_result.x,
-            #     create_plot_name(id_num, iteration),
-            # )
-
     # then we're done!
     return initial_result.x, np.array(param_history)
-
-
-def oversampled_to_image(x):
-    """
-    Turn oversampled pixel coordinates into regular pixel coordinates.
-
-    There are two affects here: first the pixel size is different, and the centers
-    (where the pixel is defined to be) are not aligned.
-
-    :param x: Location in oversampled pixel coordinates
-    :return: Location in regular pixel coordinates
-    """
-    # first have to correct for the pixel size
-    x /= oversampling_factor
-    # then the oversampled pixel centers are offset from the regular pixels,
-    # so we need to correct for that too
-    if oversampling_factor == 2:
-        return x - 0.25
-    else:
-        raise ValueError("Think about this more")
-
-
-def plot_model_set(cluster_snapshot, uncertainty_snapshot, mask, params, savename):
-    model_image, model_psf_image, model_psf_bin_image = fit_utils.create_model_image(
-        *params, psf, snapshot_size_oversampled, oversampling_factor
-    )
-
-    diff_image = cluster_snapshot - model_psf_bin_image
-    sigma_image = diff_image / uncertainty_snapshot
-    # have zeros in the sigma image where the mask has zeros, but leave it unmodified
-    # otherwise
-    sigma_image *= np.minimum(mask, 1.0)
-
-    # set up the normalizations and colormaps
-    # Use the data image to get the normalization that will be used in all plots. Base
-    # it on the data so that it is the same in all bootstrap iterations
-    vmax = 2 * np.max(cluster_snapshot)
-    linthresh = 3 * np.min(uncertainty_snapshot)
-    data_norm = colors.SymLogNorm(vmin=-vmax, vmax=vmax, linthresh=linthresh, base=10)
-    sigma_norm = colors.Normalize(vmin=-10, vmax=10)
-    u_norm = colors.Normalize(0, vmax=1.2 * np.max(uncertainty_snapshot))
-    m_norm = colors.Normalize(0, vmax=np.max(mask))
-
-    data_cmap = bpl.cm.lisbon
-    sigma_cmap = cmocean.cm.tarn  # "bwr_r" also works
-    u_cmap = cmocean.cm.deep_r
-    m_cmap = cmocean.cm.gray_r
-
-    # create the figure and add all the subplots
-    fig = plt.figure(figsize=[20, 15])
-    gs = gridspec.GridSpec(
-        nrows=6,
-        ncols=4,
-        width_ratios=[10, 10, 1, 15],  # have a dummy spacer column
-        wspace=0.1,
-        hspace=0.7,
-        left=0.01,
-        right=0.98,
-        bottom=0.06,
-        top=0.94,
-    )
-    ax_r = fig.add_subplot(gs[0:2, 0], projection="bpl")  # raw model
-    ax_f = fig.add_subplot(gs[0:2, 1], projection="bpl")  # full model (f for fit)
-    ax_d = fig.add_subplot(gs[2:4, 1], projection="bpl")  # data
-    ax_s = fig.add_subplot(gs[2:4, 0], projection="bpl")  # sigma difference
-    ax_u = fig.add_subplot(gs[4:, 1], projection="bpl")  # uncertainty
-    ax_m = fig.add_subplot(gs[4:, 0], projection="bpl")  # mask
-    ax_pd = fig.add_subplot(gs[0:3, 3], projection="bpl")  # radial profile differential
-    ax_pc = fig.add_subplot(gs[3:, 3], projection="bpl")  # radial profile cumulative
-
-    # show the images in their respective panels
-    common_data = {"norm": data_norm, "cmap": data_cmap}
-    r_im = ax_r.imshow(model_image, **common_data, origin="lower")
-    f_im = ax_f.imshow(model_psf_bin_image, **common_data, origin="lower")
-    d_im = ax_d.imshow(cluster_snapshot, **common_data, origin="lower")
-    s_im = ax_s.imshow(sigma_image, norm=sigma_norm, cmap=sigma_cmap, origin="lower")
-    u_im = ax_u.imshow(uncertainty_snapshot, norm=u_norm, cmap=u_cmap, origin="lower")
-    m_im = ax_m.imshow(mask, norm=m_norm, cmap=m_cmap, origin="lower")
-
-    fig.colorbar(r_im, ax=ax_r)
-    fig.colorbar(f_im, ax=ax_f)
-    fig.colorbar(d_im, ax=ax_d)
-    fig.colorbar(s_im, ax=ax_s)
-    fig.colorbar(u_im, ax=ax_u)
-    fig.colorbar(m_im, ax=ax_m)
-
-    ax_r.set_title("Raw Cluster Model")
-    ax_f.set_title("Model Convolved\nwith PSF and Binned")
-    ax_d.set_title("Data")
-    ax_s.set_title("(Data - Model)/Uncertainty")
-    ax_u.set_title("Uncertainty")
-    ax_m.set_title("Mask")
-
-    for ax in [ax_r, ax_f, ax_d, ax_s, ax_u, ax_m]:
-        ax.remove_labels("both")
-        ax.remove_spines(["all"])
-
-    # Then make the radial plots. first background subtract
-    cluster_snapshot -= params[7]
-    model_image -= params[7]
-    model_psf_image -= params[7]
-    model_psf_bin_image -= params[7]
-
-    c_d = bpl.color_cycle[0]
-    c_m = bpl.color_cycle[1]
-    # the center is in oversampled coords, fix that
-    x_c = oversampled_to_image(params[1])
-    y_c = oversampled_to_image(params[2])
-    # When fitting I treated the center of the pixels as the integer location, so do
-    # that here too
-    radii, model_ys, data_ys = [], [], []
-    for x in range(model_psf_bin_image.shape[1]):
-        for y in range(model_psf_bin_image.shape[0]):
-            if mask[y][x] > 0:
-                radii.append(distance(x, y, x_c, y_c))
-                model_ys.append(model_psf_bin_image[y, x])
-                data_ys.append(cluster_snapshot[y, x])
-
-    ax_pd.scatter(radii, data_ys, c=c_d, s=5, alpha=1.0, label="Data")
-    ax_pd.scatter(radii, model_ys, c=c_m, s=5, alpha=1.0, label="Model")
-    ax_pd.axhline(0, ls=":", c=bpl.almost_black)
-
-    # convert to numpy array to have nice indexing
-    radii = np.array(radii)
-    model_ys = np.array(model_ys)
-    data_ys = np.array(data_ys)
-
-    # then bin this data to make the binned plot
-    bin_size = 1.0
-    binned_radii, binned_model_ys, binned_data_ys = [], [], []
-    for r_min in np.arange(0, int(np.ceil(max(radii))), bin_size):
-        r_max = r_min + bin_size
-        idx_above = np.where(r_min < radii)
-        idx_below = np.where(r_max > radii)
-        idx_good = np.intersect1d(idx_above, idx_below)
-
-        if len(idx_good) > 0:
-            binned_radii.append(r_min + 0.5 * bin_size)
-            binned_model_ys.append(np.mean(model_ys[idx_good]))
-            binned_data_ys.append(np.mean(data_ys[idx_good]))
-
-    ax_pd.plot(binned_radii, binned_data_ys, c=c_d, lw=5, label="Binned Data")
-    ax_pd.plot(binned_radii, binned_model_ys, c=c_m, lw=5, label="Binned Model")
-
-    ax_pd.legend(loc="upper right")
-    ax_pd.add_labels("Radius (pixels)", "Background Subtracted Pixel Value [$e^{-}$]")
-    # set min and max values so it's easier to flip through bootstrapping plots
-    y_min = np.min(data_snapshot)
-    y_max = np.max(data_snapshot)
-    # give them a bit of padding
-    diff = y_max - y_min
-    y_min -= 0.1 * diff
-    y_max += 0.1 * diff
-    ax_pd.set_limits(0, np.ceil(max(radii)), y_min, y_max)
-
-    # then make the cumulative one. get the radii in order
-    idxs_sort = np.argsort(radii)
-    model_ys_cumulative = np.cumsum(model_ys[idxs_sort])
-    data_ys_cumulative = np.cumsum(data_ys[idxs_sort])
-
-    ax_pc.plot(
-        radii[idxs_sort], data_ys_cumulative, c=c_d, label="Data",
-    )
-    ax_pc.plot(
-        radii[idxs_sort], model_ys_cumulative, c=c_m, label="Model",
-    )
-    ax_pc.set_limits(0, np.ceil(max(radii)), 0, 1.2 * np.max(data_ys_cumulative))
-    ax_pc.legend(loc="upper left")
-    ax_pc.add_labels(
-        "Radius (pixels)", "Cumulative Background Subtracted Pixel Values [$e^{-}$]"
-    )
-
-    # the last one just has the list of parameters
-    ax_pc.easy_add_text(
-        f"log(peak brightness) = {params[0]:.2f}\n"
-        f"x center = {oversampled_to_image(params[1]):.2f}\n"
-        f"y center = {oversampled_to_image(params[2]):.2f}\n"
-        f"scale radius [pixels] = {params[3]:.2f}\n"
-        f"q (axis ratio) = {params[4]:.2f}\n"
-        f"position angle = {params[5]:.2f}\n"
-        f"$\eta$ (power law slope) = {params[6]:.2f}\n"
-        f"background = {params[7]:.2f}\n",
-        "lower right",
-        fontsize=15,
-    )
-
-    fig.savefig(final_catalog.parent / "cluster_fit_plots" / savename, dpi=100)
-    plt.close(fig)
 
 
 # ======================================================================================
@@ -682,21 +430,23 @@ for row in tqdm(clusters_table):
     error_snapshot = sigma_data[y_min:y_max, x_min:x_max]
     mask_snapshot = mask_data[y_min:y_max, x_min:x_max]
 
-    mask_snapshot = handle_mask(
+    mask_snapshot = fit_utils.handle_mask(
         mask_snapshot, row["x_pix_single"] - x_min, row["y_pix_single"] - y_min
     )
 
     # then do this fitting!
-    results, history = fit_model(
-        data_snapshot, error_snapshot, mask_snapshot, row["ID"]
-    )
+    results, history = fit_model(data_snapshot, error_snapshot, mask_snapshot)
 
     # Then add these values to the table
     row["num_boostrapping_iterations"] = len(history[0])
 
     row["central_surface_brightness_best"] = 10 ** results[0]
-    row["x_pix_single_fitted_best"] = x_min + oversampled_to_image(results[1])
-    row["y_pix_single_fitted_best"] = y_min + oversampled_to_image(results[2])
+    row["x_pix_single_fitted_best"] = x_min + fit_utils.oversampled_to_image(
+        results[1], oversampling_factor
+    )
+    row["y_pix_single_fitted_best"] = y_min + fit_utils.oversampled_to_image(
+        results[2], oversampling_factor
+    )
     row["scale_radius_pixels_best"] = results[3]
     row["axis_ratio_best"] = results[4]
     row["position_angle_best"] = results[5]
@@ -704,8 +454,14 @@ for row in tqdm(clusters_table):
     row["local_background_best"] = results[7]
 
     row["central_surface_brightness"] = [10 ** v for v in history[0]]
-    row["x_pix_single_fitted"] = [x_min + oversampled_to_image(v) for v in history[1]]
-    row["y_pix_single_fitted"] = [y_min + oversampled_to_image(v) for v in history[2]]
+    row["x_pix_single_fitted"] = [
+        x_min + fit_utils.oversampled_to_image(v, oversampling_factor)
+        for v in history[1]
+    ]
+    row["y_pix_single_fitted"] = [
+        y_min + fit_utils.oversampled_to_image(v, oversampling_factor)
+        for v in history[2]
+    ]
     row["scale_radius_pixels"] = history[3]
     row["axis_ratio"] = history[4]
     row["position_angle"] = history[5]
