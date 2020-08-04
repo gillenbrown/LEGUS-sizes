@@ -487,6 +487,7 @@ def plot_model_set(
 
     fig.savefig(size_dir / "cluster_fit_plots" / create_plot_name(id), dpi=100)
     plt.close(fig)
+    del fig
 
     return median_diff, this_rms
 
