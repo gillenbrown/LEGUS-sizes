@@ -182,6 +182,13 @@ def trapezoid(x, breakpoint):
     return np.max([np.min([x / breakpoint, 1.0]), 1e-20])
 
 
+def flat_prior(value, min_value, max_value):
+    if value < min_value or value > max_value:
+        return 0
+    else:
+        return 1
+
+
 def priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
     """
     Calculate the prior probability for a given model.
@@ -199,16 +206,15 @@ def priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
     :return: Total prior probability for the given model.
     """
     prior = 1
-    # x and y center have a Gaussian with width of 2 regular pixels, centered on
-    # the center of the snapshot
-    prior *= gaussian(x_c, snapshot_size_oversampled / 2.0, 3 * oversampling_factor)
-    prior *= gaussian(y_c, snapshot_size_oversampled / 2.0, 3 * oversampling_factor)
-    prior *= gamma(a, 1.05, 20)
-    prior *= gamma(eta - 0.6, 1.05, 20)
-    prior *= trapezoid(q, 0.3)
-    # have a minimum allowed value, to stop it from being zero if several of these
-    # parameters are bad.
-    return np.maximum(prior, 1e-50)
+    return prior
+    # # x and y center have a Gaussian with width of 2 regular pixels, centered on
+    # # the center of the snapshot
+    # prior *= gamma(a, 1.05, 20)
+    # prior *= gamma(eta - 0.6, 1.05, 20)
+    # prior *= trapezoid(q, 0.3)
+    # # have a minimum allowed value, to stop it from being zero if several of these
+    # # parameters are bad.
+    # return np.maximum(prior, 1e-50)
 
 
 def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
@@ -327,16 +333,17 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     # for the background or max, as these would depend on the individual cluster, so
     # I don't use them. Some are not allowed to be zero, so I don't set zero as the
     # limit, but have a value very close.
+    center_half_width = 3 * oversampling_factor
     bounds = [
         # log of peak brightness. The minimum allowed will be the sky value, and the
         # maximum will be 2 orders of magnitude above the first guess.
         (np.log10(np.min(uncertainty_snapshot)), params[0] + 2),
-        (0, snapshot_size_oversampled),  # X center
-        (0, snapshot_size_oversampled),  # Y center
+        (center - center_half_width, center + center_half_width,),  # X center
+        (center - center_half_width, center + center_half_width,),  # Y center
         (1e-10, None),  # scale radius in regular pixels.
         (1e-10, 1),  # axis ratio
-        (0, np.pi),  # position angle
-        (0.6, None),  # power law slope
+        (None, None),  # position angle
+        (0, None),  # power law slope
         # the minimum background allowed will be the smaller of the background level
         # determined above or the minimum pixel value in the shapshot.
         (min(background_min, np.min(data_snapshot)), np.max(data_snapshot)),
