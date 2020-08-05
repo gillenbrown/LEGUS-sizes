@@ -94,6 +94,8 @@ n_rows = len(clusters_table)
 new_cols = [
     "x_pix_single_fitted",
     "y_pix_single_fitted",
+    "x_pix_snapshot_oversampled",
+    "y_pix_snapshot_oversampled",
     "central_surface_brightness",
     "scale_radius_pixels",
     "axis_ratio",
@@ -445,6 +447,8 @@ for row in tqdm(clusters_table):
     row["num_boostrapping_iterations"] = len(history[0])
 
     row["central_surface_brightness_best"] = 10 ** results[0]
+    row["x_pix_snapshot_oversampled_best"] = results[1]
+    row["y_pix_snapshot_oversampled_best"] = results[2]
     row["x_pix_single_fitted_best"] = x_min + fit_utils.oversampled_to_image(
         results[1], oversampling_factor
     )
@@ -458,6 +462,8 @@ for row in tqdm(clusters_table):
     row["local_background_best"] = results[7]
 
     row["central_surface_brightness"] = [10 ** v for v in history[0]]
+    row["x_pix_snapshot_oversampled"] = history[1]
+    row["y_pix_snapshot_oversampled"] = history[2]
     row["x_pix_single_fitted"] = [
         x_min + fit_utils.oversampled_to_image(v, oversampling_factor)
         for v in history[1]
