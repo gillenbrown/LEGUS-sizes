@@ -50,6 +50,7 @@ parameters_dist_script = ./analysis/parameter_distribution.py
 all_fields_script = ./analysis/all_fields_hist.py
 mass_size_script = ./analysis/mass_size.py
 example_plot_script = ./analysis/example_fit.py
+fit_quality_script = ./analysis/fit_quality.py
 experiment_script = ./testing/experiments.py
 
 # ------------------------------------------------------------------------------
@@ -125,9 +126,10 @@ param_dist_plot_no_mask = $(local_plots_dir)parameter_distribution_ryon_galaxies
 all_fields_hist_plot = $(local_plots_dir)all_fields_$(fit_region_size).png
 mass_size_plot = $(local_plots_dir)mass_size_relation_$(fit_region_size).png
 example_fit_plot = $(local_plots_dir)example_fit.png
+fit_quality_plot = $(local_plots_dir)fit_quality.png
 plots = $(psf_demo_image) $(psf_comp_plots) $(comparison_plot)\
         $(radii_def_comp_plot) $(param_dist_plot) $(param_dist_plot_no_mask) \
-        $(all_fields_hist_plot) $(mass_size_plot) $(example_fit_plot)
+        $(all_fields_hist_plot) $(mass_size_plot) $(example_fit_plot) $(fit_quality_plot)
 experiments_sentinel = ./testing/experiments_done.txt
 
 # ------------------------------------------------------------------------------
@@ -255,6 +257,9 @@ $(mass_size_plot): $(final_cats) $(mass_size_script)
 
 $(example_fit_plot): $(final_cats) $(example_plot_script)
 	python $(example_plot_script) $@
+
+$(fit_quality_plot): $(final_cats) $(fit_quality_script)
+	python $(fit_quality_script) $@ $(final_cats)
 
 $(experiments_sentinel): $(final_cats) $(experiment_script)
 	python $(experiment_script) $@ $(final_cats)
