@@ -323,7 +323,9 @@ def estimate_background(data, x_c, y_c, min_radius):
             if fit_utils.distance(x, y, x_c, y_c) > min_radius:
                 good_bg.append(data[y, x])
 
-    return np.median(good_bg), np.std(good_bg)
+    low = np.percentile(good_bg, 15.85)
+    hi = np.percentile(good_bg, 84.15)
+    return np.median(good_bg), 0.5 * (hi - low)
 
 
 def plot_model_set(
@@ -501,6 +503,7 @@ def plot_model_set(
 fits_catalog["profile_mad"] = -99.9
 fits_catalog["estimated_local_background"] = -99.9
 fits_catalog["estimated_local_background_scatter"] = -99.9
+fits_catalog["estimated_local_background_diff_sigma"] = -99.9
 fits_catalog["fit_rms"] = -99.9
 # This is sort of copied from fit.py, as the process of getting the snapshot is
 # basically the same, only here we center on the pixel where the cluster was fitted to
@@ -562,6 +565,9 @@ for row in tqdm(fits_catalog):
     row["profile_mad"] = profile_mad
     row["estimated_local_background"] = estimated_bg
     row["estimated_local_background_scatter"] = bg_scatter
+    # then calculate the difference in background
+    diff = row["local_background_best"] - estimated_bg
+    row["estimated_local_background_diff_sigma"] = diff / bg_scatter
     row["fit_rms"] = this_rms
 
 
