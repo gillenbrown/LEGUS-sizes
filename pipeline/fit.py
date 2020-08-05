@@ -457,7 +457,7 @@ for row in tqdm(clusters_table):
     )
     row["scale_radius_pixels_best"] = results[3]
     row["axis_ratio_best"] = results[4]
-    row["position_angle_best"] = results[5]
+    row["position_angle_best"] = results[5] % np.pi
     row["power_law_slope_best"] = results[6]
     row["local_background_best"] = results[7]
 
@@ -474,7 +474,7 @@ for row in tqdm(clusters_table):
     ]
     row["scale_radius_pixels"] = history[3]
     row["axis_ratio"] = history[4]
-    row["position_angle"] = history[5]
+    row["position_angle"] = [v  % np.pi for v in history[5]]
     row["power_law_slope"] = history[6]
     row["local_background"] = history[7]
 
