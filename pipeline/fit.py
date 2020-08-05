@@ -335,18 +335,15 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     # limit, but have a value very close.
     center_half_width = 3 * oversampling_factor
     bounds = [
-        # log of peak brightness. The minimum allowed will be the sky value, and the
-        # maximum will be 2 orders of magnitude above the first guess.
-        (np.log10(np.min(uncertainty_snapshot)), params[0] + 2),
+        # log of peak brightness.
+        (None, None),
         (center - center_half_width, center + center_half_width,),  # X center
         (center - center_half_width, center + center_half_width,),  # Y center
         (1e-10, None),  # scale radius in regular pixels.
         (1e-10, 1),  # axis ratio
         (None, None),  # position angle
         (0, None),  # power law slope
-        # the minimum background allowed will be the smaller of the background level
-        # determined above or the minimum pixel value in the shapshot.
-        (min(background_min, np.min(data_snapshot)), np.max(data_snapshot)),
+        (None, None),
     ]
     # modify this in the case of doing things like Ryon, in which case we have a lower
     # limit on the power law slope of 1 (or slightly higher, to avoid overflow errors
