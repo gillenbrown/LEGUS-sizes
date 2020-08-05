@@ -338,7 +338,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     center_half_width = 3 * oversampling_factor
     bounds = [
         # log of peak brightness.
-        (None, None),
+        (None, 100),
         (center - center_half_width, center + center_half_width,),  # X center
         (center - center_half_width, center + center_half_width,),  # Y center
         (1e-10, None),  # scale radius in regular pixels.
