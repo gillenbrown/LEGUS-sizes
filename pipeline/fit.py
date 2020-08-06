@@ -326,7 +326,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         center,  # Y center in the oversampled snapshot
         0.5,  # scale radius, in regular pixels. Start small to avoid fitting other things
         1.0,  # axis ratio
-        np.pi / 2.0,  # position angle
+        0.0,  # position angle
         5.0,  # power law slope. Start high to give a sharp cutoff and avoid other stuff
         np.min(data_snapshot),  # background
     )
@@ -339,8 +339,8 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     bounds = [
         # log of peak brightness.
         (None, 100),
-        (center - center_half_width, center + center_half_width,),  # X center
-        (center - center_half_width, center + center_half_width,),  # Y center
+        (center - center_half_width, center + center_half_width),  # X center
+        (center - center_half_width, center + center_half_width),  # Y center
         (1e-10, None),  # scale radius in regular pixels.
         (1e-10, 1),  # axis ratio
         (None, None),  # position angle
@@ -418,19 +418,22 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
 #
 # ======================================================================================
 for row in tqdm(clusters_table):
-    # create the snapshot. We use ceiling to get the integer pixel values as python
-    # indexing does not include the final value. So when we calcualte the offset, it
-    # naturally gets biased low. Moving the center up fixes that in the easiest way.
-    x_cen = int(np.ceil(row["x_pix_single"]))
-    y_cen = int(np.ceil(row["y_pix_single"]))
+    # create the snapshot. We could use ceiling to get the integer pixel values as
+    # python indexing does not include the final value. So when we calcualte the offset,
+    # it naturally gets biased low. Moving the center up fixes that in the easiest way.
+    # However, the indexing is off by one relative to LEGUS, so taking the floor pushes
+    # it back closer
+    x_cen = int(np.floor(row["x_pix_single"]))
+    y_cen = int(np.floor(row["y_pix_single"]))
 
     # Get the snapshot, based on the size desired.
-    # Since we took the ceil of the center, go more in the negative direction (i.e.
-    # use ceil to get the minimum values). This only matters if the snapshot size is odd
-    x_min = x_cen - int(np.ceil(snapshot_size / 2.0))
-    x_max = x_cen + int(np.floor(snapshot_size / 2.0))
-    y_min = y_cen - int(np.ceil(snapshot_size / 2.0))
-    y_max = y_cen + int(np.floor(snapshot_size / 2.0))
+    # Since we took the floor of the center, go more in the positive direction (i.e.
+    # use floor to get the minimum values). This only matters if the snapshot size is
+    # odd
+    x_min = x_cen - int(np.floor(snapshot_size / 2.0))
+    x_max = x_cen + int(np.ceil(snapshot_size / 2.0))
+    y_min = y_cen - int(np.floor(snapshot_size / 2.0))
+    y_max = y_cen + int(np.ceil(snapshot_size / 2.0))
 
     data_snapshot = image_data[y_min:y_max, x_min:x_max]
     error_snapshot = sigma_data[y_min:y_max, x_min:x_max]
