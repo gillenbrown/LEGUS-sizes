@@ -237,7 +237,12 @@ def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
     # the exponential gives zeros for very large chi squared values, have a bit of a
     # normalization to correct for that.
     log_data_likelihood = -chi_sq
-    log_prior = np.log(priors(*params))
+    prior = priors(*params)
+    if prior > 0:
+        log_prior = np.log()
+    else:
+        # infinity messes up the scipy fitting routine, a large finite value is better
+        log_prior = -1e100
     log_likelihood = log_data_likelihood + log_prior
     assert not np.isnan(log_prior)
     assert not np.isnan(log_data_likelihood)
