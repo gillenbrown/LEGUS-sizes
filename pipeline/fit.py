@@ -325,7 +325,7 @@ def postprocess_params(log_mu_0, x_c, y_c, a, q, theta, eta, background):
         theta_final = (theta - (np.pi / 4.0)) % np.pi
         return log_mu_0, x_c, y_c, a_final, q_final, theta_final, eta, background
     else:
-        return log_mu_0, x_c, y_c, a, q, theta, eta, background
+        return log_mu_0, x_c, y_c, a, q, theta % np.pi, eta, background
 
 
 def fit_model(data_snapshot, uncertainty_snapshot, mask):
