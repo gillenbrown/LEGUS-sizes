@@ -304,6 +304,25 @@ def create_boostrap_mask(original_mask, x_c, y_c):
     return temp_mask
 
 
+def postprocess_params(log_mu_0, x_c, y_c, a, q, theta, eta, background):
+    """
+    Postprocess the parameters, namely the axis ratio and position angle.
+
+    This is needed since we let the fit have axis ratios larger than 1, and position
+    angles of any value. Axis ratios larger than 1 indicate that we need to flip the
+    major and minor axes. This requires rotating the position angle 90 degrees, and
+    shifting the value assigned to the major axis to correct for the improper axis
+    ratio.
+    """
+    if q > 1.0:
+        q_final = 1.0 / q
+        a_final = a * q
+        theta_final = (theta - (np.pi / 4.0)) % np.pi
+        return log_mu_0, x_c, y_c, a_final, q_final, theta_final, eta, background
+    else:
+        return log_mu_0, x_c, y_c, a, q, theta, eta, background
+
+
 def fit_model(data_snapshot, uncertainty_snapshot, mask):
     """
     Fits an EFF model to the data passed in, using bootstrapping.
@@ -334,15 +353,18 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     # some of the bounds are not used because we put priors on them. We don't use priors
     # for the background or max, as these would depend on the individual cluster, so
     # I don't use them. Some are not allowed to be zero, so I don't set zero as the
-    # limit, but have a value very close.
+    # limit, but have a value very close. We allow axis ratios greater than 1 to make
+    # the fitting routine have more flexibility. For example, if the position angle is
+    # correct but it's aligned with what should be the minor axis instead of the major,
+    # the axis ratio can go above one to fix that issue. We then have to process things
+    # afterwards to flip it back, but that's not an issue.
     center_half_width = 3 * oversampling_factor
     bounds = [
-        # log of peak brightness.
-        (None, 100),
+        (None, 100),# log of peak brightness.
         (center - center_half_width, center + center_half_width),  # X center
         (center - center_half_width, center + center_half_width),  # Y center
         (1e-10, None),  # scale radius in regular pixels.
-        (1e-10, 1),  # axis ratio
+        (1e-10, None),  # axis ratio
         (None, None),  # position angle
         (0, None),  # power law slope
         (None, None),
@@ -350,22 +372,21 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     # modify this in the case of doing things like Ryon, in which case we have a lower
     # limit on the power law slope of 1 (or slightly higher, to avoid overflow errors
     if ryon_like:
-        bounds[6] = (1.01, None)
+        bounds[6] = (1.05, None)
 
     # first get the results when all good pixels are used, to be used as a starting
     # point when bootstrapping is done, to save time.
-    initial_result = optimize.minimize(
+    initial_result_struct = optimize.minimize(
         negative_log_likelihood,
         args=(data_snapshot, uncertainty_snapshot, mask),
         x0=params,
         bounds=bounds,
     )
-
-    # take the mod of the position angle to get it in the range 0-2pi
-    initial_result.x[5] = initial_result.x[5] % (2 * np.pi)
+    # postprocess these parameters
+    initial_result = postprocess_params(*initial_result_struct.x)
 
     # Then we do bootstrapping
-    n_variables = len(initial_result.x)
+    n_variables = len(initial_result)
     param_history = [[] for _ in range(n_variables)]
     param_std_last = [np.inf for _ in range(n_variables)]
 
@@ -379,22 +400,19 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         iteration += 1
 
         # make a new mask
-        temp_mask = create_boostrap_mask(mask, initial_result.x[1], initial_result.x[2])
+        temp_mask = create_boostrap_mask(mask, initial_result[1], initial_result[2])
 
         # fit to this selection of pixels
-        this_result = optimize.minimize(
+        this_result_struct = optimize.minimize(
             calculate_chi_squared,
             args=(data_snapshot, uncertainty_snapshot, temp_mask),
             x0=params,  # don't use the initial result, to avoid local minima
             bounds=bounds,
         )
-
-        # store the results
+        # store the results after processing them
+        this_result = postprocess_params(*this_result_struct.x)
         for param_idx in range(n_variables):
-            param_value = this_result.x[param_idx]
-            if param_idx == 5:  # position angle
-                param_value = param_value % (2 * np.pi)
-            param_history[param_idx].append(param_value)
+            param_history[param_idx].append(this_result[param_idx])
 
         # then check if we're converged
         if iteration % check_spacing == 0:
@@ -415,7 +433,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
                 param_std_last[param_idx] = this_std
 
     # then we're done!
-    return initial_result.x, np.array(param_history)
+    return initial_result, np.array(param_history)
 
 
 # ======================================================================================
