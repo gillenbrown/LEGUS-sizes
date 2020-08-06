@@ -239,7 +239,7 @@ def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
     log_data_likelihood = -chi_sq
     prior = priors(*params)
     if prior > 0:
-        log_prior = np.log()
+        log_prior = np.log(prior)
     else:
         # infinity messes up the scipy fitting routine, a large finite value is better
         log_prior = -1e100
@@ -365,7 +365,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     # afterwards to flip it back, but that's not an issue.
     center_half_width = 3 * oversampling_factor
     bounds = [
-        (None, 100),# log of peak brightness.
+        (None, 100),  # log of peak brightness.
         (center - center_half_width, center + center_half_width),  # X center
         (center - center_half_width, center + center_half_width),  # Y center
         (1e-10, None),  # scale radius in regular pixels.
