@@ -361,6 +361,9 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         bounds=bounds,
     )
 
+    # take the mod of the position angle to get it in the range 0-2pi
+    initial_result.x[5] = initial_result.x[5] % (2 * np.pi)
+
     # Then we do bootstrapping
     n_variables = len(initial_result.x)
     param_history = [[] for _ in range(n_variables)]
@@ -388,7 +391,10 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
 
         # store the results
         for param_idx in range(n_variables):
-            param_history[param_idx].append(this_result.x[param_idx])
+            param_value = this_result.x[param_idx]
+            if param_idx == 5:  # position angle
+                param_value = param_value % (2 * np.pi)
+            param_history[param_idx].append(param_value)
 
         # then check if we're converged
         if iteration % check_spacing == 0:
@@ -460,7 +466,7 @@ for row in tqdm(clusters_table):
     )
     row["scale_radius_pixels_best"] = results[3]
     row["axis_ratio_best"] = results[4]
-    row["position_angle_best"] = results[5] % np.pi
+    row["position_angle_best"] = results[5]
     row["power_law_slope_best"] = results[6]
     row["local_background_best"] = results[7]
 
@@ -477,7 +483,7 @@ for row in tqdm(clusters_table):
     ]
     row["scale_radius_pixels"] = history[3]
     row["axis_ratio"] = history[4]
-    row["position_angle"] = [v  % np.pi for v in history[5]]
+    row["position_angle"] = history[5]
     row["power_law_slope"] = history[6]
     row["local_background"] = history[7]
 
