@@ -51,7 +51,7 @@ axs[4].hist(big_catalog["axis_ratio_best"], bin_size=0.05)
 axs[4].add_labels("Axis ratio", "Number of Clusters")
 axs[4].set_limits(0, 1.05)
 
-axs[5].hist(big_catalog["position_angle_best"] % np.pi, bin_size=0.1)
+axs[5].hist(big_catalog["position_angle_best"] % np.pi, bins=np.linspace(0, np.pi, 21))
 axs[5].add_labels("Position Angle", "Number of Clusters")
 axs[5].set_limits(0, np.pi)
 axs[5].axvline(np.pi / 2, ls=":")
