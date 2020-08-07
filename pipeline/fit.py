@@ -319,6 +319,9 @@ def postprocess_params(log_mu_0, x_c, y_c, a, q, theta, eta, background):
     shifting the value assigned to the major axis to correct for the improper axis
     ratio.
     """
+    # q and a can be negative, fix that before any further processing
+    a = abs(a)
+    q = abs(q)
     if q > 1.0:
         q_final = 1.0 / q
         a_final = a * q
@@ -362,14 +365,17 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     # the fitting routine have more flexibility. For example, if the position angle is
     # correct but it's aligned with what should be the minor axis instead of the major,
     # the axis ratio can go above one to fix that issue. We then have to process things
-    # afterwards to flip it back, but that's not an issue.
+    # afterwards to flip it back, but that's not an issue. We do similar things with
+    # allowing the axis ratio and scale radius to be negative. They get squared in the
+    # EFF profile anyway, so their sign doesn't matter. They are singular at a=0 and
+    # q=0, but hopefully floating point values will stop that from being an issue
     center_half_width = 3 * oversampling_factor
     bounds = [
         (None, 100),  # log of peak brightness.
         (center - center_half_width, center + center_half_width),  # X center
         (center - center_half_width, center + center_half_width),  # Y center
-        (1e-10, None),  # scale radius in regular pixels.
-        (1e-10, None),  # axis ratio
+        (None, None),  # scale radius in regular pixels.
+        (None, None),  # axis ratio
         (None, None),  # position angle
         (0, None),  # power law slope
         (None, None),
