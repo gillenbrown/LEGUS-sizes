@@ -374,10 +374,6 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         (0, None),  # power law slope
         (None, None),
     ]
-    # modify this in the case of doing things like Ryon, in which case we have a lower
-    # limit on the power law slope of 1 (or slightly higher, to avoid overflow errors
-    if ryon_like:
-        bounds[6] = (1.05, None)
 
     # first get the results when all good pixels are used, to be used as a starting
     # point when bootstrapping is done, to save time.
