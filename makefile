@@ -262,4 +262,4 @@ $(fit_quality_plot): $(final_cats) $(fit_quality_script)
 	python $(fit_quality_script) $@ $(final_cats)
 
 $(experiments_sentinel): $(final_cats) $(experiment_script)
-	python $(experiment_script) $@$(final_cats)
+	python $(experiment_script) $@ $(final_cats)
