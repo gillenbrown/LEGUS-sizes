@@ -19,9 +19,14 @@ bpl.set_style()
 legus_home_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(legus_home_dir / "pipeline"))
 import utils
+import fit_utils
 
 # get the location to save this plot
 plot_name = Path(sys.argv[1]).resolve()
+oversampling_factor = int(sys.argv[2])
+psf_size = int(sys.argv[3])
+snapshot_size = int(sys.argv[4])
+snapshot_size_oversampled = snapshot_size * oversampling_factor
 
 # ======================================================================================
 #
@@ -37,12 +42,15 @@ image_data, _, _ = utils.get_drc_image(data_dir)
 
 error_data = fits.open(data_dir / "size" / "sigma_electrons.fits")["PRIMARY"].data
 
-psf_name = f"psf_my_stars_15_pixels_2x_oversampled.fits"
+psf_name = f"psf_my_stars_{psf_size}_pixels_{oversampling_factor}x_oversampled.fits"
 psf = fits.open(data_dir / "size" / psf_name)["PRIMARY"].data
 psf_cen = int((psf.shape[1] - 1.0) / 2.0)
 
 
-cat_name = "final_catalog_30_pixels_psf_my_stars_15_pixels_2x_oversampled.txt"
+cat_name = (
+    f"final_catalog_{snapshot_size}_pixels_psf_"
+    f"my_stars_{psf_size}_pixels_{oversampling_factor}x_oversampled.txt"
+)
 cat_path = data_dir / "size" / cat_name
 cat = table.Table.read(str(cat_path), format="ascii.ecsv")
 # then find the correct row
@@ -75,87 +83,7 @@ y_cen_snap_oversampled = (y_cen_snap + 0.25) * 2
 # Creating the EFF profile
 #
 # ======================================================================================
-def eff_profile_2d(x, y, log_mu_0, x_c, y_c, a, q, theta, eta):
-    """
-    2-dimensional EFF profile, in pixel units
-
-    :param x: X pixel values
-    :param y: Y pixel values
-    :param log_mu_0: Log of the central surface brightness
-    :param x_c: Center X pixel coordinate
-    :param y_c: Center Y pixel coordinate
-    :param a: Scale radius in the major axis direction
-    :param q: Axis ratio. The small axis will have scale length qa
-    :param theta: Position angle
-    :param eta: Power law slope
-    :return: Values of the function at the x,y coordinates passed in
-    """
-    x_prime = (x - x_c) * np.cos(theta) + (y - y_c) * np.sin(theta)
-    y_prime = -(x - x_c) * np.sin(theta) + (y - y_c) * np.cos(theta)
-
-    x_term = (x_prime / a) ** 2
-    y_term = (y_prime / (q * a)) ** 2
-    return (10 ** log_mu_0) * (1 + x_term + y_term) ** (-eta)
-
-
-def convolve_with_psf(in_array):
-    """ Convolve an array with the PSF """
-    # Scipy FFT based convolution was tested to be the fastest. It does have edge
-    # affects, but those are minimized by using our padding. We do have to modify the
-    # psf to have
-    return signal.fftconvolve(in_array, psf, mode="same")
-
-
-def bin_data_2d(data):
-    """ Bin a 2d array into square bins determined by the oversampling factor """
-    # Astropy has a convenient function to do this
-    bin_factors = [2, 2]
-    return nddata.block_reduce(data, bin_factors, np.mean)
-
-
-def create_model_image(log_mu_0, x_c, y_c, a, q, theta, eta, background):
-    """ Create a model image using the EFF parameters. """
-    # a is passed in in regular coordinates, shift it to the oversampled ones
-    a *= 2
-
-    # first generate the x and y pixel coordinates of the model image. We will have
-    # an array that's the same size as the cluster snapshot in oversampled pixels,
-    # plus padding to account for zero-padded boundaries in the FFT convolution
-    padding = 5 * 2  # 5 regular pixels on each side
-    box_length = 60 + 2 * padding
-
-    # correct the center to be at the center of this new array
-    x_c_internal = x_c + padding
-    y_c_internal = y_c + padding
-
-    x_values = np.zeros([box_length, box_length])
-    y_values = np.zeros([box_length, box_length])
-
-    for x in range(box_length):
-        x_values[:, x] = x
-    for y in range(box_length):
-        y_values[y, :] = y
-
-    model_image = eff_profile_2d(
-        x_values, y_values, log_mu_0, x_c_internal, y_c_internal, a, q, theta, eta
-    )
-    # convolve without the background first, to do an ever better job avoiding edge
-    # effects, as the model should be zero near the boundaries anyway, matching the zero
-    # padding scipy does.
-    model_psf_image = convolve_with_psf(model_image)
-    # model_image += background
-    model_psf_image += background
-
-    # crop out the padding before binning the data
-    model_image = model_image[padding:-padding, padding:-padding]
-    model_psf_image = model_psf_image[padding:-padding, padding:-padding]
-    model_psf_bin_image = bin_data_2d(model_psf_image)
-
-    # return all of these, since we'll want to use them when plotting
-    return model_image, model_psf_image, model_psf_bin_image
-
-
-models = create_model_image(
+models = fit_utils.create_model_image(
     np.log10(row["central_surface_brightness_best"]),
     x_cen_snap_oversampled,
     y_cen_snap_oversampled,
@@ -164,6 +92,9 @@ models = create_model_image(
     row["position_angle_best"],
     row["power_law_slope_best"],
     row["local_background_best"],
+    psf,
+    snapshot_size_oversampled,
+    oversampling_factor,
 )
 model_image, model_psf_image, model_psf_bin_image = models
 
@@ -220,7 +151,7 @@ def binned_radial_profile(snapshot, oversampling_factor, x_c, y_c, bin_size):
 
 
 def profile_at_radius(x):
-    return eff_profile_2d(
+    return fit_utils.eff_profile_2d(
         x=x,
         y=0,
         x_c=0,
