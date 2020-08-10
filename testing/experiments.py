@@ -266,7 +266,7 @@ for idx_eta in range(n_eta):
 
         params = (log_mu_0, x_c, y_c, a, q, theta, eta, background)
 
-        neg_log_likelihood = negative_log_likelihood(
+        neg_log_likelihood = -1 * negative_log_likelihood(
             params, data_snapshot, error_snapshot, mask_snapshot
         )
         output[idx_a, idx_eta] = neg_log_likelihood
@@ -299,13 +299,13 @@ def format_a(a):
 
 
 fig, ax = bpl.subplots()
-vmin = np.min(output)
+vmax = np.max(output)
 width = 5
-norm = colors.Normalize(vmin=vmin, vmax=width + vmin, clip=True)
-cmap = cmocean.cm.haline_r
+norm = colors.Normalize(vmin=vmax - width, vmax=vmax, clip=True)
+cmap = cmocean.cm.haline
 i = ax.imshow(output, origin="lower", norm=norm, cmap=cmap)
 cbar = fig.colorbar(i, ax=ax)
-cbar.set_label("-log$_{10}$(Likelihood) = $\chi^2 -$ log$_{10}(P(\\theta))$")
+cbar.set_label("Log Likelihood = $-\chi^2 +$ log$_{10}(P(\\theta))$")
 # mark the best fit point
 ax.scatter([eta_idx_best], [a_idx_best], marker="x", c=bpl.almost_black)
 
