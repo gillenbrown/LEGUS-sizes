@@ -307,7 +307,7 @@ def mad_of_cumulative(radii, model_cumulative, data_cumulative, max_radius):
     return np.median(diffs[mask_good])
 
 
-def estimate_background(data, x_c, y_c, min_radius):
+def estimate_background(data, mask, x_c, y_c, min_radius):
     """
     Estimate the true background value.
 
@@ -322,7 +322,7 @@ def estimate_background(data, x_c, y_c, min_radius):
     good_bg = []
     for x in range(data.shape[1]):
         for y in range(data.shape[0]):
-            if fit_utils.distance(x, y, x_c, y_c) > min_radius:
+            if fit_utils.distance(x, y, x_c, y_c) > min_radius and mask[y, x] > 0:
                 good_bg.append(data[y, x])
 
     low = np.percentile(good_bg, 15.85)
@@ -549,7 +549,7 @@ for row in tqdm(fits_catalog):
     # Determine the radius within to calculate the fitting quality estimates
     cut_radius = np.minimum(snapshot_size / 2.0, 3 * r_eff)
     estimated_bg, bg_scatter = estimate_background(
-        data_snapshot * mask_snapshot, snapshot_x_cen, snapshot_y_cen, cut_radius
+        data_snapshot, mask_snapshot, snapshot_x_cen, snapshot_y_cen, cut_radius
     )
 
     profile_mad, this_rms = plot_model_set(
