@@ -28,9 +28,16 @@ from PySide2.QtCore import Qt
 #
 # ======================================================================================
 def criteria(catalog):
-    mask_1 = catalog["axis_ratio_best"] > 0
-    mask_2 = catalog["axis_ratio_best"] == 1.0
-    mask = np.logical_and(mask_1, mask_2)
+    mask_1 = catalog["power_law_slope_best"] < 1
+    mask_2 = catalog["scale_radius_pixels_best"] < 1e-3
+    mask_3 = (
+        abs(
+            catalog["estimated_local_background_diff_sigma"]
+            * catalog["estimated_local_background_scatter"]
+        )
+        < 5
+    )
+    mask = np.logical_and(mask_1, np.logical_and(mask_2, mask_3))
     catalog["check_this"] = mask
 
 
