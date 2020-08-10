@@ -50,7 +50,7 @@ for item in sorted(data_dir.iterdir()):
         these_plots = []
         for plot in fits_dir.iterdir():
             name = plot.name
-            if "30" in name and "final_best_fit.png" in name:
+            if name.endswith("size_30.png"):
                 this_id = int(name.split("_")[1])
                 if this_id in ids_to_check:
                     these_plots.append(plot)
