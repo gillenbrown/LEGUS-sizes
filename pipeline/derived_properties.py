@@ -325,9 +325,12 @@ def estimate_background(data, mask, x_c, y_c, min_radius):
             if fit_utils.distance(x, y, x_c, y_c) > min_radius and mask[y, x] > 0:
                 good_bg.append(data[y, x])
 
-    low = np.percentile(good_bg, 15.85)
-    hi = np.percentile(good_bg, 84.15)
-    return np.median(good_bg), 0.5 * (hi - low)
+    if len(good_bg) > 0:
+        low = np.percentile(good_bg, 15.85)
+        hi = np.percentile(good_bg, 84.15)
+        return np.median(good_bg), 0.5 * (hi - low)
+    else:
+        return np.nan, np.nan
 
 
 def plot_model_set(
