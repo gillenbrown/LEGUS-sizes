@@ -50,8 +50,8 @@ big_catalog = table.vstack(catalogs, join_type="inner")
 # galaxy = "ngc628-c"
 # cluster_id = 1630
 
-galaxy = "ngc628-c"
-cluster_id = 778
+# galaxy = "ngc628-c"
+# cluster_id = 778
 
 # galaxy = "ic559"
 # cluster_id = 1
@@ -64,6 +64,9 @@ cluster_id = 778
 
 # galaxy = "ngc1313-e"
 # cluster_id = 118
+
+galaxy = "ngc1433"
+cluster_id = 83
 
 for row in big_catalog:
     if row["galaxy"] == galaxy and row["ID"] == cluster_id:
@@ -267,6 +270,83 @@ def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
 # ======================================================================================
 # Some plot functions
 # ======================================================================================
+def logistic(eta):
+    """
+    This is the fit to the slopes as a function of eta
+
+    These slopes are used in the ellipticity correction.
+    :param eta: Eta (power law slope)
+    :return: The slope to go in ellipticity_correction
+    """
+    ymax = 0.57902801
+    scale = 0.2664717
+    eta_0 = 0.92404378
+    offset = 0.07298404
+    return ymax / (1 + np.exp((eta_0 - eta) / scale)) - offset
+
+
+def ellipticy_correction(q, eta):
+    """
+    Correction for ellipticity. This given R_eff(q) / R_eff(q=1)
+
+    This is a generalized form of the simplified form used in Ryon's analysis. It's
+    simply a line of arbitrary slope passing through (q=1, correction=1) as circular
+    clusters need no correction. This lets us write the correction in point slope form
+    as:
+    y - 1 = m (q - 1)
+    y = 1 + m (q - 1)
+
+    Note that when m = 0.5, this simplifies to y = (1 + q) * 0.5, as used in Ryon.
+    The slope here (m) is determined by fitting it as a function of eta.
+    """
+    return 1 + logistic(eta) * (q - 1)
+
+
+def eff_profile_r_eff_with_rmax(a, eta, q, rmax):
+    """
+    Calculate the effective radius of an EFF profile, assuming a maximum radius.
+
+    :param eta: Power law slope of the EFF profile
+    :param a: Scale radius of the EFF profile, in any units.
+    :param q: Axis ratio of the profile
+    :param rmax: Maximum radius for the profile, in the same units as a.
+    :return: Effective radius, in the same units as a and rmax
+    """
+    # This is such an ugly formula, put it in a few steps
+    term_1 = 1 + (1 + (rmax / a) ** 2) ** (1 - eta)
+    term_2 = (0.5 * (term_1)) ** (1 / (1 - eta)) - 1
+    return ellipticy_correction(q, eta) * a * np.sqrt(term_2)
+
+
+def eta_given_reff_rmax_a(r_eff, r_max, a, q):
+    def to_minimize(eta, r_eff, r_max, a, q):
+        return abs(r_eff - eff_profile_r_eff_with_rmax(a, eta, q, r_max))
+
+    return optimize.minimize(
+        to_minimize, x0=(1e-15,), args=(r_eff, r_max, a, q), bounds=[(0, None),]
+    ).x
+
+
+# generate a list of lines of constant effective radius
+def generate_r_eff_lines(r_eff_values, a_values, q):
+    return_dict = {r: [[], []] for r in r_eff_values}
+    for r in r_eff_values:
+        for a in a_values:
+            eta = eta_given_reff_rmax_a(r, 15, a, q)
+
+            r_eff_calculated = eff_profile_r_eff_with_rmax(a, eta, q, 15)
+            if np.isclose(r_eff_calculated, r):
+                return_dict[r][0].append(eta)
+                return_dict[r][1].append(np.log10(a))
+
+    return return_dict
+
+
+# generate the lines of constant effective radius to plot
+r_eff_a_values = np.logspace(-10, 3, 100)
+r_eff_lines = generate_r_eff_lines([0.1, 1, 5, 10], r_eff_a_values, q)
+
+
 def format_exponent(log_a, pos):
     assert np.isclose(float(log_a), int(log_a))
     log_a = int(log_a)
@@ -361,7 +441,7 @@ likelihood_cmap = cmocean.cm.haline
 # ax.set_limits(*limits)
 # ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_exponent))
 # ax.add_labels("$\eta$ (Power Law Slope)", "a (Scale Radius) [pixels]")
-# ax.easy_add_text(f"{galaxy.upper()} - {cluster_id}", "upper left", color="white")
+# ax.easy_add_text(f"{galaxy.upper()} - {cluster_id}", "up per left", color="white")
 # fig.savefig(
 #     Path(__file__).parent / f"likelihood_contours_{galaxy}_{cluster_id}.png",
 #     bbox_inches="tight",
@@ -371,8 +451,8 @@ likelihood_cmap = cmocean.cm.haline
 # Fit the background and peak value at each point
 # ======================================================================================
 # change these
-eta_min, eta_max, d_eta = (0, 3, 0.5)
-log_a_min, log_a_max, d_log_a = (-5, 1, 1)
+eta_min, eta_max, d_eta = (0, 3, 0.05)
+log_a_min, log_a_max, d_log_a = (-5, 1, 0.1)
 # don't mess with this
 eta_values = np.arange(eta_min, eta_max + 0.5 * d_eta, d_eta)
 log_a_values = np.arange(log_a_min, log_a_max + 0.5 * d_log_a, d_log_a)
@@ -425,7 +505,7 @@ for idx_eta in tqdm(range(n_eta)):
 
 fig, axs = bpl.subplots(ncols=2, figsize=[15, 6])
 
-likelihood_width = 10
+likelihood_width = 2
 likelihood_norm = colors.Normalize(
     vmin=np.max(log_likelihood_fitted_params) - likelihood_width,
     vmax=np.max(log_likelihood_fitted_params),
@@ -448,6 +528,21 @@ i = axs[0].imshow(
 )
 cbar = fig.colorbar(i, ax=axs[0])
 cbar.set_label("Log Likelihood = $-\chi^2 +$ log$_{10}(P(\\theta))$")
+# Also draw contours
+levels = [
+    np.max(log_likelihood_fitted_params) - 1e20,
+    np.max(log_likelihood_fitted_params) - 1,
+]
+contour = axs[0].contour(
+    eta_values,
+    log_a_values,
+    log_likelihood_fitted_params,
+    levels=levels,
+    colors="red",
+    linestyles="solid",
+    linewidths=2,
+    origin="lower",
+)
 
 bg_norm = colors.Normalize(-3, 3, clip=True)
 bg_cmap = cmocean.cm.curl
@@ -470,6 +565,27 @@ for c, ax in zip([bpl.almost_black, "w"], axs):
         marker="x",
         c=c,
     )
+
+# and plot lines of effective radius
+for ax in axs:
+    for r in r_eff_lines:
+        xs = r_eff_lines[r][0]
+        ys = r_eff_lines[r][1]
+        ax.plot(xs, ys, c="w")
+        # pick the first value that goes above the lower limit
+        for idx, y in enumerate(ys):
+            if y > log_a_min:
+                break
+        ax.add_text(
+            x=xs[idx],
+            y=ys[idx],
+            text="$R_{eff}=$" + f"{r:.1f} pixels",
+            ha="right",
+            va="bottom",
+            fontsize=12,
+            rotation=90,
+            color="w",
+        )
 
 for ax in axs:
     ax.set_limits(*limits)
