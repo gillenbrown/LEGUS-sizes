@@ -330,7 +330,7 @@ def eta_given_reff_rmax_a(r_eff, r_max, a, q):
 # generate a list of lines of constant effective radius
 def generate_r_eff_lines(r_eff_values, a_values, q):
     return_dict = {r: [[], []] for r in r_eff_values}
-    for r in r_eff_values:
+    for r in tqdm(r_eff_values):
         for a in a_values:
             eta = eta_given_reff_rmax_a(r, 15, a, q)
 
@@ -343,7 +343,7 @@ def generate_r_eff_lines(r_eff_values, a_values, q):
 
 
 # generate the lines of constant effective radius to plot
-r_eff_a_values = np.logspace(-10, 3, 100)
+r_eff_a_values = np.logspace(-10, 3, 1000)
 r_eff_lines = generate_r_eff_lines([0.1, 1, 5, 10], r_eff_a_values, q)
 
 
@@ -434,6 +434,26 @@ likelihood_cmap = cmocean.cm.haline
 #     origin="lower",
 # )
 #
+# # and plot lines of effective radius
+# for r in r_eff_lines:
+#     xs = r_eff_lines[r][0]
+#     ys = r_eff_lines[r][1]
+#     ax.plot(xs, ys, c="w")
+#     # pick the first value that goes above the lower limit
+#     for idx, y in enumerate(ys):
+#         if y > log_a_min:
+#             break
+#     ax.add_text(
+#         x=xs[idx],
+#         y=ys[idx],
+#         text="$R_{eff}=$" + f"{r:.1f} pixels",
+#         ha="right",
+#         va="bottom",
+#         fontsize=12,
+#         rotation=90,
+#         color="w",
+#     )
+#
 # # plot Oleg's guess.
 # guess_log_as = -3 / eta_values
 # ax.plot(eta_values, guess_log_as, c="violet", zorder=10)
@@ -441,7 +461,7 @@ likelihood_cmap = cmocean.cm.haline
 # ax.set_limits(*limits)
 # ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_exponent))
 # ax.add_labels("$\eta$ (Power Law Slope)", "a (Scale Radius) [pixels]")
-# ax.easy_add_text(f"{galaxy.upper()} - {cluster_id}", "up per left", color="white")
+# ax.easy_add_text(f"{galaxy.upper()} - {cluster_id}", "upper left", color="white")
 # fig.savefig(
 #     Path(__file__).parent / f"likelihood_contours_{galaxy}_{cluster_id}.png",
 #     bbox_inches="tight",
