@@ -10,7 +10,7 @@ import numpy as np
 from astropy import table
 from astropy.io import fits
 from scipy import special, optimize
-from matplotlib import colors, cm
+from matplotlib import colors, cm, ticker
 import betterplotlib as bpl
 import cmocean
 from tqdm import tqdm
@@ -267,11 +267,12 @@ estimated_bg = row["estimated_local_background"]
 estimated_bg_scatter = row["estimated_local_background_scatter"]
 
 # change these
-eta_min, eta_max, eta_d = (0, 3, 0.025)
-alog_min, alog_max, alog_d = (-5, 1, 0.05)
+eta_min, eta_max, d_eta = (0, 3, 0.025)
+log_a_min, log_a_max, d_log_a = (-5, 1, 0.05)
 # don't mess with this
-eta_values = np.arange(eta_min, eta_max + 0.5 * eta_d, eta_d)
-a_values = 10 ** (np.arange(alog_min, alog_max + 0.5 * alog_d, alog_d))
+eta_values = np.arange(eta_min, eta_max + 0.5 * d_eta, d_eta)
+log_a_values = np.arange(log_a_min, log_a_max + 0.5 * d_log_a, d_log_a)
+a_values = 10 ** log_a_values
 
 n_eta = len(eta_values)
 n_a = len(a_values)
@@ -291,60 +292,55 @@ for idx_eta in tqdm(range(n_eta)):
         )
         log_likelihood_fixed_params[idx_a, idx_eta] = log_likelihood
 
-# Mark the point of maximum likelihood as identified by the fit. The coordinates are
-# indices, so we basically do what we did before. We'll put a marker at the center of
-# the best fit cell, I won't bother doing trying to figure out where within the cell
-best_eta = row["power_law_slope_best"]
-best_a = row["scale_radius_pixels_best"]
-for idx_eta in range(n_eta - 1):
-    if eta_values[idx_eta] < best_eta <= eta_values[idx_eta + 1]:
-        eta_idx_best = idx_eta
-        break
-for idx_a in range(n_a - 1):
-    if a_values[idx_a] < best_a <= a_values[idx_a + 1]:
-        a_idx_best = idx_a
-        break
-
 # ======================================================================================
 # plot
 # ======================================================================================
-def format_a(a):
-    exponent = np.log10(a)
-    if a > 101 or a < 0.00999:
-        return "$10^{" + f"{exponent:.2g}" + "}$"
-    if np.isclose(a, 100, rtol=0, atol=0.01):
-        return "100"
+def format_exponent(log_a, pos):
+    assert np.isclose(float(log_a), int(log_a))
+    log_a = int(log_a)
+
+    if log_a > -2:
+        return str(10 ** log_a)
     else:
-        return f"{a:g}"
+        return "$10^{" + f"{log_a}" + "}$"
 
-
-# Make a complicated colormap for the chi_squared, showing a discontinuity at one
-# away from the max
-# cmap_1 = cmocean.cm.haline
-# cmap_2 = cmocean.cm.matter
-# colors_1 = cmap_1(np.linspace(0.2, 1.0, 128))
-# colors_2 = cmap_2(np.linspace(1.0, 0.2, 128))
-# colors_full = np.concatenate([colors_2, colors_1])
-# likelihood_cmap = colors.LinearSegmentedColormap.from_list("split", colors_full)
-likelihood_cmap = cmocean.cm.haline
 
 fig, ax = bpl.subplots()
+
+likelihood_cmap = cmocean.cm.haline
 vmax = np.max(log_likelihood_fixed_params)
 width = 2
 norm = colors.Normalize(vmin=vmax - width, vmax=vmax, clip=True)
+limits = (
+    eta_min - 0.5 * d_eta,
+    eta_max + 0.5 * d_eta,
+    log_a_min - 0.5 * d_log_a,
+    log_a_max + 0.5 * d_log_a,
+)
 i = ax.imshow(
-    log_likelihood_fixed_params, origin="lower", norm=norm, cmap=likelihood_cmap
+    log_likelihood_fixed_params,
+    origin="lower",
+    norm=norm,
+    cmap=likelihood_cmap,
+    extent=limits,
+    # This scalar aspect ratio is calculated to ensure the pixels are square
+    aspect=((eta_max - eta_min) / n_eta) / ((log_a_max - log_a_min) / n_a),
 )
 cbar = fig.colorbar(i, ax=ax)
 cbar.set_label("Log Likelihood = $-\chi^2 +$ log$_{10}(P(\\theta))$")
 # mark the best fit point
-ax.scatter([eta_idx_best], [a_idx_best], marker="x", c=bpl.almost_black)
+ax.scatter(
+    [row["power_law_slope_best"]],
+    [np.log10(row["scale_radius_pixels_best"])],
+    marker="x",
+    c=bpl.almost_black,
+)
 
 # Also draw contours
 levels = [vmax - 1e20, vmax - 1]
 contour = ax.contour(
-    range(n_eta),
-    range(n_a),
+    eta_values,
+    log_a_values,
     log_likelihood_fixed_params,
     levels=levels,
     colors="red",
@@ -353,23 +349,12 @@ contour = ax.contour(
     origin="lower",
 )
 
-# plot Oleg's guess. This is trickier than expected, since the image is in pixel coords
-a_idxs_guess = []
-plot_eta_idx = []
-for idx_eta in range(n_eta):
-    guess_a = 10 ** (-3 / eta_values[idx_eta])
-    for idx_a in range(n_a - 1):
-        if a_values[idx_a] < guess_a <= a_values[idx_a + 1]:
-            a_idxs_guess.append(idx_a)
-            plot_eta_idx.append(idx_eta)
-ax.plot(plot_eta_idx, a_idxs_guess, c="violet", zorder=10)
+# plot Oleg's guess.
+guess_log_as = -3 / eta_values
+ax.plot(eta_values, guess_log_as, c="violet", zorder=10)
 
-tick_gap_eta = 20
-tick_gap_a = 20
-ax.xaxis.set_ticks(range(0, n_eta, tick_gap_eta))
-ax.yaxis.set_ticks(range(0, n_a, tick_gap_a))
-ax.xaxis.set_ticklabels([f"{item:.2g}" for item in eta_values[::tick_gap_eta]])
-ax.yaxis.set_ticklabels([format_a(item) for item in a_values[::tick_gap_a]])
+ax.set_limits(*limits)
+ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_exponent))
 ax.add_labels("$\eta$ (Power Law Slope)", "a (Scale Radius) [pixels]")
 ax.easy_add_text(f"{galaxy.upper()} - {cluster_id}", "upper left", color="white")
 fig.savefig(
