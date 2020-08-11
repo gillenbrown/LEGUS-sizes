@@ -142,53 +142,42 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
     return sum_squared / dof
 
 
-def gamma(x, k, theta):
+def lognormal(x, mean, log_sigma):
     """
-    Gamme distribution PDF: https://en.wikipedia.org/wiki/Gamma_distribution
-
-    :param x: X values to determine the value of the PDF at
-    :param k: Shape parameter
-    :param theta: Scale parameter
-    :param offset: Value at which the distribution starts (other than zero)
-    :return: Value of the gamma PDF at this location
-    """
-    x = np.maximum(x, 0)
-    return x ** (k - 1) * np.exp(-x / theta) / (special.gamma(k) * theta ** k)
-
-
-def gaussian(x, mean, sigma):
-    """
-    Normal distribution PDF.
+    Lognormal distribution PDF. This is not normalized to unit
+    area, but normalized to a peak value of 1, so function
+    in concert with a flat prior.
 
     :param x: X values to determine the value of the PDF at
     :param mean: Mean of the Gaussian
     :param sigma: Standard deviation of the Gaussian
     :return: Value of the gamma PDF at this location
     """
-    return np.exp(-0.5 * ((x - mean) / sigma) ** 2) / (sigma * np.sqrt(2 * np.pi))
+    return np.exp(-0.5 * ((np.log10(x) - np.log10(mean)) / log_sigma) ** 2)
 
 
-def trapezoid(x, breakpoint):
+def flat_with_lognormal_edges(x, flat_min, flat_max, side_log_width):
     """
-    PSF (not normalized) of a simple trapezoid shape with one breakpoint.
+    Probability density function that is flat with value at 1 in between two
+    values, but with a lognormal PDF outside of that, with fixed width on both
+    sides.
 
-    Below the breakpoint it is linear to zero, while above it is constant at 1
-    to `max_value`
+    This is useful as it is continuous and smooth at the boundaries of the
+    flat region.
 
-    :param x: X values to determine the value of the PDF at
-    :param breakpoint: Value at which the PDF trasitions from the linearly increasing
-                       portion to the flat portion
-    :param max_value: Maximum allowed value for X. Above this zero will be returned.
-    :return: Value of this PDF at this location
+    :param x: Value to determine the value of the PDF at.
+    :param flat_min: Minimum value of the flat region
+    :param flat_max: Maximum value of the flat region
+    :param side_log_width: Gaussian width (in dex) of the lognormal distribution
+                           used for the regions on either side.
+    :return:
     """
-    return np.max([np.min([x / breakpoint, 1.0]), 1e-20])
-
-
-def flat_prior(value, min_value, max_value):
-    if value < min_value or value > max_value:
-        return 0
-    else:
+    if flat_min <= x <= flat_max:
         return 1
+    elif x < flat_min:
+        return lognormal(x, flat_min, side_log_width)
+    else:
+        return lognormal(x, flat_max, side_log_width)
 
 
 def priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
@@ -207,16 +196,7 @@ def priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
 
     :return: Total prior probability for the given model.
     """
-    prior = 1
-    return prior
-    # # x and y center have a Gaussian with width of 2 regular pixels, centered on
-    # # the center of the snapshot
-    # prior *= gamma(a, 1.05, 20)
-    # prior *= gamma(eta - 0.6, 1.05, 20)
-    # prior *= trapezoid(q, 0.3)
-    # # have a minimum allowed value, to stop it from being zero if several of these
-    # # parameters are bad.
-    # return np.maximum(prior, 1e-50)
+    return flat_with_lognormal_edges(abs(a), 0.1, 15, 0.05)
 
 
 def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
