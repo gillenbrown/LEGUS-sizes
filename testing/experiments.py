@@ -9,10 +9,11 @@ from pathlib import Path
 import numpy as np
 from astropy import table
 from astropy.io import fits
-from scipy import special
+from scipy import special, optimize
 from matplotlib import colors, cm
 import betterplotlib as bpl
 import cmocean
+from tqdm import tqdm
 
 # need to add the correct path to import utils
 sys.path.append(str(Path(__file__).resolve().parent.parent / "pipeline"))
@@ -45,10 +46,24 @@ big_catalog = table.vstack(catalogs, join_type="inner")
 # This means we can modify those two parameters and see the chi-squared surface easily
 # galaxy = "ngc4656"
 # cluster_id = 22
+
 # galaxy = "ngc628-c"
 # cluster_id = 1630
+
 galaxy = "ngc628-c"
 cluster_id = 778
+
+# galaxy = "ic559"
+# cluster_id = 1
+
+# galaxy = "ic559"
+# cluster_id = 12
+
+# galaxy = "ngc1313-e"
+# cluster_id = 1813
+
+# galaxy = "ngc1313-e"
+# cluster_id = 118
 
 for row in big_catalog:
     if row["galaxy"] == galaxy and row["ID"] == cluster_id:
@@ -92,6 +107,9 @@ data_snapshot = image_data[y_min:y_max, x_min:x_max]
 error_snapshot = error_data[y_min:y_max, x_min:x_max]
 mask_snapshot = mask_data[y_min:y_max, x_min:x_max]
 
+# have the start value for the fit (which will be the same as actually used in the fit)
+bg_start = np.min(data_snapshot)
+mu_start = np.log10(np.max(data_snapshot) * 3)
 # ======================================================================================
 # Functions to calculate chi-squared
 # ======================================================================================
@@ -245,6 +263,8 @@ y_c = row["y_pix_snapshot_oversampled_best"]
 q = row["axis_ratio_best"]
 theta = row["position_angle_best"]
 background = row["local_background_best"]
+estimated_bg = row["estimated_local_background"]
+estimated_bg_scatter = row["estimated_local_background_scatter"]
 
 # change these
 eta_min, eta_max, eta_d = (0, 3, 0.025)
@@ -255,21 +275,21 @@ a_values = 10 ** (np.arange(alog_min, alog_max + 0.5 * alog_d, alog_d))
 
 n_eta = len(eta_values)
 n_a = len(a_values)
-# then make the output array
-output = np.zeros((n_a, n_eta))
+# then make the output arrays
+log_likelihood_fixed_params = np.zeros((n_a, n_eta))
 
 # then fill the output array
-for idx_eta in range(n_eta):
+for idx_eta in tqdm(range(n_eta)):
     for idx_a in range(n_a):
         eta = eta_values[idx_eta]
         a = a_values[idx_a]
 
         params = (log_mu_0, x_c, y_c, a, q, theta, eta, background)
 
-        neg_log_likelihood = -1 * negative_log_likelihood(
+        log_likelihood = -1 * negative_log_likelihood(
             params, data_snapshot, error_snapshot, mask_snapshot
         )
-        output[idx_a, idx_eta] = neg_log_likelihood
+        log_likelihood_fixed_params[idx_a, idx_eta] = log_likelihood
 
 # Mark the point of maximum likelihood as identified by the fit. The coordinates are
 # indices, so we basically do what we did before. We'll put a marker at the center of
@@ -298,30 +318,51 @@ def format_a(a):
         return f"{a:g}"
 
 
+# Make a complicated colormap for the chi_squared, showing a discontinuity at one
+# away from the max
+# cmap_1 = cmocean.cm.haline
+# cmap_2 = cmocean.cm.matter
+# colors_1 = cmap_1(np.linspace(0.2, 1.0, 128))
+# colors_2 = cmap_2(np.linspace(1.0, 0.2, 128))
+# colors_full = np.concatenate([colors_2, colors_1])
+# likelihood_cmap = colors.LinearSegmentedColormap.from_list("split", colors_full)
+likelihood_cmap = cmocean.cm.haline
+
 fig, ax = bpl.subplots()
-vmax = np.max(output)
-width = 5
+vmax = np.max(log_likelihood_fixed_params)
+width = 2
 norm = colors.Normalize(vmin=vmax - width, vmax=vmax, clip=True)
-cmap = cmocean.cm.haline
-i = ax.imshow(output, origin="lower", norm=norm, cmap=cmap)
+i = ax.imshow(
+    log_likelihood_fixed_params, origin="lower", norm=norm, cmap=likelihood_cmap
+)
 cbar = fig.colorbar(i, ax=ax)
 cbar.set_label("Log Likelihood = $-\chi^2 +$ log$_{10}(P(\\theta))$")
 # mark the best fit point
 ax.scatter([eta_idx_best], [a_idx_best], marker="x", c=bpl.almost_black)
 
-# # Also draw contours
-# # level_factors = [2, 10, 100, 1000]
-# # levels = [l_f * vmin for l_f in level_factors]
-# levels = [100, 1000, 1e4, 1e5]
-# ax.contour(
-#     eta_values,
-#     a_values,
-#     output,
-#     levels=levels,
-#     # colors=bpl.almost_black,
-#     zorder=100,
-#     origin="lower",
-# )
+# Also draw contours
+levels = [vmax - 1e20, vmax - 1]
+contour = ax.contour(
+    range(n_eta),
+    range(n_a),
+    log_likelihood_fixed_params,
+    levels=levels,
+    colors="red",
+    linestyles="solid",
+    linewidths=2,
+    origin="lower",
+)
+
+# plot Oleg's guess. This is trickier than expected, since the image is in pixel coords
+a_idxs_guess = []
+plot_eta_idx = []
+for idx_eta in range(n_eta):
+    guess_a = 10 ** (-3 / eta_values[idx_eta])
+    for idx_a in range(n_a - 1):
+        if a_values[idx_a] < guess_a <= a_values[idx_a + 1]:
+            a_idxs_guess.append(idx_a)
+            plot_eta_idx.append(idx_eta)
+ax.plot(plot_eta_idx, a_idxs_guess, c="violet", zorder=10)
 
 tick_gap_eta = 20
 tick_gap_a = 20
@@ -331,9 +372,129 @@ ax.xaxis.set_ticklabels([f"{item:.2g}" for item in eta_values[::tick_gap_eta]])
 ax.yaxis.set_ticklabels([format_a(item) for item in a_values[::tick_gap_a]])
 ax.add_labels("$\eta$ (Power Law Slope)", "a (Scale Radius) [pixels]")
 ax.easy_add_text(f"{galaxy.upper()} - {cluster_id}", "upper left", color="white")
-fig.savefig(Path(__file__).parent / "likelihood_contours.png", bbox_inches="tight")
+fig.savefig(
+    Path(__file__).parent / f"likelihood_contours_{galaxy}_{cluster_id}.png",
+    bbox_inches="tight",
+)
 
-# ======================================================================================
+# # ======================================================================================
+# # Fit the background and peak value at each point
+# # ======================================================================================
+# # change these
+# eta_min, eta_max, eta_d = (0, 3, 0.25)
+# alog_min, alog_max, alog_d = (-7, 1, 0.5)
+# # don't mess with this
+# eta_values = np.arange(eta_min, eta_max + 0.5 * eta_d, eta_d)
+# a_values = 10 ** (np.arange(alog_min, alog_max + 0.5 * alog_d, alog_d))
+#
+# n_eta = len(eta_values)
+# n_a = len(a_values)
+# # then make the output arrays
+# log_likelihood_fitted_params = np.zeros((n_a, n_eta))
+# bg_err = np.zeros((n_a, n_eta))
+#
+# for idx_eta in tqdm(range(n_eta)):
+#     for idx_a in range(n_a):
+#         eta = eta_values[idx_eta]
+#         a = a_values[idx_a]
+#
+#         params = (log_mu_0, x_c, y_c, a, q, theta, eta, background)
+#
+#         log_likelihood = -1 * negative_log_likelihood(
+#             params, data_snapshot, error_snapshot, mask_snapshot
+#         )
+#         log_likelihood_fixed_params[idx_a, idx_eta] = log_likelihood
+#
+#         # try to mess with the other parameters tosee if we can do better
+#         params = (x_c, y_c, a, q, theta, eta)
+#
+#         def chi_sq_wrapper(
+#             to_fit, params, data_snapshot, error_snapshot, mask_snapshot
+#         ):
+#             return negative_log_likelihood(
+#                 (to_fit[1],) + params + (to_fit[0],),
+#                 data_snapshot,
+#                 error_snapshot,
+#                 mask_snapshot,
+#             )
+#
+#         fit_params = optimize.minimize(
+#             chi_sq_wrapper,
+#             x0=(bg_start, mu_start),
+#             args=(params, data_snapshot, error_snapshot, mask_snapshot),
+#             bounds=((None, None), (None, 100)),
+#         ).x
+#         bg_fit = fit_params[0]
+#         log_mu = fit_params[1]
+#
+#         log_likelihood_fitted_params[idx_a, idx_eta] = -1 * negative_log_likelihood(
+#             (log_mu,) + params + (bg_fit,),
+#             data_snapshot,
+#             error_snapshot,
+#             mask_snapshot,
+#         )
+#         bg_err[idx_a, idx_eta] = (bg_fit - estimated_bg) / estimated_bg_scatter
+#
+# # Mark the point of maximum likelihood as identified by the fit. The coordinates are
+# # indices, so we basically do what we did before. We'll put a marker at the center of
+# # the best fit cell, I won't bother doing trying to figure out where within the cell
+# best_eta = row["power_law_slope_best"]
+# best_a = row["scale_radius_pixels_best"]
+# for idx_eta in range(n_eta - 1):
+#     if eta_values[idx_eta] < best_eta <= eta_values[idx_eta + 1]:
+#         eta_idx_best = idx_eta
+#         break
+# for idx_a in range(n_a - 1):
+#     if a_values[idx_a] < best_a <= a_values[idx_a + 1]:
+#         a_idx_best = idx_a
+#         break
+# # ======================================================================================
+# # plot the fitted background
+# # ======================================================================================
+#
+# fig, axs = bpl.subplots(ncols=2, figsize=[15, 6])
+#
+# likelihood_width = 10
+# likelihood_norm = colors.Normalize(
+#     vmin=np.max(log_likelihood_fitted_params) - likelihood_width,
+#     vmax=np.max(log_likelihood_fitted_params),
+#     clip=True,
+# )
+#
+# i = axs[0].imshow(
+#     log_likelihood_fitted_params,
+#     origin="lower",
+#     norm=likelihood_norm,
+#     cmap=likelihood_cmap,
+# )
+# cbar = fig.colorbar(i, ax=axs[0])
+# cbar.set_label("Log Likelihood = $-\chi^2 +$ log$_{10}(P(\\theta))$")
+#
+# bg_norm = colors.Normalize(-3, 3, clip=True)
+# bg_cmap = cmocean.cm.curl
+# i = axs[1].imshow(bg_err, origin="lower", norm=bg_norm, cmap=bg_cmap)
+# cbar = fig.colorbar(i, ax=axs[1])
+# cbar.set_label("Background Error")
+# # mark the best fit point
+# axs[0].scatter([eta_idx_best], [a_idx_best], marker="x", c=bpl.almost_black)
+# axs[1].scatter([eta_idx_best], [a_idx_best], marker="x", c="w")
+#
+# tick_gap_eta = 2
+# tick_gap_a = 2
+# for ax in axs:
+#     # then mess with axes
+#     ax.xaxis.set_ticks(range(0, n_eta, tick_gap_eta))
+#     ax.yaxis.set_ticks(range(0, n_a, tick_gap_a))
+#     ax.xaxis.set_ticklabels([f"{item:.2g}" for item in eta_values[::tick_gap_eta]])
+#     ax.yaxis.set_ticklabels([format_a(item) for item in a_values[::tick_gap_a]])
+#     ax.add_labels("$\eta$ (Power Law Slope)", "a (Scale Radius) [pixels]")
+#     ax.easy_add_text(f"{galaxy.upper()} - {cluster_id}", "upper left", color="white")
+# fig.savefig(
+#     Path(__file__).parent / f"likelihood_contours_fit_bg_{galaxy}_{cluster_id}.png",
+#     bbox_inches="tight",
+# )
+
+# # ======================================================================================
 #
 # Do not remove this line!!
 #
