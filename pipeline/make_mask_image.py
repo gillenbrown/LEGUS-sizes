@@ -39,6 +39,7 @@ sigma_image_path = Path(sys.argv[3]).absolute()
 
 snapshot_size = 60  # just to be safe, have a large radius where we mask
 cluster_mask_radius = 6
+min_closeness = 3  # how far stars have to stay away from the center
 star_radius_fwhm_multiplier = 2  # We mask pixels that are within this*FWHM of a star
 
 galaxy_name = mask_image_path.parent.parent.name
@@ -82,8 +83,15 @@ def find_stars(data_snapshot, uncertainty_snapshot):
     peaks_table = star_finder.find_stars(data_snapshot)
 
     # this will be None if nothing was found
+    names = [
+        "x",
+        "y",
+        "mask_radius",
+        "near_cluster",
+        "is_cluster",
+    ]
     if peaks_table is None:
-        return table.Table([[], [], []], names=["x", "y", "fwhm"])
+        return table.Table([[]] * len(names), names=names)
 
     # throw away some stars
     to_remove = []
@@ -106,10 +114,7 @@ def find_stars(data_snapshot, uncertainty_snapshot):
     mask_radius = peaks_table["fwhm"].data * star_radius_fwhm_multiplier
     blank = np.ones(xs.shape) * -1
 
-    return table.Table(
-        [xs, ys, mask_radius, blank, blank],
-        names=["x", "y", "mask_radius", "near_cluster", "is_cluster"],
-    )
+    return table.Table([xs, ys, mask_radius, blank, blank], names=names,)
 
 
 # ======================================================================================
@@ -146,7 +151,7 @@ for cluster in tqdm(clusters_table):
             if dist_to_cluster < 2:
                 star["is_cluster"] = c["ID"]
             # otherwise, mark stars that will have any overlap with the fit region
-            max_dist = star["mask_radius"] + cluster_mask_radius
+            max_dist = star["mask_radius"] + min_closeness
             if dist_to_cluster < max_dist:
                 star["near_cluster"] = c["ID"]
 
