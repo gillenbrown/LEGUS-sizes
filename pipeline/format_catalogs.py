@@ -229,5 +229,10 @@ idxs_2 = np.where(catalog[class_col] == 2)
 idxs = np.union1d(idxs_1, idxs_2)
 catalog = catalog[idxs]
 
+# Create a new column that we can use for python indexing. These pixel coords are set up
+# so that the corner value is (1,1), not (0,0)
+catalog["x"] = catalog["x_pix_single"] - 1
+catalog["y"] = catalog["y_pix_single"] - 1
+
 # then write this catalog to the desired output file. Astropy recommends ECSV
 catalog.write(final_catalog, format="ascii.ecsv")

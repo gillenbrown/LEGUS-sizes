@@ -127,8 +127,8 @@ clusters_table = table.Table.read(cluster_catalog_path, format="ascii.ecsv")
 # beforehand to reduce accesses
 stars_x = peaks_table["xcentroid"].data  # to get as numpy array
 stars_y = peaks_table["ycentroid"].data
-clusters_x = clusters_table["x_pix_single"]
-clusters_y = clusters_table["y_pix_single"]
+clusters_x = clusters_table["x"]
+clusters_y = clusters_table["y"]
 for idx in range(len(peaks_table)):
     star_x = stars_x[idx]
     star_y = stars_y[idx]

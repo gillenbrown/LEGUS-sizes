@@ -37,8 +37,8 @@ def pad(array, total_length):
 
 
 dist_cols = [
-    "x_pix_single_fitted",
-    "y_pix_single_fitted",
+    "x_fitted",
+    "y_fitted",
     "x_pix_snapshot_oversampled",
     "y_pix_snapshot_oversampled",
     "central_surface_brightness",

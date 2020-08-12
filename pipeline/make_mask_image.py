@@ -116,8 +116,8 @@ for cluster in tqdm(clusters_table):
     # create the snapshot. We use ceiling to get the integer pixel values as python
     # indexing does not include the final value. So when we calcualte the offset, it
     # naturally gets biased low. Moving the center up fixes that in the easiest way.
-    x_cen = int(np.ceil(cluster["x_pix_single"]))
-    y_cen = int(np.ceil(cluster["y_pix_single"]))
+    x_cen = int(np.ceil(cluster["x"]))
+    y_cen = int(np.ceil(cluster["y"]))
 
     x_min = x_cen - int(np.ceil(snapshot_size / 2.0))
     x_max = x_cen + int(np.floor(snapshot_size / 2.0))
@@ -137,9 +137,7 @@ for cluster in tqdm(clusters_table):
         x = x_idx + 0.5  # to get pixel center
         for y_idx in range(y_min, y_max):
             y = y_idx + 0.5  # to get pixel center
-            dist_cluster = distance(
-                x, y, cluster["x_pix_single"], cluster["y_pix_single"]
-            )
+            dist_cluster = distance(x, y, cluster["x"], cluster["y"])
             # mark the cluster
             if dist_cluster < cluster_mask_radius:
                 mask_data[y_idx][x_idx] = 2

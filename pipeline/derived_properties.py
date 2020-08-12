@@ -69,8 +69,8 @@ def pad(array, total_length):
 
 
 dist_cols = [
-    "x_pix_single_fitted",
-    "y_pix_single_fitted",
+    "x_fitted",
+    "y_fitted",
     "x_pix_snapshot_oversampled",
     "y_pix_snapshot_oversampled",
     "central_surface_brightness",
@@ -532,8 +532,8 @@ for row in tqdm(fits_catalog):
     # create the snapshot. We use ceiling to get the integer pixel values as python
     # indexing does not include the final value. So when we calcualte the offset, it
     # naturally gets biased low. Moving the center up fixes that in the easiest way.
-    x_cen = int(np.ceil(row["x_pix_single_fitted_best"]))
-    y_cen = int(np.ceil(row["y_pix_single_fitted_best"]))
+    x_cen = int(np.ceil(row["x_fitted_best"]))
+    y_cen = int(np.ceil(row["y_fitted_best"]))
 
     # Get the snapshot, based on the size desired.
     # Since we took the ceil of the center, go more in the negative direction (i.e.
@@ -547,9 +547,12 @@ for row in tqdm(fits_catalog):
     error_snapshot = sigma_data[y_min:y_max, x_min:x_max]
     mask_snapshot = mask_data[y_min:y_max, x_min:x_max]
 
-    snapshot_x_cen = row["x_pix_single_fitted_best"] - x_min
-    snapshot_y_cen = row["y_pix_single_fitted_best"] - y_min
-    mask_snapshot = fit_utils.handle_mask(mask_snapshot, snapshot_x_cen, snapshot_y_cen)
+    snapshot_x_cen = row["x_fitted_best"] - x_min
+    snapshot_y_cen = row["y_fitted_best"] - y_min
+    # Use the same mask region as was used in the actual fitting procedure
+    mask_snapshot = fit_utils.handle_mask(
+        mask_snapshot, row["x"] - x_min, row["y"] - y_min
+    )
 
     # then get the parameters and calculate a few things of interest
     params = [
@@ -580,7 +583,7 @@ for row in tqdm(fits_catalog):
         cut_radius,
         estimated_bg,
         bg_scatter,
-        (row["x_pix_single"] - x_min, row["y_pix_single"] - y_min),
+        (row["x"] - x_min, row["y"] - y_min),
     )
 
     row["profile_mad"] = profile_mad
@@ -591,6 +594,10 @@ for row in tqdm(fits_catalog):
     row["estimated_local_background_diff_sigma"] = diff / bg_scatter
     row["fit_rms"] = this_rms
 
+# Then add one back to the output catalog to be comparable to LEGUS results. This is
+# because of Python being zero indexed
+fits_catalog["x_pix_single_fitted_best"] = fits_catalog["x_fitted_best"] + 1
+fits_catalog["y_pix_single_fitted_best"] = fits_catalog["y_fitted_best"] + 1
 
 # ======================================================================================
 #

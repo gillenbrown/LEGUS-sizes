@@ -92,8 +92,8 @@ def dummy_list_col(n_rows):
 
 n_rows = len(clusters_table)
 new_cols = [
-    "x_pix_single_fitted",
-    "y_pix_single_fitted",
+    "x_fitted",
+    "y_fitted",
     "x_pix_snapshot_oversampled",
     "y_pix_snapshot_oversampled",
     "central_surface_brightness",
@@ -427,29 +427,26 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
 #
 # ======================================================================================
 for row in tqdm(clusters_table):
-    # create the snapshot. We could use ceiling to get the integer pixel values as
-    # python indexing does not include the final value. So when we calcualte the offset,
-    # it naturally gets biased low. Moving the center up fixes that in the easiest way.
-    # However, the indexing is off by one relative to LEGUS, so taking the floor pushes
-    # it back closer
-    x_cen = int(np.floor(row["x_pix_single"]))
-    y_cen = int(np.floor(row["y_pix_single"]))
+    # create the snapshot. We use ceiling to get the integer pixel values as
+    # python indexing does not include the final value.
+    x_cen = int(np.ceil(row["x"]))
+    y_cen = int(np.ceil(row["y"]))
 
     # Get the snapshot, based on the size desired.
-    # Since we took the floor of the center, go more in the positive direction (i.e.
-    # use floor to get the minimum values). This only matters if the snapshot size is
+    # Since we took the ceil of the center, go more in the negative direction (i.e.
+    # use ceil to get the minimum values). This only matters if the snapshot size is
     # odd
-    x_min = x_cen - int(np.floor(snapshot_size / 2.0))
-    x_max = x_cen + int(np.ceil(snapshot_size / 2.0))
-    y_min = y_cen - int(np.floor(snapshot_size / 2.0))
-    y_max = y_cen + int(np.ceil(snapshot_size / 2.0))
+    x_min = x_cen - int(np.ceil(snapshot_size / 2.0))
+    x_max = x_cen + int(np.floor(snapshot_size / 2.0))
+    y_min = y_cen - int(np.ceil(snapshot_size / 2.0))
+    y_max = y_cen + int(np.floor(snapshot_size / 2.0))
 
     data_snapshot = image_data[y_min:y_max, x_min:x_max]
     error_snapshot = sigma_data[y_min:y_max, x_min:x_max]
     mask_snapshot = mask_data[y_min:y_max, x_min:x_max]
 
     mask_snapshot = fit_utils.handle_mask(
-        mask_snapshot, row["x_pix_single"] - x_min, row["y_pix_single"] - y_min
+        mask_snapshot, row["x"] - x_min, row["y"] - y_min
     )
 
     # then do this fitting!
@@ -461,10 +458,10 @@ for row in tqdm(clusters_table):
     row["central_surface_brightness_best"] = 10 ** results[0]
     row["x_pix_snapshot_oversampled_best"] = results[1]
     row["y_pix_snapshot_oversampled_best"] = results[2]
-    row["x_pix_single_fitted_best"] = x_min + fit_utils.oversampled_to_image(
+    row["x_fitted_best"] = x_min + fit_utils.oversampled_to_image(
         results[1], oversampling_factor
     )
-    row["y_pix_single_fitted_best"] = y_min + fit_utils.oversampled_to_image(
+    row["y_fitted_best"] = y_min + fit_utils.oversampled_to_image(
         results[2], oversampling_factor
     )
     row["scale_radius_pixels_best"] = results[3]
@@ -476,11 +473,11 @@ for row in tqdm(clusters_table):
     row["central_surface_brightness"] = [10 ** v for v in history[0]]
     row["x_pix_snapshot_oversampled"] = history[1]
     row["y_pix_snapshot_oversampled"] = history[2]
-    row["x_pix_single_fitted"] = [
+    row["x_fitted"] = [
         x_min + fit_utils.oversampled_to_image(v, oversampling_factor)
         for v in history[1]
     ]
-    row["y_pix_single_fitted"] = [
+    row["y_fitted"] = [
         y_min + fit_utils.oversampled_to_image(v, oversampling_factor)
         for v in history[2]
     ]
