@@ -137,7 +137,13 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
     sigma_snapshot = diffs / error_snapshot
     # then use the mask
     sigma_snapshot *= mask
-    return np.sum(sigma_snapshot ** 2)
+    # Then calculate the sum of squares before dividing out the degrees of freedom.
+    # I found that dividing out the degrees of freedom does matter, and I'm not sure
+    # why. I suspect it might have to do with the convergence criteria being met sooner
+    # if this isn't here. But the results are quite bad without it
+    sum_squared = np.sum(sigma_snapshot ** 2)
+    dof = np.sum(mask) - 8
+    return sum_squared / dof
 
 
 def lognormal(x, mean, log_sigma):
