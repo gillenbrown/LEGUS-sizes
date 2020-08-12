@@ -137,10 +137,7 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
     sigma_snapshot = diffs / error_snapshot
     # then use the mask
     sigma_snapshot *= mask
-    # then pick the desirec pixels out to be used in the fit
-    sum_squared = np.sum(sigma_snapshot ** 2)
-    dof = np.sum(mask) - 8
-    return sum_squared / dof
+    return np.sum(sigma_snapshot ** 2)
 
 
 def lognormal(x, mean, log_sigma):
