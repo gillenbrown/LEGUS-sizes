@@ -33,6 +33,17 @@ for item in sys.argv[2:]:
 big_catalog = table.vstack(catalogs, join_type="inner")
 # multiply the MAD by 100 to get it to percent
 # big_catalog["profile_mad"] *= 100
+# mark clusters with failed fits, defined as when they hit the boundaries of the center
+big_catalog["success"] = big_catalog["x_pix_snapshot_oversampled_best"] != 26.00
+big_catalog["success"] = np.logical_and(
+    big_catalog["success"], big_catalog["x_pix_snapshot_oversampled_best"] != 34.00
+)
+big_catalog["success"] = big_catalog["y_pix_snapshot_oversampled_best"] != 26.00
+big_catalog["success"] = np.logical_and(
+    big_catalog["success"], big_catalog["y_pix_snapshot_oversampled_best"] != 34.00
+)
+
+success_mask = big_catalog["success"].data
 
 # ======================================================================================
 #
@@ -50,7 +61,7 @@ params = {
 }
 param_limits = {
     "central_surface_brightness_best": (10, 1e8),
-    "scale_radius_pixels_best": (1e-2, 1e3),
+    "scale_radius_pixels_best": (1e-4, 1e4),
     "axis_ratio_best": (-0.05, 1.05),
     "position_angle_best": (0, np.pi),
     "power_law_slope_best": (0, 3),
@@ -66,7 +77,7 @@ param_scale = {
 }
 param_bins = {
     "central_surface_brightness_best": np.logspace(1, 8, 41),
-    "scale_radius_pixels_best": np.logspace(-7, 4, 41),
+    "scale_radius_pixels_best": np.logspace(-4, 4, 41),
     "axis_ratio_best": np.arange(-0.1, 1.1, 0.05),
     "position_angle_best": np.arange(0, 3.5, 0.1),
     "power_law_slope_best": np.arange(0, 3.2, 0.1),
@@ -143,24 +154,56 @@ gs = gridspec.GridSpec(
 for idx_p, param in enumerate(params):
     # add the histogram
     ax = fig.add_subplot(gs[0, idx_p], projection="bpl")
-    ax.hist(big_catalog[param], bins=param_bins[param])
+    ax.hist(
+        big_catalog[param][success_mask],
+        bins=param_bins[param],
+        histtype="step",
+        color=bpl.color_cycle[0],
+        lw=2,
+        label="Success",
+    )
+    ax.hist(
+        big_catalog[param][~success_mask],
+        bins=param_bins[param],
+        histtype="step",
+        color=bpl.color_cycle[3],
+        lw=2,
+        label="Failure",
+    )
     ax.set_title(params[param])
     if idx_p == 0:
         ax.add_labels(y_label="Number of Clusters")
     ax.set_limits(*param_limits[param])
     ax.set_xscale(param_scale[param])
+    if param == "axis_ratio_best":
+        ax.legend(loc=2)
 
     # then the indicator plots
     for idx_q, indicator in enumerate(indicators, start=1):
         ax = fig.add_subplot(gs[idx_q, idx_p], projection="bpl")
 
-        ax.scatter(big_catalog[param], big_catalog[indicator], alpha=1, s=1, zorder=2)
+        ax.scatter(
+            big_catalog[param][success_mask],
+            big_catalog[indicator][success_mask],
+            c=bpl.color_cycle[0],
+            alpha=1,
+            s=1,
+            zorder=2,
+        )
+        ax.scatter(
+            big_catalog[param][~success_mask],
+            big_catalog[indicator][~success_mask],
+            c=bpl.color_cycle[3],
+            alpha=1,
+            s=1,
+            zorder=2,
+        )
 
         # Draw the percentile lines
         for percentile in [5, 25, 50, 75, 95]:
             xs, ys = get_percentiles(
-                big_catalog[param],
-                big_catalog[indicator],
+                big_catalog[param][success_mask],
+                big_catalog[indicator][success_mask],
                 percentile,
                 param_bins[param],
                 param_scale[param],
@@ -169,7 +212,7 @@ for idx_p, param in enumerate(params):
                 xs,
                 ys,
                 c=bpl.almost_black,
-                lw=2 * (1 - (abs(percentile - 50) / 50)) + 1,
+                lw=2 * (1 - (abs(percentile - 50) / 50)) + 0.5,
                 zorder=1,
             )
             ax.text(
