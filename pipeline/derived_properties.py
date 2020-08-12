@@ -344,6 +344,7 @@ def plot_model_set(
     estimated_bg,
     bg_scatter,
     old_center,
+    final_center_oversampled,
 ):
     model_image, model_psf_image, model_psf_bin_image = fit_utils.create_model_image(
         *params, psf, snapshot_size_oversampled, oversampling_factor
@@ -492,8 +493,8 @@ def plot_model_set(
     ax_pc.easy_add_text(
         "$R_{eff}$" + f" = {r_eff:.2f} pixels\n"
         f"log(peak brightness) = {params[0]:.2f}\n"
-        f"x center = {fit_utils.oversampled_to_image(params[1], oversampling_factor):.2f}\n"
-        f"y center = {fit_utils.oversampled_to_image(params[2], oversampling_factor):.2f}\n"
+        f"x center = {final_center_oversampled[0]:.2f}\n"
+        f"y center = {final_center_oversampled[1]:.2f}\n"
         f"scale radius [pixels] = {params[3]:.2f}\n"
         f"q (axis ratio) = {params[4]:.2f}\n"
         f"position angle = {params[5]:.2f}\n"
@@ -582,6 +583,10 @@ for row in tqdm(fits_catalog):
         estimated_bg,
         bg_scatter,
         (row["x"] - x_min, row["y"] - y_min),
+        (
+            row["x_pix_snapshot_oversampled_best"],
+            row["y_pix_snapshot_oversampled_best"],
+        ),
     )
 
     row["profile_mad"] = profile_mad
