@@ -431,7 +431,7 @@ def plot_model_set(
     ax_m.scatter([x_image], [y_image], marker="x", c="w")
     # then add LEGUS's center to the data and mask plot
     for ax in [ax_d, ax_m]:
-        ax.scatter([old_center[0]], [old_center[0]], marker="x", c="0.5")
+        ax.scatter([old_center[0]], [old_center[1]], marker="x", c="0.5")
 
     # Then make the radial plots. first background subtract
     cluster_snapshot -= params[7]
