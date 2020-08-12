@@ -57,9 +57,10 @@ psf /= np.sum(psf)
 sigma_data = fits.open(sigma_image_path)["PRIMARY"].data
 mask_data = fits.open(mask_image_path)["PRIMARY"].data
 clusters_table = table.Table.read(cluster_catalog_path, format="ascii.ecsv")
-# if we're Ryon-like, do no masking, so the mask will just be ones
+# if we're Ryon-like, do no masking, so the mask will just be -2 (the value for no
+# masked region)
 if ryon_like:
-    mask_data = np.ones(mask_data.shape)
+    mask_data = np.ones(mask_data.shape) * -2
 
 snapshot_size_oversampled = snapshot_size * oversampling_factor
 
@@ -445,9 +446,7 @@ for row in tqdm(clusters_table):
     error_snapshot = sigma_data[y_min:y_max, x_min:x_max].copy()
     mask_snapshot = mask_data[y_min:y_max, x_min:x_max].copy()
 
-    mask_snapshot = fit_utils.handle_mask(
-        mask_snapshot, row["x"] - x_min, row["y"] - y_min
-    )
+    mask_snapshot = fit_utils.handle_mask(mask_snapshot, row["ID"])
 
     # then do this fitting!
     results, history = fit_model(data_snapshot, error_snapshot, mask_snapshot)

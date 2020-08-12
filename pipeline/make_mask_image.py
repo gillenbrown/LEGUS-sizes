@@ -2,12 +2,14 @@
 make_mask_image.py - Create the mask for a given image.
 
 We mask out bright sources near clusters, but do not consider the whole image to save
-time. Here the mask will contain the following values.
-0 - pixel value never to be used
-1 - pixel always allowed to be used
-2 - pixel is close to a cluster. In the fitting, determine whether this value is at the
-    center of the fitted region. If so, leave it as a pixel to be fitted. If not, mask
-    it, as it indicates a nearby cluster that could contaminate the image.
+time. Here the mask will contain these possible values
+-2 - never mask
+-1 - always mask
+any other value - this pixel should be masked for all clusters other than the one with
+                  this ID.
+These can be postprocessed to turn this into an actual mask. We do this rather
+complicated method so that we can mask other clusters if they're close to a cluster, but
+then keep the cluster when we need to fit it later.
 
 This script takes the following parameters:
 - Path where the final mask image will be saved
@@ -101,9 +103,13 @@ def find_stars(data_snapshot, uncertainty_snapshot):
 
     xs = peaks_table["xcentroid"].data
     ys = peaks_table["ycentroid"].data
-    fwhm = peaks_table["fwhm"].data
+    mask_radius = peaks_table["fwhm"].data * star_radius_fwhm_multiplier
+    blank = np.ones(xs.shape) * -1
 
-    return table.Table([xs, ys, fwhm], names=["x", "y", "fwhm"])
+    return table.Table(
+        [xs, ys, mask_radius, blank, blank],
+        names=["x", "y", "mask_radius", "near_cluster", "is_cluster"],
+    )
 
 
 # ======================================================================================
@@ -111,7 +117,7 @@ def find_stars(data_snapshot, uncertainty_snapshot):
 # Creating the mask around the clusters
 #
 # ======================================================================================
-mask_data = np.ones(image_data.shape)
+mask_data = np.ones(image_data.shape, dtype=int) * -2
 for cluster in tqdm(clusters_table):
     # create the snapshot. We use ceiling to get the integer pixel values as python
     # indexing does not include the final value. So when we calcualte the offset, it
@@ -124,33 +130,62 @@ for cluster in tqdm(clusters_table):
     y_min = y_cen - int(np.ceil(snapshot_size / 2.0))
     y_max = y_cen + int(np.floor(snapshot_size / 2.0))
 
-    data_snapshot = image_data[y_min:y_max, x_min:x_max]
-    error_snapshot = sigma_data[y_min:y_max, x_min:x_max]
-    # create the mask
+    data_snapshot = image_data[y_min:y_max, x_min:x_max].copy()
+    error_snapshot = sigma_data[y_min:y_max, x_min:x_max].copy()
+    # find the stars
     these_stars = find_stars(data_snapshot, error_snapshot)
     # change the x and y coordinates from the snapshot coords to image coords
     these_stars["x"] += x_min
     these_stars["y"] += y_min
 
-    # then mask the pixels found here, as well as the cluster itself
-    for x_idx in range(x_min, x_max):
-        x = x_idx + 0.5  # to get pixel center
-        for y_idx in range(y_min, y_max):
-            y = y_idx + 0.5  # to get pixel center
-            dist_cluster = distance(x, y, cluster["x"], cluster["y"])
-            # mark the cluster
-            if dist_cluster < cluster_mask_radius:
-                mask_data[y_idx][x_idx] = 2
-            # then go through each star and see if it's close
-            for star in these_stars:
-                dist_star = distance(x, y, star["x"], star["y"])
-                # don't mark pixels that have already been marked as clusters
-                if (
-                    dist_star < star_radius_fwhm_multiplier * star["fwhm"]
-                    and mask_data[y_idx][x_idx] < 1.5
-                ):
-                    mask_data[y_idx][x_idx] = 0
+    # figure out which stars are near clusters
+    for star in these_stars:
+        for c in clusters_table:
+            dist_to_cluster = distance(star["x"], star["y"], c["x"], c["y"])
+            # if it's close to the cluster, we won't even bother marking this source
+            if dist_to_cluster < 2:
+                these_stars["is_cluster"] = c["ID"]
+            # otherwise, mark stars that will have any overlap with the fit region
+            max_dist = star["mask_radius"] + cluster_mask_radius
+            if dist_to_cluster < max_dist:
+                star["near_cluster"] = c["ID"]
 
+    # then mask the pixels found here, as well as the cluster itself. We do this here
+    # so that we don't have to iterate over the whole image
+    for x in range(x_min, x_max):
+        for y in range(y_min, y_max):
+            # mark the cluster. We only need to check this cluster since we'll go
+            # through all of them individually
+            if distance(x, y, cluster["x"], cluster["y"]) < cluster_mask_radius:
+                # if there is overlap between regions of different clusters, leave it
+                # as unmasked.
+                if mask_data[y][x] < 0:
+                    mask_data[y][x] = cluster["ID"]
+                else:
+                    mask_data[y][x] = -2
+
+            # then go through each star
+            for star in these_stars:
+                if star["is_cluster"] >= 0:
+                    continue
+                # if this pixel is close to the star, we'll need to mask
+                if distance(x, y, star["x"], star["y"]) < star["mask_radius"]:
+                    # if it's close to a cluster, mark that value
+                    if star["near_cluster"] >= 0:
+                        # there should be no overlap with something already marked to
+                        # belong to one cluster, unless it's the same cluster
+                        assert (
+                            mask_data[y][x] < 0
+                            or mask_data[y][x] == star["near_cluster"]
+                        )
+                        mask_data[y][x] = star["near_cluster"]
+                    # if it's not near a cluster, it could overlap with one that is.
+                    # if that's the case, go ahead and mark this pixel. By our
+                    # definition of what it means to be near a cluster, this will not
+                    # overlap with any pixels in the cluster itself, only in stars that
+                    # are near the cluster.
+                    else:
+                        mask_data[y][x] = -1
 
 # ======================================================================================
 #

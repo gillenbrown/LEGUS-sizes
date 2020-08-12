@@ -102,7 +102,7 @@ def create_model_image(
     return model_image, model_psf_image, model_psf_bin_image
 
 
-def handle_mask(mask_snapshot, x_c, y_c):
+def handle_mask(mask_snapshot, cluster_id):
     """
     Mask/unmask the cluster appropriately
 
@@ -112,14 +112,18 @@ def handle_mask(mask_snapshot, x_c, y_c):
     """
     for x in range(mask_snapshot.shape[1]):
         for y in range(mask_snapshot.shape[0]):
-            if mask_snapshot[y, x] == 2:  # only look at cluster pixels
-                # have a bit of wiggle room on which are classified as close enough
-                # to be cluster, I want to be a little careful. Use nearby pixels,
-                # but not far away ones
-                if distance(x, y, x_c, y_c) < 8:
-                    mask_snapshot[y, x] = 1
-                else:
-                    mask_snapshot[y, x] = 0
+            # -2 means it's always good
+            if mask_snapshot[y, x] == -2:
+                mask_snapshot[y, x] = 1
+            # -1 means always bad
+            elif mask_snapshot[y, x] == -1:
+                mask_snapshot[y, x] = 0
+            # otherwise, the value will be the cluster ID for which this pixel needs to
+            # be unmasked. Figure out whether that is our cluster
+            elif mask_snapshot[y, x] == cluster_id:
+                mask_snapshot[y, x] = 1
+            else:  # mask this region
+                mask_snapshot[y, x] = 0
     return mask_snapshot
 
 

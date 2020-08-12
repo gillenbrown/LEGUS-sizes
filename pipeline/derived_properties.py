@@ -550,9 +550,7 @@ for row in tqdm(fits_catalog):
     snapshot_x_cen = row["x_fitted_best"] - x_min
     snapshot_y_cen = row["y_fitted_best"] - y_min
     # Use the same mask region as was used in the actual fitting procedure
-    mask_snapshot = fit_utils.handle_mask(
-        mask_snapshot, row["x"] - x_min, row["y"] - y_min
-    )
+    mask_snapshot = fit_utils.handle_mask(mask_snapshot, row["ID"])
 
     # then get the parameters and calculate a few things of interest
     params = [
