@@ -441,9 +441,9 @@ for row in tqdm(clusters_table):
     y_min = y_cen - int(np.ceil(snapshot_size / 2.0))
     y_max = y_cen + int(np.floor(snapshot_size / 2.0))
 
-    data_snapshot = image_data[y_min:y_max, x_min:x_max]
-    error_snapshot = sigma_data[y_min:y_max, x_min:x_max]
-    mask_snapshot = mask_data[y_min:y_max, x_min:x_max]
+    data_snapshot = image_data[y_min:y_max, x_min:x_max].copy()
+    error_snapshot = sigma_data[y_min:y_max, x_min:x_max].copy()
+    mask_snapshot = mask_data[y_min:y_max, x_min:x_max].copy()
 
     mask_snapshot = fit_utils.handle_mask(
         mask_snapshot, row["x"] - x_min, row["y"] - y_min
