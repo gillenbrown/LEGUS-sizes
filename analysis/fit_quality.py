@@ -50,7 +50,7 @@ params = {
 }
 param_limits = {
     "central_surface_brightness_best": (10, 1e8),
-    "scale_radius_pixels_best": (1e-7, 1e4),
+    "scale_radius_pixels_best": (1e-2, 1e3),
     "axis_ratio_best": (-0.05, 1.05),
     "position_angle_best": (0, np.pi),
     "power_law_slope_best": (0, 3),

@@ -42,10 +42,16 @@ axs[1].add_labels("X Position [pixels]", "Number of Clusters")
 axs[2].hist(big_catalog["y_pix_snapshot_oversampled_best"], bin_size=0.25)
 axs[2].add_labels("Y Position [pixels]", "Number of Clusters")
 
-axs[3].hist(big_catalog["scale_radius_pixels_best"], bins=np.logspace(-10, 5, 41))
+x_min, x_max = 0.03, 200
+axs[3].hist(
+    big_catalog["scale_radius_pixels_best"],
+    bins=np.logspace(np.log10(x_min), np.log10(x_max), 41),
+)
 axs[3].add_labels("Scale Radius [pixels]", "Number of Clusters")
-axs[3].set_limits(1e-10, 1e5)
+axs[3].set_limits(x_min, x_max)
 axs[3].set_xscale("log")
+axs[3].axvline(0.1, ls=":")
+axs[3].axvline(15, ls=":")
 
 axs[4].hist(big_catalog["axis_ratio_best"], bin_size=0.05)
 axs[4].add_labels("Axis ratio", "Number of Clusters")
@@ -54,7 +60,6 @@ axs[4].set_limits(0, 1.05)
 axs[5].hist(big_catalog["position_angle_best"] % np.pi, bins=np.linspace(0, np.pi, 21))
 axs[5].add_labels("Position Angle", "Number of Clusters")
 axs[5].set_limits(0, np.pi)
-axs[5].axvline(np.pi / 2, ls=":")
 
 axs[6].hist(big_catalog["power_law_slope_best"], bins=np.arange(0, 10, 0.5))
 axs[6].add_labels("$\eta$ (Power Law Slope)", "Number of Clusters")
