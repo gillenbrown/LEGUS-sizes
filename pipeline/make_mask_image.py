@@ -144,7 +144,7 @@ for cluster in tqdm(clusters_table):
             dist_to_cluster = distance(star["x"], star["y"], c["x"], c["y"])
             # if it's close to the cluster, we won't even bother marking this source
             if dist_to_cluster < 2:
-                these_stars["is_cluster"] = c["ID"]
+                star["is_cluster"] = c["ID"]
             # otherwise, mark stars that will have any overlap with the fit region
             max_dist = star["mask_radius"] + cluster_mask_radius
             if dist_to_cluster < max_dist:
