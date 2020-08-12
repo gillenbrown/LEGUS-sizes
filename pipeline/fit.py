@@ -350,7 +350,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     # allowing the axis ratio and scale radius to be negative. They get squared in the
     # EFF profile anyway, so their sign doesn't matter. They are singular at a=0 and
     # q=0, but hopefully floating point values will stop that from being an issue
-    center_half_width = 3 * oversampling_factor
+    center_half_width = 2 * oversampling_factor
     bounds = [
         (None, 100),  # log of peak brightness.
         (center - center_half_width, center + center_half_width),  # X center
