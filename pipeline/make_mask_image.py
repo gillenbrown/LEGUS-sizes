@@ -37,7 +37,7 @@ mask_image_path = Path(sys.argv[1]).absolute()
 cluster_catalog_path = Path(sys.argv[2]).absolute()
 sigma_image_path = Path(sys.argv[3]).absolute()
 
-snapshot_size = 60  # just to be safe, have a large radius where we mask
+snapshot_size = 70  # just to be safe, have a large radius where we mask
 cluster_mask_radius = 6
 min_closeness = 3  # how far stars have to stay away from the center
 star_radius_fwhm_multiplier = 2  # We mask pixels that are within this*FWHM of a star
@@ -73,7 +73,7 @@ def find_stars(data_snapshot, uncertainty_snapshot):
     star_finder = photutils.detection.IRAFStarFinder(
         threshold=threshold + np.min(data_snapshot),
         fwhm=2.0,  # slightly larger than real PSF, to get extended sources
-        exclude_border=False,
+        exclude_border=True,
         sharplo=0.8,
         sharphi=5,
         roundlo=0.0,
@@ -122,7 +122,85 @@ def find_stars(data_snapshot, uncertainty_snapshot):
 # Creating the mask around the clusters
 #
 # ======================================================================================
-mask_data = np.ones(image_data.shape, dtype=int) * -2
+# As I modify things, I will replace each pixel value with one of the following
+# - not set yet
+# - is wanted to be unmasked by multiple clusters, so it must be unmasked
+# - an isolated star is here
+# any nonnegative value: The ID of a cluster than wants this pixel unmasked
+# these flag values are chosen to be things that will not be in the output
+unset_flag = -10
+multiple_cluster_unmasked_flag = -20
+isolated_star_mask_flag = -30
+
+
+def pixel_is_unset(x, y):
+    return mask_data[y][x] == unset_flag
+
+
+def pixel_is_single_cluster(x, y):
+    return mask_data[y][x] >= 0
+
+
+def pixel_is_this_cluster(x, y, cluster_id):
+    return mask_data[y][x] == cluster_id
+
+
+def pixel_is_multiple_clusters(x, y):
+    return mask_data[y][x] == multiple_cluster_unmasked_flag
+
+
+def pixel_is_isolated_star(x, y):
+    return mask_data[y][x] == isolated_star_mask_flag
+
+
+def set_pixel_multiple_clusters(x, y):
+    mask_data[y][x] = multiple_cluster_unmasked_flag
+
+
+def set_pixel_isolated_star(x, y):
+    mask_data[y][x] = isolated_star_mask_flag
+
+
+def set_pixel_single_cluster(x, y, cluster_id):
+    mask_data[y][x] = cluster_id
+
+
+def handle_cluster_pixel(x, y, cluster_id):
+    """
+    Handle a pixel that wants to be unmasked by one cluster, but masked for all others.
+
+    - If this pixel already wants to be masked by another cluster, we'll mark that it
+      wants to be unmasked by multiple clusters.
+    - If the pixel is currently told to be always masked, we'll update it to be masked
+      for all clusters except this one
+    - If the pixel is unset, we'll update it to be masked for all clusters except this
+      one.
+    - If the pixel already wants to be masked by multiple clusters, we will not modify
+      that, as we would be adding another cluster there.
+
+    :param x: X pixel location
+    :param y: Y pixel location
+    :param cluster_id: ID of the cluster that wants to have this pixel unmasked.
+    :return: None, but sets the pixel value appropriateoy
+    """
+    if pixel_is_multiple_clusters(x, y):
+        return  # just for clarity for myself
+    # mark pixels that are either not set or that have been marked as
+    # isolated stars.
+    elif pixel_is_unset(x, y) or pixel_is_isolated_star(x, y):
+        set_pixel_single_cluster(x, y, cluster_id)
+    # if multiple clusters want this pixel unmasked, mark that multiple
+    # clusters want it
+    elif pixel_is_single_cluster(x, y) and not pixel_is_this_cluster(x, y, cluster_id):
+        set_pixel_multiple_clusters(x, y)
+    elif pixel_is_single_cluster(x, y) and pixel_is_this_cluster(x, y, cluster_id):
+        # already set, do nothing
+        return
+    else:
+        raise RuntimeError("Should not happen")
+
+
+mask_data = np.ones(image_data.shape, dtype=int) * unset_flag
 for cluster in tqdm(clusters_table):
     # create the snapshot. We use ceiling to get the integer pixel values as python
     # indexing does not include the final value. So when we calcualte the offset, it
@@ -159,15 +237,10 @@ for cluster in tqdm(clusters_table):
     # so that we don't have to iterate over the whole image
     for x in range(x_min, x_max):
         for y in range(y_min, y_max):
-            # mark the cluster. We only need to check this cluster since we'll go
-            # through all of them individually
+            # mark the pixels that need to be unmasked for this cluster because they're
+            # close to it.
             if distance(x, y, cluster["x"], cluster["y"]) < cluster_mask_radius:
-                # if there is overlap between regions of different clusters, leave it
-                # as unmasked.
-                if mask_data[y][x] < 0:
-                    mask_data[y][x] = cluster["ID"]
-                else:
-                    mask_data[y][x] = -2
+                handle_cluster_pixel(x, y, cluster["ID"])
 
             # then go through each star
             for star in these_stars:
@@ -177,20 +250,34 @@ for cluster in tqdm(clusters_table):
                 if distance(x, y, star["x"], star["y"]) < star["mask_radius"]:
                     # if it's close to a cluster, mark that value
                     if star["near_cluster"] >= 0:
-                        # there should be no overlap with something already marked to
-                        # belong to one cluster, unless it's the same cluster
-                        assert (
-                            mask_data[y][x] < 0
-                            or mask_data[y][x] == star["near_cluster"]
-                        )
-                        mask_data[y][x] = star["near_cluster"]
-                    # if it's not near a cluster, it could overlap with one that is.
-                    # if that's the case, go ahead and mark this pixel. By our
-                    # definition of what it means to be near a cluster, this will not
-                    # overlap with any pixels in the cluster itself, only in stars that
-                    # are near the cluster.
-                    else:
-                        mask_data[y][x] = -1
+                        # This pixel wants to be masked by a star that is near a cluster
+                        # So this pixel needs to be marked with the value of that
+                        # cluster, so it will be unmasked for that cluster only.
+                        # This is equivalent to what happens when a cluster wants a
+                        # pixel masked
+                        handle_cluster_pixel(x, y, star["near_cluster"])
+                    # we now have an isolated star. Only modify pixels that are so
+                    # far unmodified. If multiple clusters want this unmasked, leave it
+                    # that way. If it's already marked as needing to be unmasked for a
+                    # certain cluster, that's fine, leave it that way, as that's a more
+                    # restrictive criteria than this.
+                    elif pixel_is_unset(x, y):
+                        set_pixel_isolated_star(x, y)
+
+# ======================================================================================
+#
+# Then postprocess this
+#
+# ======================================================================================
+# in the output -2 is always good, -1 is always bad, and any other value means the
+# cluster wants to be there.
+# if the value has not been set for a given pixel yet, it's good
+mask_data[mask_data == unset_flag] = -2
+# if it's -100, multiple clusters want it, so we'll make those good
+mask_data[mask_data == multiple_cluster_unmasked_flag] = -2
+# isolated stars are masked
+mask_data[mask_data == isolated_star_mask_flag] = -1
+# the only other thing is the clusters, which need to be left alone
 
 # ======================================================================================
 #
