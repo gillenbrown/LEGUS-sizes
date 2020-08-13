@@ -200,7 +200,7 @@ def priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
 
     :return: Total prior probability for the given model.
     """
-    return flat_with_lognormal_edges(abs(a), 0.1, 15, 0.05)
+    return flat_with_lognormal_edges(a, 0.1, 15, 0.05)
 
 
 def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
@@ -218,8 +218,6 @@ def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
     :return:
     """
     chi_sq = calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask)
-    # the exponential gives zeros for very large chi squared values, have a bit of a
-    # normalization to correct for that.
     log_data_likelihood = -chi_sq
     # Need to postprocess the parameters before calculating the prior, as the prior
     # is on the physically reasonable values, we need to make sure that's correct.
@@ -338,9 +336,9 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         center,  # X center in the oversampled snapshot
         center,  # Y center in the oversampled snapshot
         0.5,  # scale radius, in regular pixels. Start small to avoid fitting other things
-        1.0,  # axis ratio
+        0.8,  # axis ratio
         0.0,  # position angle
-        5.0,  # power law slope. Start high to give a sharp cutoff and avoid other stuff
+        2.5,  # power law slope. Start high to give a sharp cutoff and avoid other stuff
         np.min(data_snapshot),  # background
     )
 
@@ -415,10 +413,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
                 else:  # actually calculate the change
                     last_std = param_std_last[param_idx]
                     diff = abs((this_std - last_std) / this_std)
-                    if diff < converge_criteria:
-                        converged[param_idx] = True
-                    else:
-                        converged[param_idx] = False
+                    converged[param_idx] = diff < converge_criteria
 
                 # then set the new last value
                 param_std_last[param_idx] = this_std
