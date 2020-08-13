@@ -38,7 +38,9 @@ big_catalog["success"] = big_catalog["x_pix_snapshot_oversampled_best"] != 26.00
 big_catalog["success"] = np.logical_and(
     big_catalog["success"], big_catalog["x_pix_snapshot_oversampled_best"] != 34.00
 )
-big_catalog["success"] = big_catalog["y_pix_snapshot_oversampled_best"] != 26.00
+big_catalog["success"] = np.logical_and(
+    big_catalog["success"], big_catalog["y_pix_snapshot_oversampled_best"] != 26.00
+)
 big_catalog["success"] = np.logical_and(
     big_catalog["success"], big_catalog["y_pix_snapshot_oversampled_best"] != 34.00
 )
@@ -52,16 +54,21 @@ success_mask = big_catalog["success"].data
 # ======================================================================================
 # I'll have several things that need to be tracked for each parameter
 params = {
-    # "central_surface_brightness_best": "Central Surface Brightness [e$^-$]",
+    "central_surface_brightness_best": "Central Surface Brightness [e$^-$]",
+    "x_pix_snapshot_oversampled_best": "X Center",
+    "y_pix_snapshot_oversampled_best": "Y Center",
     "scale_radius_pixels_best": "Scale Radius [pixels]",
     "axis_ratio_best": "Axis Ratio",
-    # "position_angle_best": "Position Angle",
+    "position_angle_best": "Position Angle",
     "power_law_slope_best": "$\eta$ (Power Law Slope)",
-    # "local_background_best": "Local Background [e$^-$]",
+    "local_background_best": "Local Background [e$^-$]",
 }
+plot_params = ["scale_radius_pixels_best", "axis_ratio_best", "power_law_slope_best"]
 param_limits = {
     "central_surface_brightness_best": (10, 1e8),
-    "scale_radius_pixels_best": (1e-4, 1e4),
+    "x_pix_snapshot_oversampled_best": (25, 35),
+    "y_pix_snapshot_oversampled_best": (25, 35),
+    "scale_radius_pixels_best": (0.05, 40),
     "axis_ratio_best": (-0.05, 1.05),
     "position_angle_best": (0, np.pi),
     "power_law_slope_best": (0, 3),
@@ -69,6 +76,8 @@ param_limits = {
 }
 param_scale = {
     "central_surface_brightness_best": "log",
+    "x_pix_snapshot_oversampled_best": "linear",
+    "y_pix_snapshot_oversampled_best": "linear",
     "scale_radius_pixels_best": "log",
     "axis_ratio_best": "linear",
     "position_angle_best": "linear",
@@ -77,7 +86,9 @@ param_scale = {
 }
 param_bins = {
     "central_surface_brightness_best": np.logspace(1, 8, 41),
-    "scale_radius_pixels_best": np.logspace(-4, 4, 41),
+    "x_pix_snapshot_oversampled_best": np.arange(25, 35, 0.25),
+    "y_pix_snapshot_oversampled_best": np.arange(25, 35, 0.25),
+    "scale_radius_pixels_best": np.logspace(-1.4, 1.4, 41),
     "axis_ratio_best": np.arange(-0.1, 1.1, 0.05),
     "position_angle_best": np.arange(0, 3.5, 0.1),
     "power_law_slope_best": np.arange(0, 3.2, 0.1),
@@ -131,6 +142,9 @@ def get_percentiles(xs, ys, percentile, bins, bin_scale):
     return bin_centers, ys_percentiles
 
 
+success_color = bpl.color_cycle[0]
+failure_color = bpl.color_cycle[3]
+
 # ======================================================================================
 #
 # Then make the plot
@@ -138,10 +152,10 @@ def get_percentiles(xs, ys, percentile, bins, bin_scale):
 # ======================================================================================
 # This will have several columns for different parameters, with the rows being the
 # different ways of assessing each parameter
-fig = plt.figure(figsize=[6 * len(params), 4 * (1 + len(indicators))])
+fig = plt.figure(figsize=[6 * len(plot_params), 4 * (1 + len(indicators))])
 gs = gridspec.GridSpec(
     nrows=len(indicators) + 1,
-    ncols=len(params),
+    ncols=len(plot_params),
     wspace=0.2,
     hspace=0.1,
     left=0.1,
@@ -151,14 +165,14 @@ gs = gridspec.GridSpec(
 )
 
 # Then go through and make the columns
-for idx_p, param in enumerate(params):
+for idx_p, param in enumerate(plot_params):
     # add the histogram
     ax = fig.add_subplot(gs[0, idx_p], projection="bpl")
     ax.hist(
         big_catalog[param][success_mask],
         bins=param_bins[param],
         histtype="step",
-        color=bpl.color_cycle[0],
+        color=success_color,
         lw=2,
         label="Success",
     )
@@ -166,7 +180,7 @@ for idx_p, param in enumerate(params):
         big_catalog[param][~success_mask],
         bins=param_bins[param],
         histtype="step",
-        color=bpl.color_cycle[3],
+        color=failure_color,
         lw=2,
         label="Failure",
     )
@@ -185,7 +199,7 @@ for idx_p, param in enumerate(params):
         ax.scatter(
             big_catalog[param][success_mask],
             big_catalog[indicator][success_mask],
-            c=bpl.color_cycle[0],
+            c=success_color,
             alpha=1,
             s=1,
             zorder=2,
@@ -193,7 +207,7 @@ for idx_p, param in enumerate(params):
         ax.scatter(
             big_catalog[param][~success_mask],
             big_catalog[indicator][~success_mask],
-            c=bpl.color_cycle[3],
+            c=failure_color,
             alpha=1,
             s=1,
             zorder=2,
@@ -212,7 +226,7 @@ for idx_p, param in enumerate(params):
                 xs,
                 ys,
                 c=bpl.almost_black,
-                lw=2 * (1 - (abs(percentile - 50) / 50)) + 0.5,
+                lw=1.5 * (1 - (abs(percentile - 50) / 50)) + 0.5,
                 zorder=1,
             )
             ax.text(
@@ -245,7 +259,7 @@ fig.savefig(plot_name)
 fig, axs = bpl.subplots(ncols=3, figsize=[20, 6])
 axs = axs.flatten()
 
-x_param = "power_law_slope_best"
+x_param = "axis_ratio_best"
 y_param = "scale_radius_pixels_best"
 for ax, color_ind in zip(axs, indicators):
 
@@ -256,10 +270,14 @@ for ax, color_ind in zip(axs, indicators):
         cmap = cmocean.cm.rain
         norm = colors.LogNorm(vmin=0.5, vmax=10)
     else:
-        cmap = colorcet.m_bkr
+        cmap = bpl.cm.tofino
         norm = colors.Normalize(vmin=-1, vmax=1)
     mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
     point_colors = [mappable.to_rgba(c) for c in big_catalog[color_ind]]
+    # turn failures red
+    for idx in range(len(point_colors)):
+        if not success_mask[idx]:
+            point_colors[idx] = "red"
 
     ax.scatter(big_catalog[x_param], big_catalog[y_param], c=point_colors, s=2, alpha=1)
     ax.add_labels(params[x_param], params[y_param])
@@ -270,6 +288,100 @@ for ax, color_ind in zip(axs, indicators):
     cbar.set_label(indicators[color_ind])
     ax.axhline(0.1, ls=":")
 fig.savefig(plot_name.parent / "param_correlation.png")
+
+# ======================================================================================
+#
+# Make a corner plot showing the correlation between all parameters
+#
+# ======================================================================================
+fig, axs = bpl.subplots(
+    nrows=len(params),
+    ncols=len(params),
+    figsize=[5 * len(params), 5 * len(params)],
+    sharex=False,
+    sharey=False,
+    gridspec_kw={"hspace": 0, "wspace": 0},
+)
+for idx_row, param_row in enumerate(params):
+    for idx_col, param_col in enumerate(params):
+        # get the axis at this location
+        ax = axs[idx_row][idx_col]
+        # If the labels are the same, plot the histogram
+        if param_col == param_row:
+            ax.hist(
+                big_catalog[param_col][success_mask],
+                bins=param_bins[param_col],
+                histtype="step",
+                lw=2,
+                color=success_color,
+            )
+            ax.hist(
+                big_catalog[param_col][~success_mask],
+                bins=param_bins[param_col],
+                histtype="step",
+                lw=2,
+                color=failure_color,
+            )
+            ax.set_limits(*param_limits[param_col])
+            ax.set_xscale(param_scale[param_col])
+
+        # Then plot the scatterplots
+        elif idx_col < idx_row:
+            ax.scatter(
+                big_catalog[param_col][success_mask],
+                big_catalog[param_row][success_mask],
+                s=1,
+                c=success_color,
+                alpha=1,
+            )
+            ax.scatter(
+                big_catalog[param_col][~success_mask],
+                big_catalog[param_row][~success_mask],
+                s=1,
+                c=failure_color,
+                alpha=1,
+            )
+            ax.set_limits(*param_limits[param_col], *param_limits[param_row])
+            ax.set_xscale(param_scale[param_col])
+            ax.set_yscale(param_scale[param_row])
+        else:
+            # make a 2d histogram
+            hist, x_edges, y_edges = np.histogram2d(
+                big_catalog[param_col],
+                big_catalog[param_row],
+                bins=[param_bins[param_col], param_bins[param_row]],
+            )
+            hist = hist.transpose()
+            ax.pcolormesh(x_edges, y_edges, hist, cmap="Greys")
+            ax.set_limits(*param_limits[param_col], *param_limits[param_row])
+            ax.set_xscale(param_scale[param_col])
+            ax.set_yscale(param_scale[param_row])
+
+        # move all ticks to the inside
+        ax.tick_params(axis="x", top=True, bottom=True, direction="in")
+        ax.tick_params(axis="y", left=True, right=True, direction="in")
+        # Then handle where the labels go. If we're in the left column, show the label
+        if idx_col == 0:
+            ax.add_labels(y_label=params[param_row])
+        # put the labels on the right if we're on the last one
+        elif idx_col == len(params) - 1:
+            ax.add_labels(y_label=params[param_row])
+            ax.yaxis.set_label_position("right")
+        else:
+            ax.remove_labels("y")
+
+        # add the X label if we're in the bottom row
+        if idx_row == len(params) - 1:
+            ax.add_labels(x_label=params[param_col])
+        elif idx_row == 0:  # put the label on top for the top row
+            ax.add_labels(x_label=params[param_col])
+            ax.xaxis.set_label_position("top")
+        # if we're not on the bottom row, don't show the x labels
+        else:
+            ax.remove_labels("x")
+
+
+fig.savefig(plot_name.parent / "corner.png", dpi=100)
 
 # for row in big_catalog:
 #     if (
