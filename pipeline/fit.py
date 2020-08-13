@@ -221,7 +221,9 @@ def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
     # the exponential gives zeros for very large chi squared values, have a bit of a
     # normalization to correct for that.
     log_data_likelihood = -chi_sq
-    prior = priors(*params)
+    # Need to postprocess the parameters before calculating the prior, as the prior
+    # is on the physically reasonable values, we need to make sure that's correct.
+    prior = priors(*postprocess_params(*params))
     if prior > 0:
         log_prior = np.log(prior)
     else:
@@ -309,7 +311,7 @@ def postprocess_params(log_mu_0, x_c, y_c, a, q, theta, eta, background):
     if q > 1.0:
         q_final = 1.0 / q
         a_final = a * q
-        theta_final = (theta - (np.pi / 4.0)) % np.pi
+        theta_final = (theta - (np.pi / 2.0)) % np.pi
         return log_mu_0, x_c, y_c, a_final, q_final, theta_final, eta, background
     else:
         return log_mu_0, x_c, y_c, a, q, theta % np.pi, eta, background
