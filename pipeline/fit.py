@@ -411,6 +411,15 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         args=(data_snapshot, uncertainty_snapshot, mask),
         x0=params,
         bounds=bounds,
+        method="L-BFGS-B",  # default method when using bounds
+        options={
+            "ftol": 2e-09,  # default value has more sig figs, but is close to this
+            "gtol": 1e-5,  # stopping value of the gradient, default value
+            "eps": 1e-8,  # absolute step size for the gradient calculation, default
+            "maxfun": np.inf,  # max number of function evaluations
+            "maxiter": np.inf,  # max number of iterations
+            "maxls": 50,  # max line search steps per iteration. Default is 20
+        },
     )
     # postprocess these parameters
     initial_result = postprocess_params(*initial_result_struct.x)
