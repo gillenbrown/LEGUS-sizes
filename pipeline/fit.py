@@ -369,16 +369,19 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     """
     # Create the initial guesses for the parameters
     center = snapshot_size_oversampled / 2.0
-    params = (
-        np.log10(np.max(data_snapshot) * 3),  # log of peak brightness.
+    pi4 = np.pi / 4.0
+    start_params = (
+        [np.log10(np.max(data_snapshot) * 3)]*7,  # log of peak brightness.
         # Increase that to account for bins, as peaks will be averaged lower.
-        center,  # X center in the oversampled snapshot
-        center,  # Y center in the oversampled snapshot
-        0.5,  # scale radius, in regular pixels. Start small to avoid fitting other things
-        0.8,  # axis ratio
-        0.0,  # position angle
-        2.5,  # power law slope. Start high to give a sharp cutoff and avoid other stuff
-        np.min(data_snapshot),  # background
+        [center]*7,  # X center in the oversampled snapshot
+        [center]*7,  # Y center in the oversampled snapshot
+        # scale radius, in regular pixels. Start small to avoid fitting other things
+        [1.0, 5.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+        [0.8, 0.8, 0.6, 1.0, 0.8, 0.8, 0.8],  # axis ratio
+        [pi4, pi4, pi4, pi4, -pi4, pi4, pi4],  # position angle
+        # power law slope. Start high to give a sharp cutoff and avoid other stuff
+        [2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 5.0],
+        [np.min(data_snapshot)]*7,  # background
     )
 
     # some of the bounds are not used because we put priors on them. We don't use priors
@@ -409,7 +412,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     initial_result_struct = optimize.minimize(
         negative_log_likelihood,
         args=(data_snapshot, uncertainty_snapshot, mask),
-        x0=params,
+        x0=[p[0] for p in start_params],
         bounds=bounds,
         method="L-BFGS-B",  # default method when using bounds
         options={
@@ -422,49 +425,74 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         },
     )
     # postprocess these parameters
-    initial_result = postprocess_params(*initial_result_struct.x)
+    initial_result = initial_result_struct.x
 
     # Then we do bootstrapping
     n_variables = len(initial_result)
-    param_history = [[0.7] for _ in range(n_variables)]
+    param_history = [[] for _ in range(n_variables)]
     param_std_last = [np.inf for _ in range(n_variables)]
 
-    converge_criteria = 0.5  # fractional change in std required for convergence
-    converged = [False for _ in range(n_variables)]
-    check_spacing = 1  # how many iterations between checking the std
-    iteration = 0
-    while False:  # not all(converged):
-        iteration += 1
-
-        # make a new mask
-        temp_mask = create_boostrap_mask(mask, initial_result[1], initial_result[2])
-
-        # fit to this selection of pixels
+    # take over this bootstrapping process for out multiple starting point experiment
+    for s_idx in range(len(start_params[0])):
         this_result_struct = optimize.minimize(
-            calculate_chi_squared,
-            args=(data_snapshot, uncertainty_snapshot, temp_mask),
-            x0=params,  # don't use the initial result, to avoid local minima
-            bounds=bounds,
+                negative_log_likelihood,
+                args=(data_snapshot, uncertainty_snapshot, mask),
+                x0=[p[s_idx] for p in start_params],
+                bounds=bounds,
+                method="L-BFGS-B",  # default method when using bounds
+                options={
+                    "ftol":    2e-09,
+                    # default value has more sig figs, but is close to this
+                    "gtol":    1e-5,  # stopping value of the gradient, default value
+                    "eps":     1e-8,
+                    # absolute step size for the gradient calculation, default
+                    "maxfun":  np.inf,  # max number of function evaluations
+                    "maxiter": np.inf,  # max number of iterations
+                    "maxls":   50,  # max line search steps per iteration. Default is 20
+                },
         )
-        # store the results after processing them
-        this_result = postprocess_params(*this_result_struct.x)
+        # postprocess these parameters
+        this_result = this_result_struct.x
+        # add this to the list
         for param_idx in range(n_variables):
             param_history[param_idx].append(this_result[param_idx])
 
-        # then check if we're converged
-        if iteration % check_spacing == 0:
-            for param_idx in range(n_variables):
-                # calculate the new standard deviation
-                this_std = np.std(param_history[param_idx])
-                if this_std == 0:
-                    converged[param_idx] = True
-                else:  # actually calculate the change
-                    last_std = param_std_last[param_idx]
-                    diff = abs((this_std - last_std) / this_std)
-                    converged[param_idx] = diff < converge_criteria
-
-                # then set the new last value
-                param_std_last[param_idx] = this_std
+    # converge_criteria = 0.5  # fractional change in std required for convergence
+    # converged = [False for _ in range(n_variables)]
+    # check_spacing = 1  # how many iterations between checking the std
+    # iteration = 0
+    # while False:  # not all(converged):
+    #     iteration += 1
+    #
+    #     # make a new mask
+    #     temp_mask = create_boostrap_mask(mask, initial_result[1], initial_result[2])
+    #
+    #     # fit to this selection of pixels
+    #     this_result_struct = optimize.minimize(
+    #         calculate_chi_squared,
+    #         args=(data_snapshot, uncertainty_snapshot, temp_mask),
+    #         x0=params,  # don't use the initial result, to avoid local minima
+    #         bounds=bounds,
+    #     )
+    #     # store the results after processing them
+    #     this_result = postprocess_params(*this_result_struct.x)
+    #     for param_idx in range(n_variables):
+    #         param_history[param_idx].append(this_result[param_idx])
+    #
+    #     # then check if we're converged
+    #     if iteration % check_spacing == 0:
+    #         for param_idx in range(n_variables):
+    #             # calculate the new standard deviation
+    #             this_std = np.std(param_history[param_idx])
+    #             if this_std == 0:
+    #                 converged[param_idx] = True
+    #             else:  # actually calculate the change
+    #                 last_std = param_std_last[param_idx]
+    #                 diff = abs((this_std - last_std) / this_std)
+    #                 converged[param_idx] = diff < converge_criteria
+    #
+    #             # then set the new last value
+    #             param_std_last[param_idx] = this_std
 
     # then we're done!
     return initial_result, np.array(param_history)
