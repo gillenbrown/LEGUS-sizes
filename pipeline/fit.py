@@ -146,9 +146,31 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
     return sum_squared / dof
 
 
-def lognormal(x, mean, log_sigma):
+def center_of_normal(x_value, y_value, sigma, above):
     """
-    Lognormal distribution PDF. This is not normalized to unit
+    Calculate the mean required for a normal distribution with a given width to take
+    the given y value at a specific x value.
+
+    :param x_value: Value at which the normal distribution takes a value of `y_value`.
+    :param x_value: Value of the normal distribution at `x_value`
+    :param above: Whether `x_value` should be a greater value than the returned mean
+                  or not. This is needed since there are two roots, placing the normal
+                  distribution lower or higher than the value paseed in.
+    :return: The mean of normal distribution matching the properties above.
+    """
+    if y_value > 1:
+        raise ValueError("Invalid y_value in `center_of_normal`")
+    # This math can be worked out by hand
+    # mean = x +- sqrt(ln(y^-2))
+    second_term = sigma * np.sqrt(np.log(y_value ** (-2)))
+    if above:
+        second_term *= -1
+    return x_value + second_term
+
+
+def normal(x, mean, sigma):
+    """
+    Normal distribution PDF. This is not normalized to unit
     area, but normalized to a peak value of 1, so function
     in concert with a flat prior.
 
@@ -157,10 +179,10 @@ def lognormal(x, mean, log_sigma):
     :param sigma: Standard deviation of the Gaussian
     :return: Value of the gamma PDF at this location
     """
-    return np.exp(-0.5 * ((np.log10(x) - np.log10(mean)) / log_sigma) ** 2)
+    return np.exp(-0.5 * ((x - mean) / sigma) ** 2)
 
 
-def flat_with_lognormal_edges(x, flat_min, flat_max, side_log_width):
+def flat_with_normal_edges(x, lower_edge, upper_edge, side_log_width, boundary_value):
     """
     Probability density function that is flat with value at 1 in between two
     values, but with a lognormal PDF outside of that, with fixed width on both
@@ -170,18 +192,32 @@ def flat_with_lognormal_edges(x, flat_min, flat_max, side_log_width):
     flat region.
 
     :param x: Value to determine the value of the PDF at.
-    :param flat_min: Minimum value of the flat region
-    :param flat_max: Maximum value of the flat region
-    :param side_log_width: Gaussian width (in dex) of the lognormal distribution
+    :param lower_edge: Lower value (see `mode`)
+    :param upper_edge: Upper value (see `mode`)
+    :param side_log_width: Gaussian width (in dex) of the normal distribution
                            used for the regions on either side.
+    :param boundary_value: The value that the pdf should take at the edges. If this is
+                           1.0, the flat region will extend to the edges. However, if
+                           another is value is preferred at those edges, the flat
+                           region will shrink to make room for that.
     :return:
     """
-    if flat_min <= x <= flat_max:
+    lower_mean = center_of_normal(lower_edge, boundary_value, side_log_width, False)
+    upper_mean = center_of_normal(upper_edge, boundary_value, side_log_width, True)
+
+    if lower_edge > lower_edge:
+        raise ValueError("There is not flat region with these parameters.")
+
+    # check that we did the math right for the shape of the distribution
+    assert np.isclose(normal(lower_edge, lower_mean, side_log_width), boundary_value)
+    assert np.isclose(normal(upper_edge, upper_mean, side_log_width), boundary_value)
+
+    if lower_mean <= x <= upper_mean:
         return 1
-    elif x < flat_min:
-        return lognormal(x, flat_min, side_log_width)
+    elif x < lower_mean:
+        return normal(x, lower_mean, side_log_width)
     else:
-        return lognormal(x, flat_max, side_log_width)
+        return normal(x, upper_mean, side_log_width)
 
 
 def priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
@@ -200,7 +236,10 @@ def priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
 
     :return: Total prior probability for the given model.
     """
-    return flat_with_lognormal_edges(a, 0.1, 15, 0.05)
+    prior = 1
+    prior *= flat_with_normal_edges(np.log10(a), np.log10(0.1), np.log10(15), 0.2, 0.5)
+    prior *= flat_with_normal_edges(q, 0.3, 1.0, 0.1, 1.0)
+    return prior
 
 
 def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
@@ -362,7 +401,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         (None, None),  # axis ratio
         (None, None),  # position angle
         (0, None),  # power law slope
-        (None, None),
+        (None, None),  # background
     ]
 
     # first get the results when all good pixels are used, to be used as a starting
