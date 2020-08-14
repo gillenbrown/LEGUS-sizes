@@ -171,8 +171,10 @@ def handle_cluster_pixel(x, y, cluster_id):
 
     - If this pixel already wants to be masked by another cluster, we'll mark that it
       wants to be unmasked by multiple clusters.
-    - If the pixel is currently told to be always masked, we'll update it to be masked
-      for all clusters except this one
+    - If the pixel is currently told to be always masked, we leave it that way. This is
+      because stars are checked against all clusters when seeing if they're isolated.
+      Overwriting them would stop any stars between `min_closeness` and
+      `cluster_mask_radius` from being masked properly
     - If the pixel is unset, we'll update it to be masked for all clusters except this
       one.
     - If the pixel already wants to be masked by multiple clusters, we will not modify
@@ -183,11 +185,10 @@ def handle_cluster_pixel(x, y, cluster_id):
     :param cluster_id: ID of the cluster that wants to have this pixel unmasked.
     :return: None, but sets the pixel value appropriateoy
     """
-    if pixel_is_multiple_clusters(x, y):
+    if pixel_is_multiple_clusters(x, y) or pixel_is_isolated_star(x, y):
         return  # just for clarity for myself
-    # mark pixels that are either not set or that have been marked as
-    # isolated stars.
-    elif pixel_is_unset(x, y) or pixel_is_isolated_star(x, y):
+    # mark pixels that are not set
+    elif pixel_is_unset(x, y):
         set_pixel_single_cluster(x, y, cluster_id)
     # if multiple clusters want this pixel unmasked, mark that multiple
     # clusters want it
@@ -256,12 +257,13 @@ for cluster in tqdm(clusters_table):
                         # This is equivalent to what happens when a cluster wants a
                         # pixel masked
                         handle_cluster_pixel(x, y, star["near_cluster"])
-                    # we now have an isolated star. Only modify pixels that are so
-                    # far unmodified. If multiple clusters want this unmasked, leave it
-                    # that way. If it's already marked as needing to be unmasked for a
-                    # certain cluster, that's fine, leave it that way, as that's a more
-                    # restrictive criteria than this.
-                    elif pixel_is_unset(x, y):
+                    # we now have an isolated star. Pixels that are identified here
+                    # are far from a cluster. They should always be masked, no matter
+                    # what is going on elsewhere
+                    else:
+                        # check some things
+                        if pixel_is_multiple_clusters(x, y):
+                            raise RuntimeError(f"{galaxy_name} {x} {y}")
                         set_pixel_isolated_star(x, y)
 
 # ======================================================================================
