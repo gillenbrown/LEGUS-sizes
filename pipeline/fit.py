@@ -402,10 +402,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     ]
 
     # set some of the convergence criteria parameters for the scipy  minimize routine
-    # ftol is decreased from default since chi^2 has higher normalization than reduced
-    # chi^2, so the same delta chi^2 needs a smaller tolerance. I was seeing bad fits
-    # with this at a higher value
-    ftol = 1e-13
+    ftol = 2e-9  # ftol is roughly the default value
     gtol = 1e-7  # stopping value of the gradient, 100x lower than default value
     eps = 1e-8  # absolute step size for the gradient calculation, default
     maxfun = np.inf  # max number of function evaluations
