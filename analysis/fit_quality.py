@@ -74,6 +74,14 @@ param_limits = {
     "power_law_slope_best": (0, 3),
     "local_background_best": (-500, 1000),
 }
+# put things on these limits
+for param in param_limits:
+    big_catalog[param][big_catalog[param] < param_limits[param][0]] = (
+        1.01 * param_limits[param][0]
+    )
+    big_catalog[param][big_catalog[param] > param_limits[param][1]] = (
+        0.99 * param_limits[param][1]
+    )
 param_scale = {
     "central_surface_brightness_best": "log",
     "x_pix_snapshot_oversampled_best": "linear",
@@ -88,10 +96,10 @@ param_bins = {
     "central_surface_brightness_best": np.logspace(1, 8, 41),
     "x_pix_snapshot_oversampled_best": np.arange(25, 35, 0.25),
     "y_pix_snapshot_oversampled_best": np.arange(25, 35, 0.25),
-    "scale_radius_pixels_best": np.logspace(-1.4, 1.4, 41),
+    "scale_radius_pixels_best": np.logspace(-2, 1.4, 41),
     "axis_ratio_best": np.arange(-0.1, 1.1, 0.05),
     "position_angle_best": np.arange(0, 3.5, 0.1),
-    "power_law_slope_best": np.arange(0, 3.2, 0.1),
+    "power_law_slope_best": np.arange(0, 5.2, 0.1),
     "local_background_best": np.arange(-300, 1500, 100),
 }
 
@@ -189,8 +197,8 @@ for idx_p, param in enumerate(plot_params):
         ax.add_labels(y_label="Number of Clusters")
     ax.set_limits(*param_limits[param])
     ax.set_xscale(param_scale[param])
-    if param == "axis_ratio_best":
-        ax.legend(loc=2)
+    if param == "scale_radius_pixels_best":
+        ax.legend(loc=1)
 
     # then the indicator plots
     for idx_q, indicator in enumerate(indicators, start=1):
@@ -259,7 +267,7 @@ fig.savefig(plot_name)
 fig, axs = bpl.subplots(ncols=3, figsize=[20, 6])
 axs = axs.flatten()
 
-x_param = "axis_ratio_best"
+x_param = "power_law_slope_best"
 y_param = "scale_radius_pixels_best"
 for ax, color_ind in zip(axs, indicators):
 
@@ -273,13 +281,19 @@ for ax, color_ind in zip(axs, indicators):
         cmap = bpl.cm.tofino
         norm = colors.Normalize(vmin=-1, vmax=1)
     mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
-    point_colors = [mappable.to_rgba(c) for c in big_catalog[color_ind]]
-    # turn failures red
-    for idx in range(len(point_colors)):
-        if not success_mask[idx]:
-            point_colors[idx] = "red"
+    point_colors = np.array([mappable.to_rgba(c) for c in big_catalog[color_ind]])
+    # # turn failures red
+    # for idx in range(len(point_colors)):
+    #     if not success_mask[idx]:
+    #         point_colors[idx] = "red"
 
-    ax.scatter(big_catalog[x_param], big_catalog[y_param], c=point_colors, s=2, alpha=1)
+    ax.scatter(
+        big_catalog[x_param][success_mask],
+        big_catalog[y_param][success_mask],
+        c=point_colors[success_mask],
+        s=2,
+        alpha=1,
+    )
     ax.add_labels(params[x_param], params[y_param])
     ax.set_limits(*param_limits[x_param], *param_limits[y_param])
     ax.set_xscale(param_scale[x_param])
@@ -366,19 +380,19 @@ for idx_row, param_row in enumerate(params):
         # put the labels on the right if we're on the last one
         elif idx_col == len(params) - 1:
             ax.add_labels(y_label=params[param_row])
-            ax.yaxis.set_label_position("right")
+            ax.tick_params(axis="y", labelleft=False, labelright=True)
         else:
-            ax.remove_labels("y")
+            ax.yaxis.set_ticklabels([])
 
         # add the X label if we're in the bottom row
         if idx_row == len(params) - 1:
             ax.add_labels(x_label=params[param_col])
         elif idx_row == 0:  # put the label on top for the top row
             ax.add_labels(x_label=params[param_col])
-            ax.xaxis.set_label_position("top")
+            ax.tick_params(axis="x", labelbottom=False, labeltop=True)
         # if we're not on the bottom row, don't show the x labels
         else:
-            ax.remove_labels("x")
+            ax.xaxis.set_ticklabels([])
 
 
 fig.savefig(plot_name.parent / "corner.png", dpi=100)
