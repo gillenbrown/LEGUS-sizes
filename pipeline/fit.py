@@ -137,13 +137,7 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
     sigma_snapshot = diffs / error_snapshot
     # then use the mask
     sigma_snapshot *= mask
-    # Then calculate the sum of squares before dividing out the degrees of freedom.
-    # I found that dividing out the degrees of freedom does matter, and I'm not sure
-    # why. I suspect it might have to do with the convergence criteria being met sooner
-    # if this isn't here. But the results are quite bad without it
-    sum_squared = np.sum(sigma_snapshot ** 2)
-    dof = np.sum(mask) - 8
-    return sum_squared / dof
+    return np.sum(sigma_snapshot ** 2)
 
 
 def center_of_normal(x_value, y_value, sigma, above):
@@ -413,12 +407,14 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         bounds=bounds,
         method="L-BFGS-B",  # default method when using bounds
         options={
-            "ftol": 2e-09,  # default value has more sig figs, but is close to this
-            "gtol": 1e-5,  # stopping value of the gradient, default value
+            "ftol": 1e-13,  # decreased from default since chi^2 has higher
+                            # normalization than reduced chi^2, so the same delta chi^2
+                            # needs a smaller tolerance
+            "gtol": 1e-7,  # stopping value of the gradient, default value
             "eps": 1e-8,  # absolute step size for the gradient calculation, default
             "maxfun": np.inf,  # max number of function evaluations
             "maxiter": np.inf,  # max number of iterations
-            "maxls": 50,  # max line search steps per iteration. Default is 20
+            "maxls": 200,  # max line search steps per iteration. Default is 20
         },
     )
     # postprocess these parameters
