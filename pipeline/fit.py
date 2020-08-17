@@ -398,6 +398,17 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         (None, None),  # background
     ]
 
+    # set some of the convergence criteria parameters for the scipy  minimize routine
+    # ftol is decreased from default since chi^2 has higher normalization than reduced
+    # chi^2, so the same delta chi^2 needs a smaller tolerance. I was seeing bad fits
+    # with this at a higher value
+    ftol = 1e-13
+    gtol = 1e-7  # stopping value of the gradient, 100x lower than default value
+    eps = 1e-8  # absolute step size for the gradient calculation, default
+    maxfun = np.inf  # max number of function evaluations
+    maxiter = np.inf  # max number of iterations
+    maxls = 200  # max line search steps per iteration. Default is 20
+
     # first get the results when all good pixels are used, to be used as a starting
     # point when bootstrapping is done, to save time.
     initial_result_struct = optimize.minimize(
@@ -407,14 +418,12 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         bounds=bounds,
         method="L-BFGS-B",  # default method when using bounds
         options={
-            "ftol": 1e-13,  # decreased from default since chi^2 has higher
-                            # normalization than reduced chi^2, so the same delta chi^2
-                            # needs a smaller tolerance
-            "gtol": 1e-7,  # stopping value of the gradient, default value
-            "eps": 1e-8,  # absolute step size for the gradient calculation, default
-            "maxfun": np.inf,  # max number of function evaluations
-            "maxiter": np.inf,  # max number of iterations
-            "maxls": 200,  # max line search steps per iteration. Default is 20
+            "ftol": ftol,
+            "gtol": gtol,
+            "eps": eps,
+            "maxfun": maxfun,
+            "maxiter": maxiter,
+            "maxls": maxls,
         },
     )
     # postprocess these parameters
@@ -441,6 +450,15 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
             args=(data_snapshot, uncertainty_snapshot, temp_mask),
             x0=params,  # don't use the initial result, to avoid local minima
             bounds=bounds,
+            method="L-BFGS-B",  # default method when using bounds
+            options={
+                "ftol": ftol,
+                "gtol": gtol,
+                "eps": eps,
+                "maxfun": maxfun,
+                "maxiter": maxiter,
+                "maxls": maxls,
+            },
         )
         # store the results after processing them
         this_result = postprocess_params(*this_result_struct.x)
