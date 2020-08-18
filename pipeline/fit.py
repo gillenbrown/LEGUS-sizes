@@ -141,7 +141,7 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
     return np.sum(sigma_snapshot ** 2)
 
 
-def center_of_normal(x_value, y_value, sigma, above):
+def mean_of_normal(x_value, y_value, sigma, above):
     """
     Calculate the mean required for a normal distribution with a given width to take
     the given y value at a specific x value.
@@ -163,25 +163,23 @@ def center_of_normal(x_value, y_value, sigma, above):
     return x_value + second_term
 
 
-def normal(x, mean, sigma):
+def log_of_normal(x, mean, sigma):
     """
-    Normal distribution PDF. This is not normalized to unit
-    area, but normalized to a peak value of 1, so function
-    in concert with a flat prior.
+    Log of the normal distribution PDF. This is normalized to be 0 at the mean.
 
     :param x: X values to determine the value of the PDF at
     :param mean: Mean of the Gaussian
     :param sigma: Standard deviation of the Gaussian
-    :return: Value of the gamma PDF at this location
+    :return: natural log of the normal PDF at this location
     """
-    return np.exp(-0.5 * ((x - mean) / sigma) ** 2)
+    return -0.5 * ((x - mean) / sigma) ** 2
 
 
-def flat_with_normal_edges(x, lower_edge, upper_edge, side_log_width, boundary_value):
+def flat_with_normal_edges(x, lower_edge, upper_edge, side_width, boundary_value):
     """
     Probability density function that is flat with value at 1 in between two
     values, but with a lognormal PDF outside of that, with fixed width on both
-    sides.
+    sides. This returns the log of that density.
 
     This is useful as it is continuous and smooth at the boundaries of the
     flat region.
@@ -197,25 +195,29 @@ def flat_with_normal_edges(x, lower_edge, upper_edge, side_log_width, boundary_v
                            region will shrink to make room for that.
     :return:
     """
-    lower_mean = center_of_normal(lower_edge, boundary_value, side_log_width, False)
-    upper_mean = center_of_normal(upper_edge, boundary_value, side_log_width, True)
+    lower_mean = mean_of_normal(lower_edge, boundary_value, side_width, False)
+    upper_mean = mean_of_normal(upper_edge, boundary_value, side_width, True)
 
     if lower_edge > lower_edge:
         raise ValueError("There is not flat region with these parameters.")
 
     # check that we did the math right for the shape of the distribution
-    assert np.isclose(normal(lower_edge, lower_mean, side_log_width), boundary_value)
-    assert np.isclose(normal(upper_edge, upper_mean, side_log_width), boundary_value)
+    assert np.isclose(
+        np.exp(log_of_normal(lower_edge, lower_mean, side_width)), boundary_value
+    )
+    assert np.isclose(
+        np.exp(log_of_normal(upper_edge, upper_mean, side_width)), boundary_value
+    )
 
     if lower_mean <= x <= upper_mean:
-        return 1
+        return 0
     elif x < lower_mean:
-        return normal(x, lower_mean, side_log_width)
+        return log_of_normal(x, lower_mean, side_width)
     else:
-        return normal(x, upper_mean, side_log_width)
+        return log_of_normal(x, upper_mean, side_width)
 
 
-def priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
+def log_priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
     """
     Calculate the prior probability for a given model.
 
@@ -231,10 +233,13 @@ def priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
 
     :return: Total prior probability for the given model.
     """
-    prior = 1
-    prior *= flat_with_normal_edges(np.log10(a), np.log10(0.1), np.log10(15), 0.2, 0.5)
-    prior *= flat_with_normal_edges(q, 0.3, 1.0, 0.1, 1.0)
-    return prior
+    log_prior = 0
+    # prior are multiplicative, or additive in log space
+    log_prior += flat_with_normal_edges(
+        np.log10(a), np.log10(0.1), np.log10(15), 0.1, 0.5
+    )
+    log_prior += flat_with_normal_edges(q, 0.3, 1.0, 0.1, 1.0)
+    return log_prior
 
 
 def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
@@ -252,15 +257,10 @@ def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
     :return:
     """
     chi_sq = calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask)
-    log_data_likelihood = -chi_sq
+    log_data_likelihood = -chi_sq / 2.0
     # Need to postprocess the parameters before calculating the prior, as the prior
     # is on the physically reasonable values, we need to make sure that's correct.
-    prior = priors(*postprocess_params(*params))
-    if prior > 0:
-        log_prior = np.log(prior)
-    else:
-        # infinity messes up the scipy fitting routine, a large finite value is better
-        log_prior = -1e100
+    log_prior = log_priors(*postprocess_params(*params))
     log_likelihood = log_data_likelihood + log_prior
     assert not np.isnan(log_prior)
     assert not np.isnan(log_data_likelihood)
