@@ -34,18 +34,21 @@ big_catalog = table.vstack(catalogs, join_type="inner")
 # multiply the MAD by 100 to get it to percent
 # big_catalog["profile_mad"] *= 100
 # mark clusters with failed fits, defined as when they hit the boundaries of the center
-big_catalog["success"] = big_catalog["x_pix_snapshot_oversampled_best"] != 26.00
-big_catalog["success"] = np.logical_and(
-    big_catalog["success"], big_catalog["x_pix_snapshot_oversampled_best"] != 34.00
+big_catalog["good"] = big_catalog["success"]
+big_catalog["good"] = np.logical_and(
+    big_catalog["good"], big_catalog["x_pix_snapshot_oversampled_best"] != 26.00
 )
-big_catalog["success"] = np.logical_and(
-    big_catalog["success"], big_catalog["y_pix_snapshot_oversampled_best"] != 26.00
+big_catalog["good"] = np.logical_and(
+    big_catalog["good"], big_catalog["x_pix_snapshot_oversampled_best"] != 34.00
 )
-big_catalog["success"] = np.logical_and(
-    big_catalog["success"], big_catalog["y_pix_snapshot_oversampled_best"] != 34.00
+big_catalog["good"] = np.logical_and(
+    big_catalog["good"], big_catalog["y_pix_snapshot_oversampled_best"] != 26.00
+)
+big_catalog["good"] = np.logical_and(
+    big_catalog["good"], big_catalog["y_pix_snapshot_oversampled_best"] != 34.00
 )
 
-success_mask = big_catalog["success"].data
+success_mask = big_catalog["good"].data
 
 # ======================================================================================
 #
@@ -68,7 +71,7 @@ param_limits = {
     "central_surface_brightness_best": (10, 1e8),
     "x_pix_snapshot_oversampled_best": (25, 35),
     "y_pix_snapshot_oversampled_best": (25, 35),
-    "scale_radius_pixels_best": (0.05, 40),
+    "scale_radius_pixels_best": (0.00001, 40),
     "axis_ratio_best": (-0.05, 1.05),
     "position_angle_best": (0, np.pi),
     "power_law_slope_best": (0, 3),
@@ -96,7 +99,7 @@ param_bins = {
     "central_surface_brightness_best": np.logspace(1, 8, 41),
     "x_pix_snapshot_oversampled_best": np.arange(25, 35, 0.25),
     "y_pix_snapshot_oversampled_best": np.arange(25, 35, 0.25),
-    "scale_radius_pixels_best": np.logspace(-2, 1.4, 41),
+    "scale_radius_pixels_best": np.logspace(-5, 1.4, 41),
     "axis_ratio_best": np.arange(-0.1, 1.1, 0.05),
     "position_angle_best": np.arange(0, 3.5, 0.1),
     "power_law_slope_best": np.arange(0, 5.2, 0.1),
