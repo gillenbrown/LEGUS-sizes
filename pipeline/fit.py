@@ -110,6 +110,7 @@ for col in new_cols:
     clusters_table[col + "_best"] = -99.9
 
 clusters_table["num_boostrapping_iterations"] = -99
+clusters_table["success"] = -99
 
 # ======================================================================================
 #
@@ -423,6 +424,8 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
             "maxls": maxls,
         },
     )
+
+    success = initial_result_struct.success
     # postprocess these parameters
     initial_result = postprocess_params(*initial_result_struct.x)
 
@@ -478,7 +481,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
                 param_std_last[param_idx] = this_std
 
     # then we're done!
-    return initial_result, np.array(param_history)
+    return initial_result, np.array(param_history), success
 
 
 # ======================================================================================
@@ -508,10 +511,11 @@ for row in tqdm(clusters_table):
     mask_snapshot = fit_utils.handle_mask(mask_snapshot, row["ID"])
 
     # then do this fitting!
-    results, history = fit_model(data_snapshot, error_snapshot, mask_snapshot)
+    results, history, success = fit_model(data_snapshot, error_snapshot, mask_snapshot)
 
     # Then add these values to the table
     row["num_boostrapping_iterations"] = len(history[0])
+    row["success"] = success
 
     row["central_surface_brightness_best"] = 10 ** results[0]
     row["x_pix_snapshot_oversampled_best"] = results[1]
