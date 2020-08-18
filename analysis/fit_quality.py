@@ -197,8 +197,8 @@ for idx_p, param in enumerate(plot_params):
         ax.add_labels(y_label="Number of Clusters")
     ax.set_limits(*param_limits[param])
     ax.set_xscale(param_scale[param])
-    if param == "scale_radius_pixels_best":
-        ax.legend(loc=1)
+    if param == "axis_ratio_best":
+        ax.legend(loc=2)
 
     # then the indicator plots
     for idx_q, indicator in enumerate(indicators, start=1):
