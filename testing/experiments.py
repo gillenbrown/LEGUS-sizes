@@ -99,19 +99,26 @@ mask_data = fits.open(gal_dir / "size" / "mask_image.fits")["PRIMARY"].data
 psf_name = f"psf_my_stars_{psf_size}_pixels_{oversampling_factor}x_oversampled.fits"
 psf = fits.open(gal_dir / "size" / psf_name)["PRIMARY"].data
 
-# Then get the snapshot of this cluster
-x_cen = int(np.ceil(row["x_pix_single_fitted_best"]))
-y_cen = int(np.ceil(row["y_pix_single_fitted_best"]))
+# create the snapshot. We use ceiling to get the integer pixel values as
+# python indexing does not include the final value.
+x_cen = int(np.ceil(row["x"]))
+y_cen = int(np.ceil(row["y"]))
 
-# Get the snapshot, based on the size desired
-x_min = x_cen - 15
-x_max = x_cen + 15
-y_min = y_cen - 15
-y_max = y_cen + 15
+# Get the snapshot, based on the size desired.
+# Since we took the ceil of the center, go more in the negative direction (i.e.
+# use ceil to get the minimum values). This only matters if the snapshot size is
+# odd
+x_min = x_cen - int(np.ceil(snapshot_size / 2.0))
+x_max = x_cen + int(np.floor(snapshot_size / 2.0))
+y_min = y_cen - int(np.ceil(snapshot_size / 2.0))
+y_max = y_cen + int(np.floor(snapshot_size / 2.0))
 
-data_snapshot = image_data[y_min:y_max, x_min:x_max]
-error_snapshot = error_data[y_min:y_max, x_min:x_max]
-mask_snapshot = mask_data[y_min:y_max, x_min:x_max]
+data_snapshot = image_data[y_min:y_max, x_min:x_max].copy()
+error_snapshot = error_data[y_min:y_max, x_min:x_max].copy()
+mask_snapshot = mask_data[y_min:y_max, x_min:x_max].copy()
+
+# process the mask
+mask_snapshot = fit_utils.handle_mask(mask_snapshot, cluster_id)
 
 # have the start value for the fit (which will be the same as actually used in the fit)
 bg_start = np.min(data_snapshot)
@@ -152,60 +159,86 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
     sigma_snapshot = diffs / error_snapshot
     # then use the mask
     sigma_snapshot *= mask
-    # then pick the desirec pixels out to be used in the fit
     return np.sum(sigma_snapshot ** 2)
 
 
-def gamma(x, k, theta):
+def mean_of_normal(x_value, y_value, sigma, above):
     """
-    Gamme distribution PDF: https://en.wikipedia.org/wiki/Gamma_distribution
+    Calculate the mean required for a normal distribution with a given width to take
+    the given y value at a specific x value.
 
-    :param x: X values to determine the value of the PDF at
-    :param k: Shape parameter
-    :param theta: Scale parameter
-    :param offset: Value at which the distribution starts (other than zero)
-    :return: Value of the gamma PDF at this location
+    :param x_value: Value at which the normal distribution takes a value of `y_value`.
+    :param x_value: Value of the normal distribution at `x_value`
+    :param above: Whether `x_value` should be a greater value than the returned mean
+                  or not. This is needed since there are two roots, placing the normal
+                  distribution lower or higher than the value paseed in.
+    :return: The mean of normal distribution matching the properties above.
     """
-    x = np.maximum(x, 0)
-    return x ** (k - 1) * np.exp(-x / theta) / (special.gamma(k) * theta ** k)
+    if y_value > 1:
+        raise ValueError("Invalid y_value in `center_of_normal`")
+    # This math can be worked out by hand
+    # mean = x +- sqrt(ln(y^-2))
+    second_term = sigma * np.sqrt(np.log(y_value ** (-2)))
+    if above:
+        second_term *= -1
+    return x_value + second_term
 
 
-def gaussian(x, mean, sigma):
+def log_of_normal(x, mean, sigma):
     """
-    Normal distribution PDF.
+    Log of the normal distribution PDF. This is normalized to be 0 at the mean.
 
     :param x: X values to determine the value of the PDF at
     :param mean: Mean of the Gaussian
     :param sigma: Standard deviation of the Gaussian
-    :return: Value of the gamma PDF at this location
+    :return: natural log of the normal PDF at this location
     """
-    return np.exp(-0.5 * ((x - mean) / sigma) ** 2) / (sigma * np.sqrt(2 * np.pi))
+    return -0.5 * ((x - mean) / sigma) ** 2
 
 
-def trapezoid(x, breakpoint):
+def flat_with_normal_edges(x, lower_edge, upper_edge, side_width, boundary_value):
     """
-    PSF (not normalized) of a simple trapezoid shape with one breakpoint.
+    Probability density function that is flat with value at 1 in between two
+    values, but with a lognormal PDF outside of that, with fixed width on both
+    sides. This returns the log of that density.
 
-    Below the breakpoint it is linear to zero, while above it is constant at 1
-    to `max_value`
+    This is useful as it is continuous and smooth at the boundaries of the
+    flat region.
 
-    :param x: X values to determine the value of the PDF at
-    :param breakpoint: Value at which the PDF trasitions from the linearly increasing
-                       portion to the flat portion
-    :param max_value: Maximum allowed value for X. Above this zero will be returned.
-    :return: Value of this PDF at this location
+    :param x: Value to determine the value of the PDF at.
+    :param lower_edge: Lower value (see `mode`)
+    :param upper_edge: Upper value (see `mode`)
+    :param side_log_width: Gaussian width (in dex) of the normal distribution
+                           used for the regions on either side.
+    :param boundary_value: The value that the pdf should take at the edges. If this is
+                           1.0, the flat region will extend to the edges. However, if
+                           another is value is preferred at those edges, the flat
+                           region will shrink to make room for that.
+    :return:
     """
-    return np.max([np.min([x / breakpoint, 1.0]), 1e-20])
+    lower_mean = mean_of_normal(lower_edge, boundary_value, side_width, False)
+    upper_mean = mean_of_normal(upper_edge, boundary_value, side_width, True)
 
+    if lower_edge > lower_edge:
+        raise ValueError("There is not flat region with these parameters.")
 
-def flat_prior(value, min_value, max_value):
-    if value < min_value or value > max_value:
+    # check that we did the math right for the shape of the distribution
+    assert np.isclose(
+        np.exp(log_of_normal(lower_edge, lower_mean, side_width)), boundary_value
+    )
+    assert np.isclose(
+        np.exp(log_of_normal(upper_edge, upper_mean, side_width)), boundary_value
+    )
+
+    if lower_mean <= x <= upper_mean:
         return 0
+    elif x < lower_mean:
+        return log_of_normal(x, lower_mean, side_width)
     else:
-        return 1
+        return log_of_normal(x, upper_mean, side_width)
 
 
-def priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
+def log_priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
     """
     Calculate the prior probability for a given model.
 
@@ -221,19 +254,38 @@ def priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
 
     :return: Total prior probability for the given model.
     """
-    prior = 1
-    return prior
-    # # x and y center have a Gaussian with width of 2 regular pixels, centered on
-    # # the center of the snapshot
-    # prior *= gamma(a, 1.05, 20)
-    # prior *= gamma(eta - 0.6, 1.05, 20)
-    # prior *= trapezoid(q, 0.3)
-    # # have a minimum allowed value, to stop it from being zero if several of these
-    # # parameters are bad.
-    # return np.maximum(prior, 1e-50)
+    log_prior = 0
+    # prior are multiplicative, or additive in log space
+    log_prior += flat_with_normal_edges(
+        np.log10(a), np.log10(0.1), np.log10(15), 0.1, 0.5
+    )
+    log_prior += flat_with_normal_edges(q, 0.3, 1.0, 0.1, 1.0)
+    return log_prior
 
 
-def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
+def postprocess_params(log_mu_0, x_c, y_c, a, q, theta, eta, background):
+    """
+    Postprocess the parameters, namely the axis ratio and position angle.
+
+    This is needed since we let the fit have axis ratios larger than 1, and position
+    angles of any value. Axis ratios larger than 1 indicate that we need to flip the
+    major and minor axes. This requires rotating the position angle 90 degrees, and
+    shifting the value assigned to the major axis to correct for the improper axis
+    ratio.
+    """
+    # q and a can be negative, fix that before any further processing
+    a = abs(a)
+    q = abs(q)
+    if q > 1.0:
+        q_final = 1.0 / q
+        a_final = a * q
+        theta_final = (theta - (np.pi / 2.0)) % np.pi
+        return log_mu_0, x_c, y_c, a_final, q_final, theta_final, eta, background
+    else:
+        return log_mu_0, x_c, y_c, a, q, theta % np.pi, eta, background
+
+
+def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask, use_prior):
     """
     Calculate the negative log likelihood for a model
 
@@ -248,15 +300,13 @@ def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
     :return:
     """
     chi_sq = calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask)
-    # the exponential gives zeros for very large chi squared values, have a bit of a
-    # normalization to correct for that.
-    log_data_likelihood = -chi_sq
-    prior = priors(*params)
-    if prior > 0:
-        log_prior = np.log(prior)
+    log_data_likelihood = -chi_sq / 2.0
+    # Need to postprocess the parameters before calculating the prior, as the prior
+    # is on the physically reasonable values, we need to make sure that's correct.
+    if use_prior:
+        log_prior = log_priors(*postprocess_params(*params))
     else:
-        # infinity messes up the scipy fitting routine, a large finite value is better
-        log_prior = -1e100
+        log_prior = 0
     log_likelihood = log_data_likelihood + log_prior
     assert not np.isnan(log_prior)
     assert not np.isnan(log_data_likelihood)
@@ -344,7 +394,7 @@ def generate_r_eff_lines(r_eff_values, a_values, q):
 
 
 # generate the lines of constant effective radius to plot
-r_eff_a_values = np.logspace(-5, 2, 100)
+r_eff_a_values = np.logspace(-6, 2, 100)
 r_eff_lines = generate_r_eff_lines([0.1, 1, 5, 10], r_eff_a_values, q)
 
 
@@ -468,23 +518,183 @@ likelihood_cmap = cmocean.cm.haline
 #     bbox_inches="tight",
 # )
 
+# # ======================================================================================
+# # Fit the background and peak value at each point
+# # ======================================================================================
+# # change these
+# eta_min, eta_max, d_eta = (0, 3, 0.5)
+# log_a_min, log_a_max, d_log_a = (-5, 1, 1)
+# # don't mess with this
+# eta_values = np.arange(eta_min, eta_max + 0.5 * d_eta, d_eta)
+# log_a_values = np.arange(log_a_min, log_a_max + 0.5 * d_log_a, d_log_a)
+# a_values = 10 ** log_a_values
+#
+# n_eta = len(eta_values)
+# n_a = len(a_values)
+#
+# # then make the output arrays
+# log_likelihood_fitted_params = np.zeros((n_a, n_eta))
+# bg_err = np.zeros((n_a, n_eta))
+#
+# for idx_eta in tqdm(range(n_eta)):
+#     for idx_a in range(n_a):
+#         eta = eta_values[idx_eta]
+#         a = a_values[idx_a]
+#         # try to mess with the other parameters tosee if we can do better
+#         params = (x_c, y_c, a, q, theta, eta)
+#
+#         def chi_sq_wrapper(
+#             to_fit, params, data_snapshot, error_snapshot, mask_snapshot
+#         ):
+#             return negative_log_likelihood(
+#                 (to_fit[1],) + params + (to_fit[0],),
+#                 data_snapshot,
+#                 error_snapshot,
+#                 mask_snapshot,
+#             )
+#
+#         fit_params = optimize.minimize(
+#             chi_sq_wrapper,
+#             x0=(bg_start, mu_start),
+#             args=(params, data_snapshot, error_snapshot, mask_snapshot),
+#             bounds=((None, None), (None, 100)),
+#         ).x
+#         bg_fit = fit_params[0]
+#         log_mu = fit_params[1]
+#
+#         log_likelihood_fitted_params[idx_a, idx_eta] = -1 * negative_log_likelihood(
+#             (log_mu,) + params + (bg_fit,),
+#             data_snapshot,
+#             error_snapshot,
+#             mask_snapshot,
+#         )
+#         bg_err[idx_a, idx_eta] = (bg_fit - estimated_bg) / estimated_bg_scatter
+#
+# # ======================================================================================
+# # plot the fitted background
+# # ======================================================================================
+#
+# fig, axs = bpl.subplots(ncols=2, figsize=[15, 6])
+#
+# likelihood_width = 2
+# likelihood_norm = colors.Normalize(
+#     vmin=np.max(log_likelihood_fitted_params) - likelihood_width,
+#     vmax=np.max(log_likelihood_fitted_params),
+#     clip=True,
+# )
+# limits = (
+#     eta_min - 0.5 * d_eta,
+#     eta_max + 0.5 * d_eta,
+#     log_a_min - 0.5 * d_log_a,
+#     log_a_max + 0.5 * d_log_a,
+# )
+# i = axs[0].imshow(
+#     log_likelihood_fitted_params,
+#     origin="lower",
+#     extent=limits,
+#     norm=likelihood_norm,
+#     cmap=likelihood_cmap,
+#     # This scalar aspect ratio is calculated to ensure the pixels are square
+#     aspect=((eta_max - eta_min) / n_eta) / ((log_a_max - log_a_min) / n_a),
+# )
+# cbar = fig.colorbar(i, ax=axs[0])
+# cbar.set_label("Log Likelihood = $-\chi^2 +$ log$_{10}(P(\\theta))$")
+# # Also draw contours
+# levels = [
+#     np.max(log_likelihood_fitted_params) - 1e20,
+#     np.max(log_likelihood_fitted_params) - 1,
+# ]
+# contour = axs[0].contour(
+#     eta_values,
+#     log_a_values,
+#     log_likelihood_fitted_params,
+#     levels=levels,
+#     colors="red",
+#     linestyles="solid",
+#     linewidths=2,
+#     origin="lower",
+# )
+#
+# bg_norm = colors.Normalize(-3, 3, clip=True)
+# bg_cmap = cmocean.cm.curl
+# i = axs[1].imshow(
+#     bg_err,
+#     origin="lower",
+#     extent=limits,
+#     norm=bg_norm,
+#     cmap=bg_cmap,
+#     # This scalar aspect ratio is calculated to ensure the pixels are square
+#     aspect=((eta_max - eta_min) / n_eta) / ((log_a_max - log_a_min) / n_a),
+# )
+# cbar = fig.colorbar(i, ax=axs[1])
+# cbar.set_label("Background Error")
+# # mark the best fit point
+# for c, ax in zip([bpl.almost_black, "w"], axs):
+#     ax.scatter(
+#         [row["power_law_slope_best"]],
+#         [np.log10(row["scale_radius_pixels_best"])],
+#         marker="x",
+#         c=c,
+#     )
+#
+# # and plot lines of effective radius
+# for ax in axs:
+#     for r in r_eff_lines:
+#         xs = r_eff_lines[r][0]
+#         ys = r_eff_lines[r][1]
+#         ax.plot(xs, ys, c="w")
+#         # pick the first value that goes above the lower limit
+#         for idx, y in enumerate(ys):
+#             if y > log_a_min:
+#                 break
+#         ax.add_text(
+#             x=xs[idx],
+#             y=ys[idx],
+#             text="$R_{eff}=$" + f"{r:.1f} pixels",
+#             ha="right",
+#             va="bottom",
+#             fontsize=12,
+#             rotation=90,
+#             color="w",
+#         )
+#
+# for ax in axs:
+#     ax.set_limits(*limits)
+#     ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_exponent))
+#     ax.add_labels("$\eta$ (Power Law Slope)", "a (Scale Radius) [pixels]")
+#     ax.easy_add_text(f"{galaxy.upper()} - {cluster_id}", "upper left", color="white")
+# fig.savefig(
+#     Path(__file__).parent / f"likelihood_contours_fit_bg_{galaxy}_{cluster_id}.png",
+#     bbox_inches="tight",
+# )
+
 # ======================================================================================
-# Fit the background and peak value at each point
+# Fit the background and peak value at each point, comparing with and without priors
 # ======================================================================================
 # change these
 eta_min, eta_max, d_eta = (0, 3, 0.5)
-log_a_min, log_a_max, d_log_a = (-5, 1, 1)
+log_a_min, log_a_max, d_log_a = (-5, 1, 1.0)
 # don't mess with this
-eta_values = np.arange(eta_min, eta_max + 0.5 * d_eta, d_eta)
-log_a_values = np.arange(log_a_min, log_a_max + 0.5 * d_log_a, d_log_a)
+eta_values = np.array(
+    [row["power_law_slope_best"] + k * d_eta for k in range(-100, 100)]
+)
+eta_values = eta_values[eta_values >= eta_min]
+eta_values = eta_values[eta_values <= eta_max]
+log_a_values = np.array(
+    [np.log10(row["scale_radius_pixels_best"]) + k * d_log_a for k in range(-100, 100)]
+)
+log_a_values = log_a_values[log_a_values >= log_a_min]
+log_a_values = log_a_values[log_a_values <= log_a_max]
+# eta_values = np.arange(eta_min, eta_max + 0.5 * d_eta, d_eta)
+# log_a_values = np.arange(log_a_min, log_a_max + 0.5 * d_log_a, d_log_a)
 a_values = 10 ** log_a_values
 
 n_eta = len(eta_values)
 n_a = len(a_values)
 
 # then make the output arrays
-log_likelihood_fitted_params = np.zeros((n_a, n_eta))
-bg_err = np.zeros((n_a, n_eta))
+log_likelihood_with_prior = np.zeros((n_a, n_eta))
+log_likelihood_no_prior = np.zeros((n_a, n_eta))
 
 for idx_eta in tqdm(range(n_eta)):
     for idx_a in range(n_a):
@@ -494,130 +704,94 @@ for idx_eta in tqdm(range(n_eta)):
         params = (x_c, y_c, a, q, theta, eta)
 
         def chi_sq_wrapper(
-            to_fit, params, data_snapshot, error_snapshot, mask_snapshot
+            to_fit, params, data_snapshot, error_snapshot, mask_snapshot, use_priors
         ):
             return negative_log_likelihood(
                 (to_fit[1],) + params + (to_fit[0],),
                 data_snapshot,
                 error_snapshot,
                 mask_snapshot,
+                use_priors,
             )
 
-        fit_params = optimize.minimize(
-            chi_sq_wrapper,
-            x0=(bg_start, mu_start),
-            args=(params, data_snapshot, error_snapshot, mask_snapshot),
-            bounds=((None, None), (None, 100)),
-        ).x
-        bg_fit = fit_params[0]
-        log_mu = fit_params[1]
+        for use_prior in [True, False]:
+            # Find the best fit parameters
+            fit_params = optimize.minimize(
+                chi_sq_wrapper,
+                x0=(bg_start, mu_start),
+                args=(params, data_snapshot, error_snapshot, mask_snapshot, use_prior),
+                bounds=((None, None), (None, 100)),
+            ).x
+            bg_fit = fit_params[0]
+            log_mu = fit_params[1]
 
-        log_likelihood_fitted_params[idx_a, idx_eta] = -1 * negative_log_likelihood(
-            (log_mu,) + params + (bg_fit,),
-            data_snapshot,
-            error_snapshot,
-            mask_snapshot,
-        )
-        bg_err[idx_a, idx_eta] = (bg_fit - estimated_bg) / estimated_bg_scatter
+            # Then plug these into the likelihood function to see what we get
+            this_log_likelihood = -1 * negative_log_likelihood(
+                (log_mu,) + params + (bg_fit,),
+                data_snapshot,
+                error_snapshot,
+                mask_snapshot,
+                use_prior,
+            )
+
+            if use_prior:
+                log_likelihood_with_prior[idx_a, idx_eta] = this_log_likelihood
+            else:
+                log_likelihood_no_prior[idx_a, idx_eta] = this_log_likelihood
 
 # ======================================================================================
-# plot the fitted background
+# plot this
 # ======================================================================================
 
 fig, axs = bpl.subplots(ncols=2, figsize=[15, 6])
 
-likelihood_width = 2
-likelihood_norm = colors.Normalize(
-    vmin=np.max(log_likelihood_fitted_params) - likelihood_width,
-    vmax=np.max(log_likelihood_fitted_params),
-    clip=True,
-)
-limits = (
-    eta_min - 0.5 * d_eta,
-    eta_max + 0.5 * d_eta,
-    log_a_min - 0.5 * d_log_a,
-    log_a_max + 0.5 * d_log_a,
-)
-i = axs[0].imshow(
-    log_likelihood_fitted_params,
-    origin="lower",
-    extent=limits,
-    norm=likelihood_norm,
-    cmap=likelihood_cmap,
-    # This scalar aspect ratio is calculated to ensure the pixels are square
-    aspect=((eta_max - eta_min) / n_eta) / ((log_a_max - log_a_min) / n_a),
-)
-cbar = fig.colorbar(i, ax=axs[0])
-cbar.set_label("Log Likelihood = $-\chi^2 +$ log$_{10}(P(\\theta))$")
-# Also draw contours
-levels = [
-    np.max(log_likelihood_fitted_params) - 1e20,
-    np.max(log_likelihood_fitted_params) - 1,
-]
-contour = axs[0].contour(
-    eta_values,
-    log_a_values,
-    log_likelihood_fitted_params,
-    levels=levels,
-    colors="red",
-    linestyles="solid",
-    linewidths=2,
-    origin="lower",
-)
+likelihood_width = 200
+vmax = max(np.max(log_likelihood_no_prior), np.max(log_likelihood_with_prior))
+likelihood_norm = colors.Normalize(vmin=vmax - likelihood_width, vmax=vmax, clip=True)
 
-bg_norm = colors.Normalize(-3, 3, clip=True)
-bg_cmap = cmocean.cm.curl
-i = axs[1].imshow(
-    bg_err,
-    origin="lower",
-    extent=limits,
-    norm=bg_norm,
-    cmap=bg_cmap,
-    # This scalar aspect ratio is calculated to ensure the pixels are square
-    aspect=((eta_max - eta_min) / n_eta) / ((log_a_max - log_a_min) / n_a),
-)
-cbar = fig.colorbar(i, ax=axs[1])
-cbar.set_label("Background Error")
+for ax, log_likelihood_fitted_params in zip(
+    axs, [log_likelihood_no_prior, log_likelihood_with_prior]
+):
+    limits = (
+        min(eta_values) - 0.5 * d_eta,
+        max(eta_values) + 0.5 * d_eta,
+        min(log_a_values) - 0.5 * d_log_a,
+        max(log_a_values) + 0.5 * d_log_a,
+    )
+    i = ax.imshow(
+        log_likelihood_fitted_params,
+        origin="lower",
+        extent=limits,
+        norm=likelihood_norm,
+        cmap=likelihood_cmap,
+        # This scalar aspect ratio is calculated to ensure the pixels are square
+        aspect=((eta_max - eta_min) / n_eta) / ((log_a_max - log_a_min) / n_a),
+    )
+    cbar = fig.colorbar(i, ax=ax)
+    cbar.set_label("Log Likelihood = $-\chi^2/2 +$ ln$(P(\\theta))$")
+
+    ax.set_limits(*limits)
+
 # mark the best fit point
-for c, ax in zip([bpl.almost_black, "w"], axs):
+for ax in axs:
     ax.scatter(
         [row["power_law_slope_best"]],
         [np.log10(row["scale_radius_pixels_best"])],
         marker="x",
-        c=c,
+        c=bpl.almost_black,
     )
 
-# and plot lines of effective radius
-for ax in axs:
-    for r in r_eff_lines:
-        xs = r_eff_lines[r][0]
-        ys = r_eff_lines[r][1]
-        ax.plot(xs, ys, c="w")
-        # pick the first value that goes above the lower limit
-        for idx, y in enumerate(ys):
-            if y > log_a_min:
-                break
-        ax.add_text(
-            x=xs[idx],
-            y=ys[idx],
-            text="$R_{eff}=$" + f"{r:.1f} pixels",
-            ha="right",
-            va="bottom",
-            fontsize=12,
-            rotation=90,
-            color="w",
-        )
+axs[0].set_title("No Priors")
+axs[1].set_title("With Priors")
 
 for ax in axs:
-    ax.set_limits(*limits)
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_exponent))
     ax.add_labels("$\eta$ (Power Law Slope)", "a (Scale Radius) [pixels]")
     ax.easy_add_text(f"{galaxy.upper()} - {cluster_id}", "upper left", color="white")
 fig.savefig(
-    Path(__file__).parent / f"likelihood_contours_fit_bg_{galaxy}_{cluster_id}.png",
+    Path(__file__).parent / f"likelihood_contours_priors_{galaxy}_{cluster_id}.png",
     bbox_inches="tight",
 )
-
 # # ======================================================================================
 #
 # Do not remove this line!!
