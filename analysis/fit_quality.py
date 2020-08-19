@@ -303,7 +303,15 @@ for idx_p, param in enumerate(plot_params):
         if idx_p == 0:
             ax.add_labels(y_label=indicators[indicator])
         # set ticks on top and bottom
-        ax.tick_params(axis="x", top=True, bottom=True, direction="in")
+        ax.tick_params(
+            axis="both",
+            top=True,
+            bottom=True,
+            left=True,
+            right=True,
+            which="both",
+            direction="out",
+        )
         ax.set_xscale(param_scale[param])
         ax.set_yscale(ind_scale[indicator])
 
@@ -435,6 +443,7 @@ for idx_row, param_row in enumerate(params):
         elif idx_col == len(params) - 1:
             ax.add_labels(y_label=params[param_row])
             ax.tick_params(axis="y", labelleft=False, labelright=True)
+            ax.yaxis.set_label_position("right")
         else:
             ax.yaxis.set_ticklabels([])
 
@@ -444,6 +453,7 @@ for idx_row, param_row in enumerate(params):
         elif idx_row == 0:  # put the label on top for the top row
             ax.add_labels(x_label=params[param_col])
             ax.tick_params(axis="x", labelbottom=False, labeltop=True)
+            ax.xaxis.set_label_position("top")
         # if we're not on the bottom row, don't show the x labels
         else:
             ax.xaxis.set_ticklabels([])
