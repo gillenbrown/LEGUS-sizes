@@ -420,13 +420,11 @@ def plot_model_set(
         ax.remove_labels("both")
         ax.remove_spines(["all"])
 
-    # add an X marker to the location of the center in all plots. The first one
-    # is in the oversampled coordinates
-    ax_r.scatter([params[1]], [params[2]], marker="x", c=bpl.almost_black)
+    # add an X marker to the location of the center
     # the rest are image coords
     x_image = fit_utils.oversampled_to_image(params[1], oversampling_factor)
     y_image = fit_utils.oversampled_to_image(params[2], oversampling_factor)
-    for ax in [ax_f, ax_d, ax_s, ax_u]:
+    for ax in [ax_d, ax_s, ax_u]:
         ax.scatter([x_image], [y_image], marker="x", c=bpl.almost_black)
     # make the marker white in the mask plot
     ax_m.scatter([x_image], [y_image], marker="x", c="w")
