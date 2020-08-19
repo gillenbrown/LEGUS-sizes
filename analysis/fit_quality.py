@@ -123,6 +123,19 @@ ind_scale = {
 }
 
 
+def make_cumulative_histogram(values):
+    """
+    Create the line to be plotted for a cumulative histogram
+
+    :param values: data
+    :return: List of xs and ys to be plotted for the cumulative histogram
+    """
+    sorted_values = np.sort(values)
+    ys = np.arange(1, 1 + len(sorted_values), 1)
+    assert len(ys) == len(sorted_values)
+    return sorted_values, ys
+
+
 def get_percentiles(xs, ys, percentile, bins, bin_scale):
     bin_centers = []
     ys_percentiles = []
@@ -163,12 +176,12 @@ failure_color = bpl.color_cycle[3]
 # ======================================================================================
 # This will have several columns for different parameters, with the rows being the
 # different ways of assessing each parameter
-fig = plt.figure(figsize=[6 * len(plot_params), 4 * (1 + len(indicators))])
+fig = plt.figure(figsize=[6 * len(plot_params), 4 * (2 + len(indicators))])
 gs = gridspec.GridSpec(
-    nrows=len(indicators) + 1,
+    nrows=len(indicators) + 2,
     ncols=len(plot_params),
     wspace=0.2,
-    hspace=0.1,
+    hspace=0.13,
     left=0.1,
     right=0.98,
     bottom=0.06,
@@ -200,11 +213,49 @@ for idx_p, param in enumerate(plot_params):
         ax.add_labels(y_label="Number of Clusters")
     ax.set_limits(*param_limits[param])
     ax.set_xscale(param_scale[param])
-    if param == "axis_ratio_best":
+    if param == "axis_ratio":
         ax.legend(loc=2)
+    # set ticks on top and bottom
+    ax.tick_params(
+        axis="both",
+        top=True,
+        bottom=True,
+        left=True,
+        right=True,
+        which="both",
+        direction="out",
+    )
+
+    # Then the cumulative histogram
+    ax = fig.add_subplot(gs[1, idx_p], projection="bpl")
+    ax.plot(
+        *make_cumulative_histogram(big_catalog[param][success_mask]),
+        color=success_color,
+        lw=2,
+    )
+    ax.plot(
+        *make_cumulative_histogram(big_catalog[param][~success_mask]),
+        color=failure_color,
+        lw=2,
+    )
+
+    if idx_p == 0:
+        ax.add_labels(y_label="Cumulative Number of Clusters")
+    ax.set_limits(*param_limits[param], 0)
+    ax.set_xscale(param_scale[param])
+    # set ticks on top and bottom
+    ax.tick_params(
+        axis="both",
+        top=True,
+        bottom=True,
+        left=True,
+        right=True,
+        which="both",
+        direction="out",
+    )
 
     # then the indicator plots
-    for idx_q, indicator in enumerate(indicators, start=1):
+    for idx_q, indicator in enumerate(indicators, start=2):
         ax = fig.add_subplot(gs[idx_q, idx_p], projection="bpl")
 
         ax.scatter(
@@ -246,7 +297,7 @@ for idx_p, param in enumerate(plot_params):
 
         ax.set_limits(*param_limits[param], *ind_limits[indicator])
         # remove the X label and ticks for all but the last plot
-        if idx_q == 3:
+        if idx_q == 4:
             # ax.remove_labels("x")
             ax.add_labels(x_label=params[param])
         if idx_p == 0:
