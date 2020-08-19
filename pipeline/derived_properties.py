@@ -493,7 +493,7 @@ def plot_model_set(
         f"log(peak brightness) = {params[0]:.2f}\n"
         f"x center = {final_center_oversampled[0]:.2f}\n"
         f"y center = {final_center_oversampled[1]:.2f}\n"
-        f"scale radius [pixels] = {params[3]:.2f}\n"
+        f"scale radius [pixels] = {params[3]:.2g}\n"
         f"q (axis ratio) = {params[4]:.2f}\n"
         f"position angle = {params[5]:.2f}\n"
         f"$\eta$ (power law slope) = {params[6]:.2f}\n"
