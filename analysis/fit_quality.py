@@ -47,6 +47,17 @@ big_catalog["good"] = np.logical_and(
 big_catalog["good"] = np.logical_and(
     big_catalog["good"], big_catalog["y_pix_snapshot_oversampled_best"] != 34.00
 )
+# throw out very small axis ratios
+big_catalog["good"] = np.logical_and(
+    big_catalog["good"], big_catalog["axis_ratio_best"] > 0.2
+)
+# throw out ones outside of the prior limits
+big_catalog["good"] = np.logical_and(
+    big_catalog["good"], big_catalog["scale_radius_pixels_best"] > 0.1
+)
+big_catalog["good"] = np.logical_and(
+    big_catalog["good"], big_catalog["scale_radius_pixels_best"] < 15
+)
 
 success_mask = big_catalog["good"].data
 
