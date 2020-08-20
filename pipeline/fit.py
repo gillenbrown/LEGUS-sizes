@@ -141,6 +141,30 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
     return np.sum(sigma_snapshot ** 2)
 
 
+def estimate_background(data, mask, x_c, y_c, min_radius):
+    """
+    Estimate the true background value.
+
+    This will be defined to be the median of all pixels beyond min_radius
+
+    :param data: Values at each pixel
+    :param x_c: X coordinate of the center, in coordinates of the sigmas snapshot
+    :param y_c: Y coordinate of the center, in coordinates of the sigmas snapshot
+    :param min_radius: Minimum radius to include in the calculation
+    :return: median(pixel_value) and std(pixel_value) where r > min_radius,
+    """
+    good_bg = []
+    for x in range(data.shape[1]):
+        for y in range(data.shape[0]):
+            if fit_utils.distance(x, y, x_c, y_c) > min_radius and mask[y, x] > 0:
+                good_bg.append(data[y, x])
+
+    if len(good_bg) > 0:
+        return np.median(good_bg)
+    else:
+        return np.min(data)
+
+
 def mean_of_normal(x_value, y_value, sigma, above):
     """
     Calculate the mean required for a normal distribution with a given width to take
@@ -362,8 +386,14 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
              history of all parameters took throughout the bootstrapping
 
     """
-    # Create the initial guesses for the parameters
+    # get the center pixel coordinate (which is also the radius of a circle at this
+    # location
     center = snapshot_size_oversampled / 2.0
+
+    # estimate the fixed quantity for the background
+    background = estimate_background(data_snapshot, mask, center, center, center)
+
+    # Create the initial guesses for the parameters
     params = (
         np.log10(np.max(data_snapshot) * 3),  # log of peak brightness.
         # Increase that to account for bins, as peaks will be averaged lower.
@@ -373,7 +403,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         0.8,  # axis ratio
         0.0,  # position angle
         2.5,  # power law slope. Start high to give a sharp cutoff and avoid other stuff
-        np.min(data_snapshot),  # background
+        background,  # background
     )
 
     # some of the bounds are not used because we put priors on them. We don't use priors
@@ -396,7 +426,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         (None, None),  # axis ratio
         (None, None),  # position angle
         (0, None),  # power law slope
-        (None, None),  # background
+        (background - 0.0001, background + 0.0001),  # background
     ]
 
     # set some of the convergence criteria parameters for the scipy  minimize routine
