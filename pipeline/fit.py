@@ -160,9 +160,11 @@ def estimate_background(data, mask, x_c, y_c, min_radius):
                 good_bg.append(data[y, x])
 
     if len(good_bg) > 0:
-        return np.median(good_bg)
+        low = np.percentile(good_bg, 15.85)
+        hi = np.percentile(good_bg, 84.15)
+        return np.median(good_bg), 0.5 * (hi - low)
     else:
-        return np.min(data)
+        return np.min(data), np.inf
 
 
 def mean_of_normal(x_value, y_value, sigma, above):
@@ -241,9 +243,17 @@ def flat_with_normal_edges(x, lower_edge, upper_edge, side_width, boundary_value
         return log_of_normal(x, upper_mean, side_width)
 
 
-def log_priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
+def log_priors(
+    log_mu_0, x_c, y_c, a, q, theta, eta, background, estimated_bg, estimated_bg_sigma
+):
     """
     Calculate the prior probability for a given model.
+
+    :param estimated_bg: the estimated background value, to be used as the mean of the
+                         Gaussian prior on the background.
+    :param estimated_bg_sigma: the scatter in the estimated background. The sigma of the
+                               Gaussian prior on the background will be 0.1 times this.
+
 
     The parameters passed in are the ones for the EFF profile. The parameters are
     treated independently:
@@ -263,10 +273,13 @@ def log_priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
         np.log10(a), np.log10(0.1), np.log10(15), 0.1, 0.5
     )
     log_prior += flat_with_normal_edges(q, 0.3, 1.0, 0.1, 1.0)
+    log_prior += log_of_normal(background, estimated_bg, 0.1 * estimated_bg_sigma)
     return log_prior
 
 
-def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
+def negative_log_likelihood(
+    params, cluster_snapshot, error_snapshot, mask, estimated_bg, estimated_bg_sigma
+):
     """
     Calculate the negative log likelihood for a model
 
@@ -278,13 +291,19 @@ def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
     :param error_snapshot: Error snapshot
     :param mask: 2D array used as the mask, that contains 1 where there are pixels to
                  use, and zero where the pixels are not to be used.
+    :param estimated_bg: the estimated background value, to be used as the mean of the
+                         Gaussian prior on the background.
+    :param estimated_bg_sigma: the scatter in the estimated background. The sigma of the
+                               Gaussian prior on the background will be 0.1 times this.
     :return:
     """
     chi_sq = calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask)
     log_data_likelihood = -chi_sq / 2.0
     # Need to postprocess the parameters before calculating the prior, as the prior
     # is on the physically reasonable values, we need to make sure that's correct.
-    log_prior = log_priors(*postprocess_params(*params))
+    log_prior = log_priors(
+        *postprocess_params(*params), estimated_bg, estimated_bg_sigma
+    )
     log_likelihood = log_data_likelihood + log_prior
     assert not np.isnan(log_prior)
     assert not np.isnan(log_data_likelihood)
@@ -391,7 +410,9 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     center = snapshot_size_oversampled / 2.0
 
     # estimate the fixed quantity for the background
-    background = estimate_background(data_snapshot, mask, center, center, center)
+    estimated_bg, bg_scatter = estimate_background(
+        data_snapshot, mask, center, center, center
+    )
 
     # Create the initial guesses for the parameters
     params = (
@@ -403,7 +424,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         0.8,  # axis ratio
         0.0,  # position angle
         2.5,  # power law slope. Start high to give a sharp cutoff and avoid other stuff
-        background,  # background
+        estimated_bg,  # background
     )
 
     # some of the bounds are not used because we put priors on them. We don't use priors
@@ -426,7 +447,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         (None, None),  # axis ratio
         (None, None),  # position angle
         (0, None),  # power law slope
-        (background - 0.0001, background + 0.0001),  # background
+        (None, None),  # background
     ]
 
     # set some of the convergence criteria parameters for the scipy  minimize routine
@@ -441,7 +462,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     # point when bootstrapping is done, to save time.
     initial_result_struct = optimize.minimize(
         negative_log_likelihood,
-        args=(data_snapshot, uncertainty_snapshot, mask),
+        args=(data_snapshot, uncertainty_snapshot, mask, estimated_bg, bg_scatter),
         x0=params,
         bounds=bounds,
         method="L-BFGS-B",  # default method when using bounds
