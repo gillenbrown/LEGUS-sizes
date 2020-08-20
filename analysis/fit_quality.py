@@ -74,7 +74,7 @@ param_limits = {
     "scale_radius_pixels_best": (0.00001, 40),
     "axis_ratio_best": (-0.05, 1.05),
     "position_angle_best": (0, np.pi),
-    "power_law_slope_best": (0, 3),
+    "power_law_slope_best": (0.1, 10),
     "local_background_best": (-500, 1000),
 }
 # put things on these limits
@@ -92,7 +92,7 @@ param_scale = {
     "scale_radius_pixels_best": "log",
     "axis_ratio_best": "linear",
     "position_angle_best": "linear",
-    "power_law_slope_best": "linear",
+    "power_law_slope_best": "log",
     "local_background_best": "linear",
 }
 param_bins = {
@@ -102,7 +102,7 @@ param_bins = {
     "scale_radius_pixels_best": np.logspace(-5, 1.4, 41),
     "axis_ratio_best": np.arange(-0.1, 1.1, 0.05),
     "position_angle_best": np.arange(0, 3.5, 0.1),
-    "power_law_slope_best": np.arange(0, 5.2, 0.1),
+    "power_law_slope_best": np.logspace(-1, 1, 41),
     "local_background_best": np.arange(-300, 1500, 100),
 }
 
