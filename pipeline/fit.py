@@ -243,6 +243,7 @@ def flat_with_normal_edges(x, lower_edge, upper_edge, side_width, boundary_value
     else:
         return log_of_normal(x, upper_mean, side_width)
 
+
 def logistic(x, minimum, maximum, x_0, scale):
     """
     Generalized logistic function that goes from some min to some max
@@ -285,7 +286,7 @@ def log_priors(
     log_prior = 0
     # prior are multiplicative, or additive in log space
     log_prior += flat_with_normal_edges(
-        np.log10(a), np.log10(0.1), np.log10(15), 0.1, 0.5
+        np.log10(a), np.log10(0.3), np.log10(5), 0.1, 0.5
     )
     log_prior += flat_with_normal_edges(q, 0.3, 1.0, 0.1, 1.0)
     # the width of the prior on the background depends on the value of the power law
@@ -293,7 +294,7 @@ def log_priors(
     # estimating the background, while for higher values of eta the background prior
     # will be less strict. We want a smooth transition of this width, as any sharp
     # transition will give artifacts in the resulting distributions.
-    width = logistic(eta, 0.1, 1.0, 1.0, 0.1) * estimated_bg_sigma
+    width = logistic(eta, 0.1, 1.0, 0.5, 0.1) * estimated_bg_sigma
     log_prior += log_of_normal(background, estimated_bg, width)
     return log_prior
 
