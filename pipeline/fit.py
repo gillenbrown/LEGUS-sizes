@@ -273,7 +273,16 @@ def log_priors(
         np.log10(a), np.log10(0.1), np.log10(15), 0.1, 0.5
     )
     log_prior += flat_with_normal_edges(q, 0.3, 1.0, 0.1, 1.0)
-    log_prior += log_of_normal(background, estimated_bg, 0.1 * estimated_bg_sigma)
+    # the width of the prior on the background depends on the value of the scale
+    # radius. Below 1 it will be strict (0.1 sigma), as this is when we have issues with
+    # estimating the background, while for extended clusters we are less confident about
+    # what the background should be, as the cluster may have extended into our fitting
+    # region
+    if a > 1:
+        width = estimated_bg_sigma
+    else:
+        width = 0.1 * estimated_bg_sigma
+    log_prior += log_of_normal(background, estimated_bg, width)
     return log_prior
 
 
