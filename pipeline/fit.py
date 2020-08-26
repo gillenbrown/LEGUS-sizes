@@ -243,6 +243,20 @@ def flat_with_normal_edges(x, lower_edge, upper_edge, side_width, boundary_value
     else:
         return log_of_normal(x, upper_mean, side_width)
 
+def logistic(x, minimum, maximum, x_0, scale):
+    """
+    Generalized logistic function that goes from some min to some max
+
+    :param x: Value at which to evaluate the logistic function
+    :param minimum: Asymptotic value for low values of x
+    :param maximum: Asymptotic value for high values of x
+    :param x_0: Central value at which the transition happens
+    :param scale: Scale factor for the width of the transition
+    :return: Value of the logistic function at this value.
+    """
+    height = maximum - minimum
+    return minimum + height / (1 + np.exp((x_0 - x) / scale))
+
 
 def log_priors(
     log_mu_0, x_c, y_c, a, q, theta, eta, background, estimated_bg, estimated_bg_sigma
@@ -274,15 +288,12 @@ def log_priors(
         np.log10(a), np.log10(0.1), np.log10(15), 0.1, 0.5
     )
     log_prior += flat_with_normal_edges(q, 0.3, 1.0, 0.1, 1.0)
-    # the width of the prior on the background depends on the value of the scale
-    # radius. Below 1 it will be strict (0.1 sigma), as this is when we have issues with
-    # estimating the background, while for extended clusters we are less confident about
-    # what the background should be, as the cluster may have extended into our fitting
-    # region
-    if a > 1:
-        width = estimated_bg_sigma
-    else:
-        width = 0.1 * estimated_bg_sigma
+    # the width of the prior on the background depends on the value of the power law
+    # slope. Below 1 it will be strict (0.1 sigma), as this is when we have issues with
+    # estimating the background, while for higher values of eta the background prior
+    # will be less strict. We want a smooth transition of this width, as any sharp
+    # transition will give artifacts in the resulting distributions.
+    width = logistic(eta, 0.1, 1.0, 1.0, 0.1) * estimated_bg_sigma
     log_prior += log_of_normal(background, estimated_bg, width)
     return log_prior
 
