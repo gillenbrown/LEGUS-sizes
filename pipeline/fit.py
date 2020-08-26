@@ -160,9 +160,10 @@ def estimate_background(data, mask, x_c, y_c, min_radius):
                 good_bg.append(data[y, x])
 
     if len(good_bg) > 0:
-        low = np.percentile(good_bg, 15.85)
-        hi = np.percentile(good_bg, 84.15)
-        return np.median(good_bg), 0.5 * (hi - low)
+        mean, median, std = stats.sigma_clipped_stats(
+            good_bg, sigma_lower=None, sigma_upper=3.0, maxiters=None,
+        )
+        return mean, std
     else:
         return np.min(data), np.inf
 
@@ -414,15 +415,14 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
              history of all parameters took throughout the bootstrapping
 
     """
-    # get the center pixel coordinate (which is also the radius of a circle at this
-    # location
-    center = snapshot_size_oversampled / 2.0
-
+    data_center = snapshot_size / 2.0
     # estimate the fixed quantity for the background
     estimated_bg, bg_scatter = estimate_background(
-        data_snapshot, mask, center, center, center
+        data_snapshot, mask, data_center, data_center, 6
     )
 
+    # get the center pixel coordinate in the oversampled snapshot
+    center = snapshot_size_oversampled / 2.0
     # Create the initial guesses for the parameters
     params = (
         np.log10(np.max(data_snapshot) * 3),  # log of peak brightness.
