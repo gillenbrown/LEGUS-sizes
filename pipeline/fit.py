@@ -136,9 +136,43 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
 
     diffs = cluster_snapshot - model_snapshot
     sigma_snapshot = diffs / error_snapshot
+    # do the radial weighting. Need to get the data coordinates of the center
+    sigma_snapshot = fit_utils.radial_weighting(
+        sigma_snapshot,
+        fit_utils.oversampled_to_image(params[1], oversampling_factor),
+        fit_utils.oversampled_to_image(params[2], oversampling_factor),
+        style="annulus",
+    )
     # then use the mask
     sigma_snapshot *= mask
     return np.sum(sigma_snapshot ** 2)
+
+
+def estimate_background(data, mask, x_c, y_c, min_radius):
+    """
+    Estimate the true background value.
+
+    This will be defined to be the median of all pixels beyond min_radius
+
+    :param data: Values at each pixel
+    :param x_c: X coordinate of the center, in coordinates of the sigmas snapshot
+    :param y_c: Y coordinate of the center, in coordinates of the sigmas snapshot
+    :param min_radius: Minimum radius to include in the calculation
+    :return: median(pixel_value) and std(pixel_value) where r > min_radius,
+    """
+    good_bg = []
+    for x in range(data.shape[1]):
+        for y in range(data.shape[0]):
+            if fit_utils.distance(x, y, x_c, y_c) > min_radius and mask[y, x] > 0:
+                good_bg.append(data[y, x])
+
+    if len(good_bg) > 0:
+        mean, median, std = stats.sigma_clipped_stats(
+            good_bg, sigma_lower=None, sigma_upper=3.0, maxiters=None,
+        )
+        return mean, std
+    else:
+        return np.min(data), np.inf
 
 
 def mean_of_normal(x_value, y_value, sigma, above):
@@ -175,51 +209,63 @@ def log_of_normal(x, mean, sigma):
     return -0.5 * ((x - mean) / sigma) ** 2
 
 
-def flat_with_normal_edges(x, lower_edge, upper_edge, side_width, boundary_value):
+def flat_normal_edge(x, edge, side_width, boundary_value, side):
     """
-    Probability density function that is flat with value at 1 in between two
-    values, but with a lognormal PDF outside of that, with fixed width on both
-    sides. This returns the log of that density.
+    Probability density function that is flat with value at 1, but with a lognormal
+    PDF with fixed width on one side. This returns the log of that density.
 
     This is useful as it is continuous and smooth at the boundaries of the
     flat region.
 
     :param x: Value to determine the value of the PDF at.
-    :param lower_edge: Lower value (see `mode`)
-    :param upper_edge: Upper value (see `mode`)
+    :param edge: Lower or upper value where the PDF beging to break
     :param side_log_width: Gaussian width (in dex) of the normal distribution
-                           used for the regions on either side.
-    :param boundary_value: The value that the pdf should take at the edges. If this is
+                           used for the region on the side.
+    :param boundary_value: The value that the pdf should take at the edge. If this is
                            1.0, the flat region will extend to the edges. However, if
                            another is value is preferred at those edges, the flat
                            region will shrink to make room for that.
+    :param side: whether the lognormal size is on the "lower" or "upper" side
     :return:
     """
-    lower_mean = mean_of_normal(lower_edge, boundary_value, side_width, False)
-    upper_mean = mean_of_normal(upper_edge, boundary_value, side_width, True)
-
-    if lower_edge > lower_edge:
-        raise ValueError("There is not flat region with these parameters.")
+    above = side == "upper"
+    mean = mean_of_normal(edge, boundary_value, side_width, above)
 
     # check that we did the math right for the shape of the distribution
-    assert np.isclose(
-        np.exp(log_of_normal(lower_edge, lower_mean, side_width)), boundary_value
-    )
-    assert np.isclose(
-        np.exp(log_of_normal(upper_edge, upper_mean, side_width)), boundary_value
-    )
+    assert np.isclose(np.exp(log_of_normal(edge, mean, side_width)), boundary_value)
 
-    if lower_mean <= x <= upper_mean:
+    if (side == "upper" and x <= mean) or (side == "lower" and x >= mean):
         return 0
-    elif x < lower_mean:
-        return log_of_normal(x, lower_mean, side_width)
     else:
-        return log_of_normal(x, upper_mean, side_width)
+        return log_of_normal(x, mean, side_width)
 
 
-def log_priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
+def logistic(x, minimum, maximum, x_0, scale):
+    """
+    Generalized logistic function that goes from some min to some max
+
+    :param x: Value at which to evaluate the logistic function
+    :param minimum: Asymptotic value for low values of x
+    :param maximum: Asymptotic value for high values of x
+    :param x_0: Central value at which the transition happens
+    :param scale: Scale factor for the width of the transition
+    :return: Value of the logistic function at this value.
+    """
+    height = maximum - minimum
+    return minimum + height / (1 + np.exp((x_0 - x) / scale))
+
+
+def log_priors(
+    log_mu_0, x_c, y_c, a, q, theta, eta, background, estimated_bg, estimated_bg_sigma
+):
     """
     Calculate the prior probability for a given model.
+
+    :param estimated_bg: the estimated background value, to be used as the mean of the
+                         Gaussian prior on the background.
+    :param estimated_bg_sigma: the scatter in the estimated background. The sigma of the
+                               Gaussian prior on the background will be 0.1 times this.
+
 
     The parameters passed in are the ones for the EFF profile. The parameters are
     treated independently:
@@ -235,14 +281,25 @@ def log_priors(log_mu_0, x_c, y_c, a, q, theta, eta, background):
     """
     log_prior = 0
     # prior are multiplicative, or additive in log space
-    log_prior += flat_with_normal_edges(
-        np.log10(a), np.log10(0.1), np.log10(15), 0.1, 0.5
-    )
-    log_prior += flat_with_normal_edges(q, 0.3, 1.0, 0.1, 1.0)
+    # have the low prior be on the minor axis
+    log_prior += flat_normal_edge(np.log10(q * a), np.log10(0.1), 0.1, 1.0, "lower")
+    # then the upper prior on the major axis
+    log_prior += flat_normal_edge(np.log10(a), np.log10(15), 0.1, 1.0, "upper")
+    # then a straight prior on the scale radius
+    log_prior += flat_normal_edge(q, 0.4, 0.05, 1.0, "lower")
+    # the width of the prior on the background depends on the value of the power law
+    # slope. Below 1 it will be strict (0.1 sigma), as this is when we have issues with
+    # estimating the background, while for higher values of eta the background prior
+    # will be less strict. We want a smooth transition of this width, as any sharp
+    # transition will give artifacts in the resulting distributions.
+    width = logistic(eta, 0.1, 1.0, 0.5, 0.1) * estimated_bg_sigma
+    log_prior += log_of_normal(background, estimated_bg, width)
     return log_prior
 
 
-def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
+def negative_log_likelihood(
+    params, cluster_snapshot, error_snapshot, mask, estimated_bg, estimated_bg_sigma
+):
     """
     Calculate the negative log likelihood for a model
 
@@ -254,13 +311,19 @@ def negative_log_likelihood(params, cluster_snapshot, error_snapshot, mask):
     :param error_snapshot: Error snapshot
     :param mask: 2D array used as the mask, that contains 1 where there are pixels to
                  use, and zero where the pixels are not to be used.
+    :param estimated_bg: the estimated background value, to be used as the mean of the
+                         Gaussian prior on the background.
+    :param estimated_bg_sigma: the scatter in the estimated background. The sigma of the
+                               Gaussian prior on the background will be 0.1 times this.
     :return:
     """
     chi_sq = calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask)
     log_data_likelihood = -chi_sq / 2.0
     # Need to postprocess the parameters before calculating the prior, as the prior
     # is on the physically reasonable values, we need to make sure that's correct.
-    log_prior = log_priors(*postprocess_params(*params))
+    log_prior = log_priors(
+        *postprocess_params(*params), estimated_bg, estimated_bg_sigma
+    )
     log_likelihood = log_data_likelihood + log_prior
     assert not np.isnan(log_prior)
     assert not np.isnan(log_data_likelihood)
@@ -362,8 +425,15 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
              history of all parameters took throughout the bootstrapping
 
     """
-    # Create the initial guesses for the parameters
+    data_center = snapshot_size / 2.0
+    # estimate the fixed quantity for the background
+    estimated_bg, bg_scatter = estimate_background(
+        data_snapshot, mask, data_center, data_center, 6
+    )
+
+    # get the center pixel coordinate in the oversampled snapshot
     center = snapshot_size_oversampled / 2.0
+    # Create the initial guesses for the parameters
     params = (
         np.log10(np.max(data_snapshot) * 3),  # log of peak brightness.
         # Increase that to account for bins, as peaks will be averaged lower.
@@ -373,7 +443,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         0.8,  # axis ratio
         0.0,  # position angle
         2.5,  # power law slope. Start high to give a sharp cutoff and avoid other stuff
-        np.min(data_snapshot),  # background
+        estimated_bg,  # background
     )
 
     # some of the bounds are not used because we put priors on them. We don't use priors
@@ -411,7 +481,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     # point when bootstrapping is done, to save time.
     initial_result_struct = optimize.minimize(
         negative_log_likelihood,
-        args=(data_snapshot, uncertainty_snapshot, mask),
+        args=(data_snapshot, uncertainty_snapshot, mask, estimated_bg, bg_scatter),
         x0=params,
         bounds=bounds,
         method="L-BFGS-B",  # default method when using bounds

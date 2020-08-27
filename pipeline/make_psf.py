@@ -111,8 +111,8 @@ for star in star_cutouts:
 # ======================================================================================
 psf_builder = photutils.EPSFBuilder(
     oversampling=oversampling_factor,
-    maxiters=3,
-    smoothing_kernel=None,  # more stable than quartic
+    maxiters=20,
+    smoothing_kernel="quadratic",  # more stable than quartic
     progress_bar=False,
 )
 psf, fitted_stars = psf_builder(star_cutouts)

@@ -47,6 +47,17 @@ big_catalog["good"] = np.logical_and(
 big_catalog["good"] = np.logical_and(
     big_catalog["good"], big_catalog["y_pix_snapshot_oversampled_best"] != 34.00
 )
+# throw out very small axis ratios
+big_catalog["good"] = np.logical_and(
+    big_catalog["good"], big_catalog["axis_ratio_best"] > 0.2
+)
+# throw out ones outside of the prior limits
+big_catalog["good"] = np.logical_and(
+    big_catalog["good"], big_catalog["scale_radius_pixels_best"] > 0.1
+)
+big_catalog["good"] = np.logical_and(
+    big_catalog["good"], big_catalog["scale_radius_pixels_best"] < 15
+)
 
 success_mask = big_catalog["good"].data
 
@@ -71,10 +82,10 @@ param_limits = {
     "central_surface_brightness_best": (10, 1e8),
     "x_pix_snapshot_oversampled_best": (25, 35),
     "y_pix_snapshot_oversampled_best": (25, 35),
-    "scale_radius_pixels_best": (0.00001, 40),
+    "scale_radius_pixels_best": (0.01, 100),
     "axis_ratio_best": (-0.05, 1.05),
     "position_angle_best": (0, np.pi),
-    "power_law_slope_best": (0.1, 10),
+    "power_law_slope_best": (0.1, 100),
     "local_background_best": (-500, 1000),
 }
 # put things on these limits
@@ -99,10 +110,10 @@ param_bins = {
     "central_surface_brightness_best": np.logspace(1, 8, 41),
     "x_pix_snapshot_oversampled_best": np.arange(25, 35, 0.25),
     "y_pix_snapshot_oversampled_best": np.arange(25, 35, 0.25),
-    "scale_radius_pixels_best": np.logspace(-5, 1.4, 41),
+    "scale_radius_pixels_best": np.logspace(-2, 2, 41),
     "axis_ratio_best": np.arange(-0.1, 1.1, 0.05),
     "position_angle_best": np.arange(0, 3.5, 0.1),
-    "power_law_slope_best": np.logspace(-1, 1, 41),
+    "power_law_slope_best": np.logspace(-1, 2, 41),
     "local_background_best": np.arange(-300, 1500, 100),
 }
 
