@@ -26,6 +26,7 @@ psf_type = my
 psf_pixel_size = 15
 psf_oversampling_factor = 2
 fit_region_size = 30
+run_name = radial_weighting
 
 # ------------------------------------------------------------------------------
 #
@@ -63,7 +64,7 @@ my_dirs = $(foreach dir,$(data_dirs),$(dir)$(my_dirname))
 my_dirs_ryon = $(foreach dir,$(ryon_dirs),$(dir)$(my_dirname))
 cluster_fit_dirs = $(foreach dir,$(my_dirs),$(dir)cluster_fit_plots)
 cluster_plot_dirs = $(foreach dir,$(my_dirs),$(dir)plots)
-local_plots_dir = ./plots/
+local_plots_dir = ./plots_$(run_name)/
 all_my_dirs = $(my_dirs) $(cluster_fit_dirs) $(cluster_plot_dirs) $(local_plots_dir)
 
 # ------------------------------------------------------------------------------
@@ -79,10 +80,10 @@ psf_my = psf_my_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_overs
 psf_comp_plot = psf_paper_my_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.png
 sigma_image = sigma_electrons.fits
 mask = mask_image.fits
-fit = cluster_fits_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.h5
-fit_no_mask = cluster_fits_no_masking_size_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.h5
-final_cat = final_catalog_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.txt
-final_cat_no_mask = final_catalog_no_masking_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.txt
+fit = cluster_fits_$(run_name)_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.h5
+fit_no_mask = cluster_fits_$(run_name)_no_masking_size_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.h5
+final_cat = final_catalog_$(run_name)_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.txt
+final_cat_no_mask = final_catalog_$(run_name)_no_masking_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.txt
 
 # ------------------------------------------------------------------------------
 #
@@ -220,20 +221,20 @@ $(masks): %: $(mask_script) $$(dir %)$$(cat) $$(dir %)$$(sigma_image)
 # will be needed, and we want to make sure all plots come from the same run.
 to_rm_debug_plots =  $(1)cluster_fit_plots/*size_$(fit_region_size)_$(2)*
 .SECONDEXPANSION:
-$(fits): %: $(fitting_script) $(fit_utils) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask) $$(dir %)$$(cat)
+$(fits): %: | $(fitting_script) $(fit_utils) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask) $$(dir %)$$(cat)
 	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(dir $@)$(cat) $(fit_region_size)
 
 # for the no masking case we pass an extra parameter
-$(fits_no_mask): %: $(fitting_script) $(fit_utils) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask) $$(dir %)$$(cat)
+$(fits_no_mask): %: | $(fitting_script) $(fit_utils) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask) $$(dir %)$$(cat)
 	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(dir $@)$(cat) $(fit_region_size) ryon_like
 
 # Add the derived properties to these catalogs
 .SECONDEXPANSION:
-$(final_cats): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask)
+$(final_cats): %: | $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask)
 	python $(final_catalog_script) $@ $(dir $@)$(fit) $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(fit_region_size)
 
 .SECONDEXPANSION:
-$(final_cats_no_mask): %: $(final_catalog_script_no_mask) $$(dir %)$$(fit_no_mask)
+$(final_cats_no_mask): %: | $(final_catalog_script_no_mask) $$(dir %)$$(fit_no_mask)
 	python $(final_catalog_script_no_mask) $@ $(dir $@)$(fit_no_mask)
 
 # Make the comparison to Ryon+17's results
