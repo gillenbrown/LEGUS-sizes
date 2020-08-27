@@ -285,9 +285,9 @@ def log_priors(
     """
     log_prior = 0
     # prior are multiplicative, or additive in log space
-    log_prior += flat_with_normal_edges(
-        np.log10(a), np.log10(0.3), np.log10(5), 0.1, 0.5
-    )
+    # log_prior += flat_with_normal_edges(
+    #     np.log10(a), np.log10(0.3), np.log10(5), 0.1, 0.5
+    # )
     log_prior += flat_with_normal_edges(q, 0.3, 1.0, 0.1, 1.0)
     # the width of the prior on the background depends on the value of the power law
     # slope. Below 1 it will be strict (0.1 sigma), as this is when we have issues with
