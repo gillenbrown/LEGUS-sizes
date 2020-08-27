@@ -352,6 +352,13 @@ def plot_model_set(
 
     diff_image = cluster_snapshot - model_psf_bin_image
     sigma_image = diff_image / uncertainty_snapshot
+    # do the radial weighting. Need to get the data coordinates of the center
+    sigma_image = fit_utils.radial_weighting(
+        sigma_image,
+        fit_utils.oversampled_to_image(params[1], oversampling_factor),
+        fit_utils.oversampled_to_image(params[2], oversampling_factor),
+        style="annulus",
+    )
     # have zeros in the sigma image where the mask has zeros, but leave it unmodified
     # otherwise
     sigma_image *= np.minimum(mask, 1.0)
