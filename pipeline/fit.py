@@ -209,46 +209,35 @@ def log_of_normal(x, mean, sigma):
     return -0.5 * ((x - mean) / sigma) ** 2
 
 
-def flat_with_normal_edges(x, lower_edge, upper_edge, side_width, boundary_value):
+def flat_normal_edge(x, edge, side_width, boundary_value, side):
     """
-    Probability density function that is flat with value at 1 in between two
-    values, but with a lognormal PDF outside of that, with fixed width on both
-    sides. This returns the log of that density.
+    Probability density function that is flat with value at 1, but with a lognormal
+    PDF with fixed width on one side. This returns the log of that density.
 
     This is useful as it is continuous and smooth at the boundaries of the
     flat region.
 
     :param x: Value to determine the value of the PDF at.
-    :param lower_edge: Lower value (see `mode`)
-    :param upper_edge: Upper value (see `mode`)
+    :param edge: Lower or upper value where the PDF beging to break
     :param side_log_width: Gaussian width (in dex) of the normal distribution
-                           used for the regions on either side.
-    :param boundary_value: The value that the pdf should take at the edges. If this is
+                           used for the region on the side.
+    :param boundary_value: The value that the pdf should take at the edge. If this is
                            1.0, the flat region will extend to the edges. However, if
                            another is value is preferred at those edges, the flat
                            region will shrink to make room for that.
+    :param side: whether the lognormal size is on the "lower" or "upper" side
     :return:
     """
-    lower_mean = mean_of_normal(lower_edge, boundary_value, side_width, False)
-    upper_mean = mean_of_normal(upper_edge, boundary_value, side_width, True)
-
-    if lower_edge > lower_edge:
-        raise ValueError("There is not flat region with these parameters.")
+    above = side == "upper"
+    mean = mean_of_normal(edge, boundary_value, side_width, above)
 
     # check that we did the math right for the shape of the distribution
-    assert np.isclose(
-        np.exp(log_of_normal(lower_edge, lower_mean, side_width)), boundary_value
-    )
-    assert np.isclose(
-        np.exp(log_of_normal(upper_edge, upper_mean, side_width)), boundary_value
-    )
+    assert np.isclose(np.exp(log_of_normal(edge, mean, side_width)), boundary_value)
 
-    if lower_mean <= x <= upper_mean:
+    if (side == "upper" and x <= mean) or (side == "lower" and x >= mean):
         return 0
-    elif x < lower_mean:
-        return log_of_normal(x, lower_mean, side_width)
     else:
-        return log_of_normal(x, upper_mean, side_width)
+        return log_of_normal(x, mean, side_width)
 
 
 def logistic(x, minimum, maximum, x_0, scale):
@@ -292,10 +281,12 @@ def log_priors(
     """
     log_prior = 0
     # prior are multiplicative, or additive in log space
-    # log_prior += flat_with_normal_edges(
-    #     np.log10(a), np.log10(0.3), np.log10(5), 0.1, 0.5
-    # )
-    log_prior += flat_with_normal_edges(q, 0.3, 1.0, 0.1, 1.0)
+    # have the low prior be on the minor axis
+    log_prior += flat_normal_edge(np.log10(q * a), np.log10(0.1), 0.1, 1.0, "lower")
+    # then the upper prior on the major axis
+    log_prior += flat_normal_edge(np.log10(a), np.log10(15), 0.1, 1.0, "upper")
+    # then a straight prior on the scale radius
+    log_prior += flat_normal_edge(q, 0.4, 0.05, 1.0, "lower")
     # the width of the prior on the background depends on the value of the power law
     # slope. Below 1 it will be strict (0.1 sigma), as this is when we have issues with
     # estimating the background, while for higher values of eta the background prior
