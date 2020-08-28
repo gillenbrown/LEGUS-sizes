@@ -130,7 +130,7 @@ example_fit_plot = $(local_plots_dir)example_fit.png
 fit_quality_plot = $(local_plots_dir)fit_quality.png
 plots = $(psf_demo_image) $(psf_comp_plots) $(comparison_plot)\
         $(radii_def_comp_plot) $(param_dist_plot) $(param_dist_plot_no_mask) \
-        $(all_fields_hist_plot) $(mass_size_plot) $(example_fit_plot) $(fit_quality_plot)
+        $(all_fields_hist_plot) $(mass_size_plot) $(fit_quality_plot)
 experiments_sentinel = ./testing/experiments_done.txt
 
 # ------------------------------------------------------------------------------
