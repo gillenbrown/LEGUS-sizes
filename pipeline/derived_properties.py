@@ -345,6 +345,7 @@ def plot_model_set(
     bg_scatter,
     old_center,
     final_center_oversampled,
+    make_plot,
 ):
     model_image, model_psf_image, model_psf_bin_image = fit_utils.create_model_image(
         *params, psf, snapshot_size_oversampled, oversampling_factor
@@ -363,81 +364,92 @@ def plot_model_set(
     # otherwise
     sigma_image *= np.minimum(mask, 1.0)
 
-    # set up the normalizations and colormaps
-    # Use the data image to get the normalization that will be used in all plots. Base
-    # it on the data so that it is the same in all bootstrap iterations
-    vmax = 2 * np.max(cluster_snapshot)
-    linthresh = 3 * np.min(uncertainty_snapshot)
-    data_norm = colors.SymLogNorm(vmin=-vmax, vmax=vmax, linthresh=linthresh, base=10)
-    sigma_norm = colors.Normalize(vmin=-10, vmax=10)
-    u_norm = colors.Normalize(0, vmax=1.2 * np.max(uncertainty_snapshot))
-    m_norm = colors.Normalize(0, vmax=np.max(mask))
+    if make_plot:
+        # set up the normalizations and colormaps
+        # Use the data image to get the normalization that will be used in all plots. Base
+        # it on the data so that it is the same in all bootstrap iterations
+        vmax = 2 * np.max(cluster_snapshot)
+        linthresh = 3 * np.min(uncertainty_snapshot)
+        data_norm = colors.SymLogNorm(
+            vmin=-vmax, vmax=vmax, linthresh=linthresh, base=10
+        )
+        sigma_norm = colors.Normalize(vmin=-10, vmax=10)
+        u_norm = colors.Normalize(0, vmax=1.2 * np.max(uncertainty_snapshot))
+        m_norm = colors.Normalize(0, vmax=np.max(mask))
 
-    data_cmap = bpl.cm.lisbon
-    sigma_cmap = cmocean.cm.tarn  # "bwr_r" also works
-    u_cmap = cmocean.cm.deep_r
-    m_cmap = cmocean.cm.gray_r
+        data_cmap = bpl.cm.lisbon
+        sigma_cmap = cmocean.cm.tarn  # "bwr_r" also works
+        u_cmap = cmocean.cm.deep_r
+        m_cmap = cmocean.cm.gray_r
 
-    # create the figure and add all the subplots
-    fig = plt.figure(figsize=[20, 15])
-    gs = gridspec.GridSpec(
-        nrows=6,
-        ncols=4,
-        width_ratios=[10, 10, 1, 15],  # have a dummy spacer column
-        wspace=0.1,
-        hspace=0.7,
-        left=0.01,
-        right=0.98,
-        bottom=0.06,
-        top=0.94,
-    )
-    ax_r = fig.add_subplot(gs[0:2, 0], projection="bpl")  # raw model
-    ax_f = fig.add_subplot(gs[0:2, 1], projection="bpl")  # full model (f for fit)
-    ax_d = fig.add_subplot(gs[2:4, 1], projection="bpl")  # data
-    ax_s = fig.add_subplot(gs[2:4, 0], projection="bpl")  # sigma difference
-    ax_u = fig.add_subplot(gs[4:, 1], projection="bpl")  # uncertainty
-    ax_m = fig.add_subplot(gs[4:, 0], projection="bpl")  # mask
-    ax_pd = fig.add_subplot(gs[0:3, 3], projection="bpl")  # radial profile differential
-    ax_pc = fig.add_subplot(gs[3:, 3], projection="bpl")  # radial profile cumulative
+        # create the figure and add all the subplots
+        fig = plt.figure(figsize=[20, 15])
+        gs = gridspec.GridSpec(
+            nrows=6,
+            ncols=4,
+            width_ratios=[10, 10, 1, 15],  # have a dummy spacer column
+            wspace=0.1,
+            hspace=0.7,
+            left=0.01,
+            right=0.98,
+            bottom=0.06,
+            top=0.94,
+        )
+        ax_r = fig.add_subplot(gs[0:2, 0], projection="bpl")  # raw model
+        ax_f = fig.add_subplot(gs[0:2, 1], projection="bpl")  # full model (f for fit)
+        ax_d = fig.add_subplot(gs[2:4, 1], projection="bpl")  # data
+        ax_s = fig.add_subplot(gs[2:4, 0], projection="bpl")  # sigma difference
+        ax_u = fig.add_subplot(gs[4:, 1], projection="bpl")  # uncertainty
+        ax_m = fig.add_subplot(gs[4:, 0], projection="bpl")  # mask
+        ax_pd = fig.add_subplot(
+            gs[0:3, 3], projection="bpl"
+        )  # radial profile differential
+        ax_pc = fig.add_subplot(
+            gs[3:, 3], projection="bpl"
+        )  # radial profile cumulative
 
-    # show the images in their respective panels
-    common_data = {"norm": data_norm, "cmap": data_cmap}
-    r_im = ax_r.imshow(model_image, **common_data, origin="lower")
-    f_im = ax_f.imshow(model_psf_bin_image, **common_data, origin="lower")
-    d_im = ax_d.imshow(cluster_snapshot, **common_data, origin="lower")
-    s_im = ax_s.imshow(sigma_image, norm=sigma_norm, cmap=sigma_cmap, origin="lower")
-    u_im = ax_u.imshow(uncertainty_snapshot, norm=u_norm, cmap=u_cmap, origin="lower")
-    m_im = ax_m.imshow(mask, norm=m_norm, cmap=m_cmap, origin="lower")
+        # show the images in their respective panels
+        common_data = {"norm": data_norm, "cmap": data_cmap}
+        r_im = ax_r.imshow(model_image, **common_data, origin="lower")
+        f_im = ax_f.imshow(model_psf_bin_image, **common_data, origin="lower")
+        d_im = ax_d.imshow(cluster_snapshot, **common_data, origin="lower")
+        s_im = ax_s.imshow(
+            sigma_image, norm=sigma_norm, cmap=sigma_cmap, origin="lower"
+        )
+        u_im = ax_u.imshow(
+            uncertainty_snapshot, norm=u_norm, cmap=u_cmap, origin="lower"
+        )
+        m_im = ax_m.imshow(mask, norm=m_norm, cmap=m_cmap, origin="lower")
 
-    fig.colorbar(r_im, ax=ax_r)
-    fig.colorbar(f_im, ax=ax_f)
-    fig.colorbar(d_im, ax=ax_d)
-    fig.colorbar(s_im, ax=ax_s)
-    fig.colorbar(u_im, ax=ax_u)
-    fig.colorbar(m_im, ax=ax_m)
+        fig.colorbar(r_im, ax=ax_r)
+        fig.colorbar(f_im, ax=ax_f)
+        fig.colorbar(d_im, ax=ax_d)
+        fig.colorbar(s_im, ax=ax_s)
+        fig.colorbar(u_im, ax=ax_u)
+        fig.colorbar(m_im, ax=ax_m)
 
-    ax_r.set_title("Raw Cluster Model")
-    ax_f.set_title("Model Convolved\nwith PSF and Binned")
-    ax_d.set_title("Data")
-    ax_s.set_title("(Data - Model)/Uncertainty")
-    ax_u.set_title("Uncertainty")
-    ax_m.set_title("Mask")
+        ax_r.set_title("Raw Cluster Model")
+        ax_f.set_title("Model Convolved\nwith PSF and Binned")
+        ax_d.set_title("Data")
+        ax_s.set_title("(Data - Model)/Uncertainty")
+        ax_u.set_title("Uncertainty")
+        ax_m.set_title("Mask")
 
-    for ax in [ax_r, ax_f, ax_d, ax_s, ax_u, ax_m]:
-        ax.remove_labels("both")
-        ax.remove_spines(["all"])
+        for ax in [ax_r, ax_f, ax_d, ax_s, ax_u, ax_m]:
+            ax.remove_labels("both")
+            ax.remove_spines(["all"])
 
-    # add an X marker to the location of the center
-    # the rest are image coords
-    x_image = fit_utils.oversampled_to_image(params[1], oversampling_factor)
-    y_image = fit_utils.oversampled_to_image(params[2], oversampling_factor)
-    for ax in [ax_d, ax_s, ax_u]:
-        ax.scatter([x_image], [y_image], marker="x", c=bpl.almost_black)
-    # make the marker white in the mask plot
-    ax_m.scatter([x_image], [y_image], marker="x", c="w")
-    # then add LEGUS's center to the data and mask plot
-    for ax in [ax_d, ax_m]:
-        ax.scatter([old_center[0]], [old_center[1]], marker="x", c="0.5")
+        # add an X marker to the location of the center
+        # the rest are image coords
+        x_image = fit_utils.oversampled_to_image(params[1], oversampling_factor)
+        y_image = fit_utils.oversampled_to_image(params[2], oversampling_factor)
+        for ax in [ax_d, ax_s, ax_u]:
+            ax.scatter([x_image], [y_image], marker="x", c=bpl.almost_black)
+        # make the marker white in the mask plot
+        ax_m.scatter([x_image], [y_image], marker="x", c="w")
+        # then add LEGUS's center to the data and mask plot
+        for ax in [ax_d, ax_m]:
+            ax.scatter([old_center[0]], [old_center[1]], marker="x", c="0.5")
 
     # Then make the radial plots. first background subtract
     cluster_snapshot -= params[7]
@@ -455,38 +467,44 @@ def plot_model_set(
         model_psf_bin_image, cluster_snapshot, mask, x_c, y_c
     )
 
-    ax_pd.scatter(radii, data_ys, c=c_d, s=5, alpha=1.0, label="Data")
-    ax_pd.scatter(radii, model_ys, c=c_m, s=5, alpha=1.0, label="Model")
-    ax_pd.axhline(0, ls=":", c=bpl.almost_black)
-    ax_pd.axvline(r_eff, ls=":", c=bpl.almost_black)
+    if make_plot:
+        ax_pd.scatter(radii, data_ys, c=c_d, s=5, alpha=1.0, label="Data")
+        ax_pd.scatter(radii, model_ys, c=c_m, s=5, alpha=1.0, label="Model")
+        ax_pd.axhline(0, ls=":", c=bpl.almost_black)
+        ax_pd.axvline(r_eff, ls=":", c=bpl.almost_black)
 
-    # then bin this data to make the binned plot
-    ax_pd.plot(*bin_profile(radii, data_ys, 1.0), c=c_d, lw=5, label="Binned Data")
-    ax_pd.plot(*bin_profile(radii, model_ys, 1.0), c=c_m, lw=5, label="Binned Model")
+        # then bin this data to make the binned plot
+        ax_pd.plot(*bin_profile(radii, data_ys, 1.0), c=c_d, lw=5, label="Binned Data")
+        ax_pd.plot(
+            *bin_profile(radii, model_ys, 1.0), c=c_m, lw=5, label="Binned Model"
+        )
 
-    ax_pd.legend(loc="upper right")
-    ax_pd.add_labels("Radius (pixels)", "Background Subtracted Pixel Value [$e^{-}$]")
-    # set min and max values so it's easier to flip through bootstrapping plots
-    y_min = np.min(cluster_snapshot)
-    y_max = np.max(cluster_snapshot)
-    # give them a bit of padding
-    diff = y_max - y_min
-    y_min -= 0.1 * diff
-    y_max += 0.1 * diff
-    ax_pd.set_limits(0, np.ceil(max(radii)), y_min, y_max)
+        ax_pd.legend(loc="upper right")
+        ax_pd.add_labels(
+            "Radius (pixels)", "Background Subtracted Pixel Value [$e^{-}$]"
+        )
+        # set min and max values so it's easier to flip through bootstrapping plots
+        y_min = np.min(cluster_snapshot)
+        y_max = np.max(cluster_snapshot)
+        # give them a bit of padding
+        diff = y_max - y_min
+        y_min -= 0.1 * diff
+        y_max += 0.1 * diff
+        ax_pd.set_limits(0, np.ceil(max(radii)), y_min, y_max)
 
     # then make the cumulative one. The radii are already in order so this is easy
     model_ys_cumulative = np.cumsum(model_ys)
     data_ys_cumulative = np.cumsum(data_ys)
 
-    ax_pc.plot(radii, data_ys_cumulative, c=c_d, label="Data")
-    ax_pc.plot(radii, model_ys_cumulative, c=c_m, label="Model")
-    ax_pc.set_limits(0, np.ceil(max(radii)), 0, 1.2 * np.max(data_ys_cumulative))
-    ax_pc.legend(loc="upper left")
-    ax_pc.axvline(r_eff, ls=":", c=bpl.almost_black)
-    ax_pc.add_labels(
-        "Radius (pixels)", "Cumulative Background Subtracted Pixel Values [$e^{-}$]"
-    )
+    if make_plot:
+        ax_pc.plot(radii, data_ys_cumulative, c=c_d, label="Data")
+        ax_pc.plot(radii, model_ys_cumulative, c=c_m, label="Model")
+        ax_pc.set_limits(0, np.ceil(max(radii)), 0, 1.2 * np.max(data_ys_cumulative))
+        ax_pc.legend(loc="upper left")
+        ax_pc.axvline(r_eff, ls=":", c=bpl.almost_black)
+        ax_pc.add_labels(
+            "Radius (pixels)", "Cumulative Background Subtracted Pixel Values [$e^{-}$]"
+        )
 
     # calculate the relative median devation of cumulative profile and the RMS
     median_diff = mad_of_cumulative(
@@ -494,28 +512,29 @@ def plot_model_set(
     )
     this_rms = rms(sigma_image, snapshot_x_cen, snapshot_y_cen, cut_radius)
 
-    # the last one just has the list of parameters
-    ax_pc.easy_add_text(
-        "$R_{eff}$" + f" = {r_eff:.2f} pixels\n"
-        f"log(peak brightness) = {params[0]:.2f}\n"
-        f"x center = {final_center_oversampled[0]:.2f}\n"
-        f"y center = {final_center_oversampled[1]:.2f}\n"
-        f"scale radius [pixels] = {params[3]:.2g}\n"
-        f"q (axis ratio) = {params[4]:.2f}\n"
-        f"position angle = {params[5]:.2f}\n"
-        f"$\eta$ (power law slope) = {params[6]:.2f}\n"
-        f"background = {params[7]:.2f}\n\n"
-        f"cut radius = {cut_radius:.2f} pixels\n"
-        f"estimated background = {estimated_bg:.2f}$\pm${bg_scatter:.2f}\n"
-        f"RMS = {this_rms:,.2f}\n"
-        f"MAD of cumulative profile = {100 * median_diff:.2f}%\n",
-        "lower right",
-        fontsize=15,
-    )
+    if make_plot:
+        # the last one just has the list of parameters
+        ax_pc.easy_add_text(
+            "$R_{eff}$" + f" = {r_eff:.2f} pixels\n"
+            f"log(peak brightness) = {params[0]:.2f}\n"
+            f"x center = {final_center_oversampled[0]:.2f}\n"
+            f"y center = {final_center_oversampled[1]:.2f}\n"
+            f"scale radius [pixels] = {params[3]:.2g}\n"
+            f"q (axis ratio) = {params[4]:.2f}\n"
+            f"position angle = {params[5]:.2f}\n"
+            f"$\eta$ (power law slope) = {params[6]:.2f}\n"
+            f"background = {params[7]:.2f}\n\n"
+            f"cut radius = {cut_radius:.2f} pixels\n"
+            f"estimated background = {estimated_bg:.2f}$\pm${bg_scatter:.2f}\n"
+            f"RMS = {this_rms:,.2f}\n"
+            f"MAD of cumulative profile = {100 * median_diff:.2f}%\n",
+            "lower right",
+            fontsize=15,
+        )
 
-    fig.savefig(size_dir / "cluster_fit_plots" / create_plot_name(id), dpi=100)
-    plt.close(fig)
-    del fig
+        fig.savefig(size_dir / "cluster_fit_plots" / create_plot_name(id), dpi=100)
+        plt.close(fig)
+        del fig
 
     return median_diff, this_rms
 
@@ -592,6 +611,7 @@ for row in tqdm(fits_catalog):
             row["x_pix_snapshot_oversampled_best"],
             row["y_pix_snapshot_oversampled_best"],
         ),
+        False,
     )
 
     row["profile_mad"] = profile_mad
