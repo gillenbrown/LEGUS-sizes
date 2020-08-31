@@ -24,8 +24,12 @@ bpl.set_style()
 #
 # ======================================================================================
 plot_name = Path(sys.argv[1]).resolve()
+# run name is the second argument, parse it a bit
+run_name = sys.argv[2]
+run_name = run_name.replace("_", " ").title()
+
 catalogs = []
-for item in sys.argv[2:]:
+for item in sys.argv[3:]:
     cat = table.Table.read(item, format="ascii.ecsv")
     cat["galaxy"] = Path(item).parent.parent.name
     catalogs.append(cat)
@@ -60,6 +64,7 @@ big_catalog["good"] = np.logical_and(
 )
 
 success_mask = big_catalog["good"].data
+n_good = np.sum(success_mask)
 
 # ======================================================================================
 #
@@ -182,6 +187,53 @@ failure_color = bpl.color_cycle[3]
 
 # ======================================================================================
 #
+# Simple plot of cumulative histograms
+#
+# ======================================================================================
+# This will have several columns for different parameters, with the rows being the
+# different ways of assessing each parameter
+fig, axs = bpl.subplots(ncols=3, figsize=[16, 6])
+for ax, param in zip(axs, plot_params):
+    # Then the cumulative histogram
+    ax.plot(
+        *make_cumulative_histogram(big_catalog[param][success_mask]),
+        color=success_color,
+        lw=2,
+        label=f"Success (N={n_good:,})",
+    )
+    ax.plot(
+        *make_cumulative_histogram(big_catalog[param][~success_mask]),
+        color=failure_color,
+        lw=2,
+        label=f"Failure (N={len(big_catalog) - n_good:,})",
+    )
+
+    if param == "axis_ratio_best":
+        ax.legend(loc=2)
+        ax.set_title(run_name)
+    ax.add_labels(x_label=params[param])
+    if param == "scale_radius_pixels_best":
+        ax.add_labels(y_label="Cumulative Number of Clusters")
+        ax.axvline(0.1, ls=":")
+        ax.axvline(15, ls=":")
+    ax.set_limits(*param_limits[param], 0, 3500)
+    ax.set_xscale(param_scale[param])
+
+    # set ticks on top and bottom
+    ax.tick_params(
+        axis="both",
+        top=True,
+        bottom=True,
+        left=True,
+        right=True,
+        which="both",
+        direction="out",
+    )
+
+fig.savefig(plot_name.parent / "cumulative.png")
+
+# ======================================================================================
+#
 # Then make the plot
 #
 # ======================================================================================
@@ -209,7 +261,7 @@ for idx_p, param in enumerate(plot_params):
         histtype="step",
         color=success_color,
         lw=2,
-        label="Success",
+        label=f"Success (N={n_good:,})",
     )
     ax.hist(
         big_catalog[param][~success_mask],
@@ -217,14 +269,18 @@ for idx_p, param in enumerate(plot_params):
         histtype="step",
         color=failure_color,
         lw=2,
-        label="Failure",
+        label=f"Failure (N={len(big_catalog) - n_good:,})",
     )
-    ax.set_title(params[param])
+
+    if idx_p == 1:
+        ax.set_title(f"{run_name}\n{params[param]}")
+    else:
+        ax.set_title(params[param])
     if idx_p == 0:
         ax.add_labels(y_label="Number of Clusters")
     ax.set_limits(*param_limits[param])
     ax.set_xscale(param_scale[param])
-    if param == "axis_ratio":
+    if param == "axis_ratio_best":
         ax.legend(loc=2)
     # set ticks on top and bottom
     ax.tick_params(

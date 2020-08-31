@@ -260,7 +260,7 @@ $(example_fit_plot): $(final_cats) $(example_plot_script)
 	python $(example_plot_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) $(fit_region_size)
 
 $(fit_quality_plot): $(final_cats) $(fit_quality_script)
-	python $(fit_quality_script) $@ $(final_cats)
+	python $(fit_quality_script) $@ $(run_name) $(final_cats)
 
 $(experiments_sentinel): $(final_cats) $(experiment_script)
 	python $(experiment_script) $@ $(final_cats)
