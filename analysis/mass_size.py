@@ -46,39 +46,15 @@ print(f"Total Clusters: {len(big_catalog)}")
 mask = big_catalog["age_yr"] <= 200e6
 print(f"Clusters with age < 200 Myr: {np.sum(mask)}")
 
-mask = np.logical_and(mask, big_catalog["scale_radius_pixels_best"] != 0.1)
+mask = np.logical_and(mask, big_catalog["scale_radius_pixels_best"] > 0.1)
 print(f"Clusters with scale radius > 0.1 pixel: {np.sum(mask)}")
 
-mask = np.logical_and(mask, big_catalog["scale_radius_pixels_best"] != 15.0)
+mask = np.logical_and(mask, big_catalog["scale_radius_pixels_best"] < 15.0)
 print(f"Clusters with scale radius < 15 pixels: {np.sum(mask)}")
 
-mask = np.logical_and(mask, big_catalog["axis_ratio_best"] != 0.3)
-print(f"Clusters with axis ratio > 0.3: {np.sum(mask)}")
+mask = np.logical_and(mask, big_catalog["axis_ratio_best"] > 0.2)
+print(f"Clusters with axis ratio > 0.2: {np.sum(mask)}")
 
-mask = np.logical_and(mask, big_catalog["power_law_slope_best"] != 0.6)
-print(f"Clusters with eta > 0.6: {np.sum(mask)}")
-
-mask = np.logical_and(mask, big_catalog["power_law_slope_best"] != 10)
-print(f"Clusters with eta < 10: {np.sum(mask)}")
-
-mask = np.logical_and(mask, big_catalog["fractional_err_max"] < 0.8)
-print(f"Clusters with small errors: {np.sum(mask)}")
-
-
-print(
-    f"a lo: {np.sum(big_catalog['scale_radius_pixels_best'] == 0.1) / len(big_catalog)}"
-)
-print(
-    f"a hi: {np.sum(big_catalog['scale_radius_pixels_best'] == 15.0) / len(big_catalog)}"
-)
-print(f"q: {np.sum(big_catalog['axis_ratio_best'] == 0.3) / len(big_catalog)}")
-print(
-    f"eta lo: {np.sum(big_catalog['power_law_slope_best'] == 0.6) / len(big_catalog)}"
-)
-print(
-    f"eta hi: {np.sum(big_catalog['power_law_slope_best'] == 10.0) / len(big_catalog)}"
-)
-print(f"err lo: {np.sum(big_catalog['fractional_err_max'] > 0.8) / len(big_catalog)}")
 # ======================================================================================
 #
 # make the plot
