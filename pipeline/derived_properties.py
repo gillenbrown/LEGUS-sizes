@@ -358,7 +358,7 @@ def plot_model_set(
         sigma_image,
         fit_utils.oversampled_to_image(params[1], oversampling_factor),
         fit_utils.oversampled_to_image(params[2], oversampling_factor),
-        style="none",
+        style="annulus",
     )
     # have zeros in the sigma image where the mask has zeros, but leave it unmodified
     # otherwise

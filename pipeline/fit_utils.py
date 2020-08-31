@@ -152,8 +152,8 @@ def radial_weighting(sigma_image, x_cen, y_cen, style="none"):
             y_values[y, :] = y
 
         dists = distance(x_values, y_values, x_cen, y_cen)
-        # make everything inside 3 pixels be the same to avoid centering artifacts
-        dists = np.maximum(3.0, dists)
+        # make everything inside 6 pixels be the same to avoid centering artifacts
+        dists = np.maximum(6.0, dists)
         weights = 1 / dists
         # then normalize the weights to have a maximum value at 1
         weights /= np.max(weights)
