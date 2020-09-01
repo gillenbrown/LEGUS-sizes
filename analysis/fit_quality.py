@@ -216,7 +216,7 @@ for ax, param in zip(axs, plot_params):
         ax.add_labels(y_label="Cumulative Number of Clusters")
         ax.axvline(0.1, ls=":")
         ax.axvline(15, ls=":")
-    ax.set_limits(*param_limits[param], 0, 3500)
+    ax.set_limits(*param_limits[param], 0, 5000)
     ax.set_xscale(param_scale[param])
 
     # set ticks on top and bottom
