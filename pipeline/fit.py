@@ -64,23 +64,14 @@ if ryon_like:
 
 snapshot_size_oversampled = snapshot_size * oversampling_factor
 
-# ======================================================================================
-#
-# Calculate the minimum background level allowed in the fits. This will be 2 sigma
-# below the mean sky value (which is calculated here) or the mimum pixel value
-# in the cluster snapshot, whichever is lower.
-#
-# ======================================================================================
-flat_im = image_data.flatten()
-idxs_nonzero = np.nonzero(image_data)
-nonzero_flat_im = image_data[idxs_nonzero]
-# calculate some stats
-mean_sky, _, sigma_sky = stats.sigma_clipped_stats(nonzero_flat_im, sigma=2.0)
-# choose only 2 sigma because the mean is a bit higher than the mode (which should be
-# the true sky value). We don't want to go too low because that could let the
-# background go too low. We will allow for that if needed as we choose the minimum of
-# this value and the minimum pixel value in the cluster snapshot.
-background_min = mean_sky - 2 * sigma_sky
+# set up the background scale factor. We do this as the range of possible values for the
+# background is quite large, so it's hard for the fit to cover this whole range. In
+# addition, in the gradient calculation, very small changes in the background have
+# basically no change in the fit quality. To alleviate these issues, we simple scale
+# the background value used in the fit. We divide it by some large number. This simple
+# fix solves both issues. Using the log would also work, but is harder since we have
+# negative numbers.
+bg_scale_factor = 1e3
 
 # ======================================================================================
 #
@@ -317,13 +308,16 @@ def negative_log_likelihood(
                                Gaussian prior on the background will be 0.1 times this.
     :return:
     """
+    # postprocess them from the beginning to make things simpler. This allows the
+    # fitting machinery to do what it wants, but under the hood we only use
+    # reasonable parameter value. This also handles the background scaling.
+    params = postprocess_params(*params)
+
     chi_sq = calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask)
     log_data_likelihood = -chi_sq / 2.0
     # Need to postprocess the parameters before calculating the prior, as the prior
     # is on the physically reasonable values, we need to make sure that's correct.
-    log_prior = log_priors(
-        *postprocess_params(*params), estimated_bg, estimated_bg_sigma
-    )
+    log_prior = log_priors(*params, estimated_bg, estimated_bg_sigma)
     log_likelihood = log_data_likelihood + log_prior
     assert not np.isnan(log_prior)
     assert not np.isnan(log_data_likelihood)
@@ -400,6 +394,9 @@ def postprocess_params(log_mu_0, x_c, y_c, a, q, theta, eta, background):
     shifting the value assigned to the major axis to correct for the improper axis
     ratio.
     """
+    # handle background
+    background *= bg_scale_factor
+
     # q and a can be negative, fix that before any further processing
     a = abs(a)
     q = abs(q)
@@ -443,7 +440,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         0.8,  # axis ratio
         0.0,  # position angle
         2.5,  # power law slope. Start high to give a sharp cutoff and avoid other stuff
-        estimated_bg,  # background
+        estimated_bg / bg_scale_factor,  # background
     )
 
     # some of the bounds are not used because we put priors on them. We don't use priors
@@ -559,7 +556,11 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
 # Then go through the catalog
 #
 # ======================================================================================
-for row in tqdm(clusters_table):
+for row in clusters_table:
+    # print("=====", row["ID"], "=====")
+    if row["ID"] != 45:
+        continue
+
     # create the snapshot. We use ceiling to get the integer pixel values as
     # python indexing does not include the final value.
     x_cen = int(np.ceil(row["x"]))
@@ -582,6 +583,34 @@ for row in tqdm(clusters_table):
 
     # then do this fitting!
     results, history, success = fit_model(data_snapshot, error_snapshot, mask_snapshot)
+    for item in results:
+        print(item)
+    # print(
+    #     calculate_chi_squared(results, data_snapshot, error_snapshot, mask_snapshot),
+    #     log_priors(*postprocess_params(*results), 0, np.inf),
+    #     negative_log_likelihood(
+    #         results, data_snapshot, error_snapshot, mask_snapshot, 0, np.inf
+    #     ),
+    # )
+    # guess_params = [
+    #     4.28,  # mu
+    #     results[1],  # X
+    #     results[2],  # Y ,
+    #     5,  # a
+    #     results[4],  # q
+    #     results[5],  # theta
+    #     1.5,  # eta
+    #     100,  # bg
+    # ]
+    # print(
+    #     calculate_chi_squared(
+    #         guess_params, data_snapshot, error_snapshot, mask_snapshot
+    #     ),
+    #     log_priors(*postprocess_params(*guess_params), 0, np.inf),
+    #     negative_log_likelihood(
+    #         guess_params, data_snapshot, error_snapshot, mask_snapshot, 0, np.inf
+    #     ),
+    # )
 
     # Then add these values to the table
     row["num_boostrapping_iterations"] = len(history[0])
