@@ -136,7 +136,7 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
     )
     # then use the mask
     sigma_snapshot *= mask
-    return np.sum(np.abs(sigma_snapshot))
+    return np.sum(sigma_snapshot**2)
 
 
 def estimate_background(data, mask, x_c, y_c, min_radius):
