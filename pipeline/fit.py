@@ -556,11 +556,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
 # Then go through the catalog
 #
 # ======================================================================================
-for row in clusters_table:
-    # print("=====", row["ID"], "=====")
-    if row["ID"] != 45:
-        continue
-
+for row in tqdm(clusters_table):
     # create the snapshot. We use ceiling to get the integer pixel values as
     # python indexing does not include the final value.
     x_cen = int(np.ceil(row["x"]))
@@ -583,34 +579,6 @@ for row in clusters_table:
 
     # then do this fitting!
     results, history, success = fit_model(data_snapshot, error_snapshot, mask_snapshot)
-    for item in results:
-        print(item)
-    # print(
-    #     calculate_chi_squared(results, data_snapshot, error_snapshot, mask_snapshot),
-    #     log_priors(*postprocess_params(*results), 0, np.inf),
-    #     negative_log_likelihood(
-    #         results, data_snapshot, error_snapshot, mask_snapshot, 0, np.inf
-    #     ),
-    # )
-    # guess_params = [
-    #     4.28,  # mu
-    #     results[1],  # X
-    #     results[2],  # Y ,
-    #     5,  # a
-    #     results[4],  # q
-    #     results[5],  # theta
-    #     1.5,  # eta
-    #     100,  # bg
-    # ]
-    # print(
-    #     calculate_chi_squared(
-    #         guess_params, data_snapshot, error_snapshot, mask_snapshot
-    #     ),
-    #     log_priors(*postprocess_params(*guess_params), 0, np.inf),
-    #     negative_log_likelihood(
-    #         guess_params, data_snapshot, error_snapshot, mask_snapshot, 0, np.inf
-    #     ),
-    # )
 
     # Then add these values to the table
     row["num_boostrapping_iterations"] = len(history[0])
