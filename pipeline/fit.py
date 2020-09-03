@@ -515,7 +515,9 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         this_result_struct = optimize.minimize(
             calculate_chi_squared,
             args=(data_snapshot, uncertainty_snapshot, temp_mask),
-            x0=params,  # don't use the initial result, to avoid local minima
+            # use the best fit results as the initial guess, to get the uncertainty
+            # around that value. This should also reduce the time needed to converge
+            x0=initial_result,
             bounds=bounds,
             method="L-BFGS-B",  # default method when using bounds
             options={
