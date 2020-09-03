@@ -611,7 +611,7 @@ for row in tqdm(fits_catalog):
             row["x_pix_snapshot_oversampled_best"],
             row["y_pix_snapshot_oversampled_best"],
         ),
-        True,
+        False,
     )
 
     row["profile_mad"] = profile_mad
