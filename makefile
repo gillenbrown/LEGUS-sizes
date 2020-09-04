@@ -26,7 +26,7 @@ psf_type = my
 psf_pixel_size = 15
 psf_oversampling_factor = 2
 fit_region_size = 30
-run_name = abs_bg_scale_bgstart200_nobgprior
+run_name = abs_bg_scale
 
 # ------------------------------------------------------------------------------
 #

@@ -283,8 +283,8 @@ def log_priors(
     # estimating the background, while for higher values of eta the background prior
     # will be less strict. We want a smooth transition of this width, as any sharp
     # transition will give artifacts in the resulting distributions.
-    # width = logistic(eta, 0.1, 1.0, 1.0, 0.1) * estimated_bg_sigma
-    # log_prior += log_of_normal(background, estimated_bg, width)
+    width = logistic(eta, 0.1, 1.0, 1.0, 0.1) * estimated_bg_sigma
+    log_prior += log_of_normal(background, estimated_bg, width)
     return log_prior
 
 
@@ -440,7 +440,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         0.8,  # axis ratio
         0.0,  # position angle
         2.5,  # power law slope. Start high to give a sharp cutoff and avoid other stuff
-        200 / bg_scale_factor,  # background
+        estimated_bg / bg_scale_factor,  # background
     )
 
     # some of the bounds are not used because we put priors on them. We don't use priors
