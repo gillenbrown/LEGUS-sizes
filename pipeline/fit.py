@@ -127,15 +127,15 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
 
     diffs = cluster_snapshot - model_snapshot
     sigma_snapshot = diffs / error_snapshot
+    # then use the mask and the weights
+    sigma_snapshot *= mask
     # do the radial weighting. Need to get the data coordinates of the center
-    sigma_snapshot = fit_utils.radial_weighting(
-        sigma_snapshot,
+    sigma_snapshot *= fit_utils.radial_weighting(
+        cluster_snapshot,
         fit_utils.oversampled_to_image(params[1], oversampling_factor),
         fit_utils.oversampled_to_image(params[2], oversampling_factor),
         style="none",
     )
-    # then use the mask
-    sigma_snapshot *= mask
     return np.sum(np.abs(sigma_snapshot))
 
 

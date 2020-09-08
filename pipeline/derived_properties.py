@@ -353,16 +353,17 @@ def plot_model_set(
 
     diff_image = cluster_snapshot - model_psf_bin_image
     sigma_image = diff_image / uncertainty_snapshot
+    # have zeros in the sigma image where the mask has zeros, but leave it unmodified
+    # otherwise
+    sigma_image *= np.minimum(mask, 1.0)
     # do the radial weighting. Need to get the data coordinates of the center
-    sigma_image = fit_utils.radial_weighting(
-        sigma_image,
+    weights_snapshot = fit_utils.radial_weighting(
+        cluster_snapshot,
         fit_utils.oversampled_to_image(params[1], oversampling_factor),
         fit_utils.oversampled_to_image(params[2], oversampling_factor),
         style="none",
     )
-    # have zeros in the sigma image where the mask has zeros, but leave it unmodified
-    # otherwise
-    sigma_image *= np.minimum(mask, 1.0)
+    sigma_image *= weights_snapshot
 
     if make_plot:
         # set up the normalizations and colormaps
@@ -376,36 +377,39 @@ def plot_model_set(
         sigma_norm = colors.Normalize(vmin=-10, vmax=10)
         u_norm = colors.Normalize(0, vmax=1.2 * np.max(uncertainty_snapshot))
         m_norm = colors.Normalize(0, vmax=np.max(mask))
+        w_norm = colors.LogNorm(0.01, np.max(weights_snapshot))
 
         data_cmap = bpl.cm.lisbon
         sigma_cmap = cmocean.cm.tarn  # "bwr_r" also works
         u_cmap = cmocean.cm.deep_r
         m_cmap = cmocean.cm.gray_r
+        w_cmap = cmocean.cm.dense_r
 
         # create the figure and add all the subplots
-        fig = plt.figure(figsize=[20, 15])
+        fig = plt.figure(figsize=[20, 20])
         gs = gridspec.GridSpec(
-            nrows=6,
+            nrows=4,
             ncols=4,
             width_ratios=[10, 10, 1, 15],  # have a dummy spacer column
             wspace=0.1,
-            hspace=0.7,
+            hspace=0.3,
             left=0.01,
             right=0.98,
             bottom=0.06,
             top=0.94,
         )
-        ax_r = fig.add_subplot(gs[0:2, 0], projection="bpl")  # raw model
-        ax_f = fig.add_subplot(gs[0:2, 1], projection="bpl")  # full model (f for fit)
-        ax_d = fig.add_subplot(gs[2:4, 1], projection="bpl")  # data
-        ax_s = fig.add_subplot(gs[2:4, 0], projection="bpl")  # sigma difference
-        ax_u = fig.add_subplot(gs[4:, 1], projection="bpl")  # uncertainty
-        ax_m = fig.add_subplot(gs[4:, 0], projection="bpl")  # mask
+        ax_r = fig.add_subplot(gs[0, 0], projection="bpl")  # raw model
+        ax_f = fig.add_subplot(gs[0, 1], projection="bpl")  # full model (f for fit)
+        ax_d = fig.add_subplot(gs[1, 1], projection="bpl")  # data
+        ax_s = fig.add_subplot(gs[1, 0], projection="bpl")  # sigma difference
+        ax_u = fig.add_subplot(gs[2, 1], projection="bpl")  # uncertainty
+        ax_m = fig.add_subplot(gs[2, 0], projection="bpl")  # mask
+        ax_w = fig.add_subplot(gs[3, 0], projection="bpl")  # weights
         ax_pd = fig.add_subplot(
-            gs[0:3, 3], projection="bpl"
+            gs[0:2, 3], projection="bpl"
         )  # radial profile differential
         ax_pc = fig.add_subplot(
-            gs[3:, 3], projection="bpl"
+            gs[2:, 3], projection="bpl"
         )  # radial profile cumulative
 
         # show the images in their respective panels
@@ -420,6 +424,7 @@ def plot_model_set(
             uncertainty_snapshot, norm=u_norm, cmap=u_cmap, origin="lower"
         )
         m_im = ax_m.imshow(mask, norm=m_norm, cmap=m_cmap, origin="lower")
+        w_im = ax_w.imshow(weights_snapshot, norm=w_norm, cmap=w_cmap, origin="lower")
 
         fig.colorbar(r_im, ax=ax_r)
         fig.colorbar(f_im, ax=ax_f)
@@ -427,6 +432,7 @@ def plot_model_set(
         fig.colorbar(s_im, ax=ax_s)
         fig.colorbar(u_im, ax=ax_u)
         fig.colorbar(m_im, ax=ax_m)
+        fig.colorbar(w_im, ax=ax_w)
 
         ax_r.set_title("Raw Cluster Model")
         ax_f.set_title("Model Convolved\nwith PSF and Binned")
@@ -434,8 +440,9 @@ def plot_model_set(
         ax_s.set_title("(Data - Model)/Uncertainty")
         ax_u.set_title("Uncertainty")
         ax_m.set_title("Mask")
+        ax_w.set_title("Weights")
 
-        for ax in [ax_r, ax_f, ax_d, ax_s, ax_u, ax_m]:
+        for ax in [ax_r, ax_f, ax_d, ax_s, ax_u, ax_m, ax_w]:
             ax.remove_labels("both")
             ax.remove_spines(["all"])
 
@@ -443,7 +450,7 @@ def plot_model_set(
         # the rest are image coords
         x_image = fit_utils.oversampled_to_image(params[1], oversampling_factor)
         y_image = fit_utils.oversampled_to_image(params[2], oversampling_factor)
-        for ax in [ax_d, ax_s, ax_u]:
+        for ax in [ax_d, ax_s, ax_u, ax_w]:
             ax.scatter([x_image], [y_image], marker="x", c=bpl.almost_black)
         # make the marker white in the mask plot
         ax_m.scatter([x_image], [y_image], marker="x", c="w")
@@ -611,7 +618,7 @@ for row in tqdm(fits_catalog):
             row["x_pix_snapshot_oversampled_best"],
             row["y_pix_snapshot_oversampled_best"],
         ),
-        False,
+        True,
     )
 
     row["profile_mad"] = profile_mad

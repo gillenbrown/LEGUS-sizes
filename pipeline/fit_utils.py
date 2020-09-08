@@ -127,40 +127,39 @@ def handle_mask(mask_snapshot, cluster_id):
     return mask_snapshot
 
 
-def radial_weighting(sigma_image, x_cen, y_cen, style="none"):
+def radial_weighting(data_image, x_cen, y_cen, style="none"):
     """
-    Reduce sigmas based on their distance from the cluster center
+    Produce a map of the radial pixel weighting to be used
 
-    :param sigma_image: (model - data) / uncertainty pixel array
+    :param sigma_image: data snapshot, only used for its size
     :param x_cen: X coordinate of the cluster center, in units of the data
     :param y_cen: Y coordinate of the cluster center, in units of the data
-    :param style: how to modify the sigma image. This has a couple options:
+    :param style: how to create the radial weights. This has a couple options:
                   none - do no modification to the sigma image
                   annulus - weight by 1/r, so that each annulus has equal weight
-    :return: new sigma image, modified based on the radial weights
+    :return: new weights image
     """
-    sigma = sigma_image.copy()  # make sure nothing weird happens
+    weights = np.ones(data_image.shape)
     if style == "none":
-        pass  # leave sigma image unmodified
+        pass  # leave all weights as one
     elif style == "annulus":
-        x_values = np.zeros([sigma.shape[0], sigma.shape[1]])
-        y_values = np.zeros([sigma.shape[0], sigma.shape[1]])
+        x_values = np.zeros([weights.shape[0], weights.shape[1]])
+        y_values = np.zeros([weights.shape[0], weights.shape[1]])
 
-        for x in range(sigma.shape[1]):
+        for x in range(weights.shape[1]):
             x_values[:, x] = x
-        for y in range(sigma.shape[0]):
+        for y in range(weights.shape[0]):
             y_values[y, :] = y
 
         dists = distance(x_values, y_values, x_cen, y_cen)
         # make everything inside 1 pixels be the same to avoid centering artifacts
         dists = np.maximum(1.0, dists)
         weights = 1 / dists
-        # then normalize the weights to have a maximum value at 1
-        weights /= np.max(weights)
-        sigma *= weights
     else:
         raise ValueError("Bad style parameter to radial_weighting")
-    return sigma
+    # then normalize the weights to have a maximum value at 1
+    weights /= np.max(weights)
+    return weights
 
 
 def oversampled_to_image(x, oversampling_factor):
