@@ -134,7 +134,7 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
         cluster_snapshot,
         fit_utils.oversampled_to_image(params[1], oversampling_factor),
         fit_utils.oversampled_to_image(params[2], oversampling_factor),
-        style="none",
+        style="annulus",
     )
     return np.sum(np.abs(sigma_snapshot))
 

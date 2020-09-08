@@ -361,7 +361,7 @@ def plot_model_set(
         cluster_snapshot,
         fit_utils.oversampled_to_image(params[1], oversampling_factor),
         fit_utils.oversampled_to_image(params[2], oversampling_factor),
-        style="none",
+        style="annulus",
     )
     sigma_image *= weights_snapshot
 

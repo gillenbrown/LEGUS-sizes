@@ -152,8 +152,8 @@ def radial_weighting(data_image, x_cen, y_cen, style="none"):
             y_values[y, :] = y
 
         dists = distance(x_values, y_values, x_cen, y_cen)
-        # make everything inside 1 pixels be the same to avoid centering artifacts
-        dists = np.maximum(1.0, dists)
+        # make everything inside 3 pixels be the same to avoid centering artifacts
+        dists = np.maximum(3.0, dists)
         weights = 1 / dists
     else:
         raise ValueError("Bad style parameter to radial_weighting")
