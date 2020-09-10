@@ -28,18 +28,26 @@ from PySide2.QtCore import Qt
 #
 # ======================================================================================
 def criteria(catalog):
-    mask_1 = catalog["scale_radius_pixels_best"] > 0
-    mask_2 = catalog["scale_radius_pixels_best"] < 1e-2
-    mask_3 = catalog["x_pix_snapshot_oversampled_best"] > 0
-    mask_4 = catalog["x_pix_snapshot_oversampled_best"] < np.inf
-    mask_5 = catalog["x_pix_snapshot_oversampled_best"] > 0
-    mask_6 = catalog["x_pix_snapshot_oversampled_best"] < np.inf
+    mask_1 = catalog["power_law_slope_best"] > 2
+    mask_2 = catalog["axis_ratio_best"] > 0.99
+    mask_3 = catalog["position_angle_best"] > 0.5 * np.pi - 0.01
+    mask_4 = catalog["position_angle_best"] < 0.5 * np.pi + 0.01
+    mask_5 = catalog["x_pix_snapshot_oversampled_best"] != 26.0
+    mask_6 = catalog["x_pix_snapshot_oversampled_best"] != 34.0
+    mask_7 = catalog["y_pix_snapshot_oversampled_best"] != 26.0
+    mask_8 = catalog["y_pix_snapshot_oversampled_best"] != 34.0
     mask = np.logical_and(
         mask_1,
         np.logical_and(
             mask_2,
             np.logical_and(
-                mask_3, np.logical_and(mask_4, np.logical_and(mask_5, mask_6))
+                mask_3,
+                np.logical_and(
+                    mask_4,
+                    np.logical_and(
+                        mask_5, np.logical_and(mask_6, np.logical_and(mask_7, mask_8))
+                    ),
+                ),
             ),
         ),
     )
@@ -53,7 +61,7 @@ for item in sorted(data_dir.iterdir()):
         size_dir = item / "size"
         fits_dir = size_dir / "cluster_fit_plots"
         # open the catalog, and get the ones that match our criteria
-        cat_name = "final_catalog_30_pixels_psf_my_stars_15_pixels_2x_oversampled.txt"
+        cat_name = "final_catalog_radialweighting3pix_abs_bgscale_30_pixels_psf_my_stars_15_pixels_2x_oversampled.txt"
         cat = table.Table.read(size_dir / cat_name, format="ascii.ecsv")
         criteria(cat)
 
