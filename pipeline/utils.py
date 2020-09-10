@@ -77,11 +77,6 @@ def get_pixel_scale_arcsec(home_dir):
     return r_value
 
 
-def get_f555w_pixel_scale_pc(home_dir):
-    arcsec_per_pixel = get_pixel_scale_arcsec(home_dir)
-    return arcsec_to_size_pc(arcsec_per_pixel, home_dir)
-
-
 # https://en.wikipedia.org/wiki/Distance_modulus
 def distance_modulus_distance_and_err(distance_modulus, distance_modulus_error):
     distance = 10 ** (1 + 0.2 * distance_modulus) / 1e6
@@ -189,48 +184,44 @@ def distance_error(data_path, ryon=False):
         return distances_and_errs_mpc[data_path.name][1] * u.Mpc
 
 
-def arcsec_to_size_pc(arcseconds, home_dir):
-    # We need the home directory to get the distance
-    radians = (arcseconds * u.arcsec).to("radian").value
-    size = radians * distance(home_dir)
-    return size.to("pc").value
+def pixels_to_arcsec(pixels, data_path):
+    """
+    Convert a size in pixels to a size in arcseconds.
+
+    This can be either a best fit value or an error.
+
+    :param pixels: size in pixels
+    :param data_path: Location of the image - needed to get the pixel scale
+    :return: Size in arcseconds
+    """
+    return pixels * get_pixel_scale_arcsec(data_path)
 
 
-def pixels_to_pc_with_errors(
-    data_path, pix, pix_error_down, pix_error_up, include_distance_err=True, ryon=False
+def arcsec_to_pc_with_errors(
+    data_path, arcsec, arcsec_error_down, arcsec_error_up, ryon=False
 ):
     """
-    Convert a size in pixels to one in parsecs, including errors
 
     :param data_path: Location of the image - needed to get the distance
-    :param pix: Size in pixels
+    :param arcsec: Size in arcseconds
     :param pix_error_down: Lower error of the size in pixels
     :param pix_error_up: Upper error of the size in pixels
-    :param include_distance_err: Whether or not to include the distance error in the
-                                 returned size uncertainty
     :param ryon: Whether or not to use the distances quoted in Ryon et al. 2017 or
                  use the updated ones from Sabbi et al 2018
     :return: Size, lower error, upper error, all in parsecs.
     """
-    arcsec_per_pixel = get_pixel_scale_arcsec(data_path)
-    # this has no error
-    radians_per_pixel = (arcsec_per_pixel * u.arcsec).to("radian").value
+    radians = (arcsec * u.arcsec).to("radian").value
+    parsecs = radians * distance(data_path, ryon).to("pc").value
 
-    parsecs = radians_per_pixel * pix * distance(data_path, ryon)
-    parsecs = parsecs.to("pc").value
+    # then the fractional error is added in quadrature to get the resulting
+    # fractional error, assuming the distance error is symmetric
+    frac_err_dist = distance_error(data_path, ryon) / distance(data_path, ryon)
 
-    # the fractional error is then added in quadrature. We assume the distance error
-    # is symmetric
-    if include_distance_err:
-        frac_err_dist = distance_error(data_path, ryon) / distance(data_path, ryon)
-    else:
-        frac_err_dist = 0
+    frac_err_arcsec_up = arcsec_error_up / arcsec
+    frac_err_arcsec_down = arcsec_error_down / arcsec
 
-    frac_err_pix_up = pix_error_up / pix
-    frac_err_pix_down = pix_error_down / pix
-
-    frac_err_tot_up = np.sqrt(frac_err_dist ** 2 + frac_err_pix_up ** 2)
-    frac_err_tot_down = np.sqrt(frac_err_dist ** 2 + frac_err_pix_down ** 2)
+    frac_err_tot_up = np.sqrt(frac_err_dist ** 2 + frac_err_arcsec_up ** 2)
+    frac_err_tot_down = np.sqrt(frac_err_dist ** 2 + frac_err_arcsec_down ** 2)
 
     err_pc_up = parsecs * frac_err_tot_up
     err_pc_down = parsecs * frac_err_tot_down

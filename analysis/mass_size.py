@@ -30,12 +30,10 @@ big_catalog = table.vstack(catalogs, join_type="inner")
 
 # Calculate the fractional error
 big_catalog["fractional_err-"] = (
-    big_catalog["r_eff_pc_rmax_15pix_e-_with_dist"]
-    / big_catalog["r_eff_pc_rmax_15pix_best"]
+    big_catalog["r_eff_pc_rmax_15pix_e-"] / big_catalog["r_eff_pc_rmax_15pix_best"]
 )
 big_catalog["fractional_err+"] = (
-    big_catalog["r_eff_pc_rmax_15pix_e+_with_dist"]
-    / big_catalog["r_eff_pc_rmax_15pix_best"]
+    big_catalog["r_eff_pc_rmax_15pix_e+"] / big_catalog["r_eff_pc_rmax_15pix_best"]
 )
 big_catalog["fractional_err_max"] = np.maximum(
     big_catalog["fractional_err-"], big_catalog["fractional_err+"]
@@ -181,12 +179,15 @@ for unit in ["pc", "pixels"]:
         )
 
         psf = fits.open(size_home_dir / psf_name)["PRIMARY"].data
-        psf_size = measure_psf_reff(psf)
+        psf_size_pixels = measure_psf_reff(psf)
         if unit == "pc":
-            psf_size, _, _ = utils.pixels_to_pc_with_errors(
-                home_dir, psf_size, 0, 0, False, False
-            )
-        ax.plot([7e5, 1e6], [psf_size, psf_size], lw=1, c=bpl.almost_black, zorder=3)
+            psf_size_arcsec = utils.pixels_to_arcsec(psf_size_pixels, home_dir)
+            psf_size_pc = utils.arcsec_to_pc_with_errors(
+                home_dir, psf_size_arcsec, 0, 0, False
+            )[0]
+        ax.plot(
+            [7e5, 1e6], [psf_size_pc, psf_size_pc], lw=1, c=bpl.almost_black, zorder=3
+        )
 
     ax.set_xscale("log")
     ax.set_yscale("log")

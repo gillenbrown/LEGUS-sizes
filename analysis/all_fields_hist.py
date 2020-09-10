@@ -24,12 +24,8 @@ for item in sys.argv[2:]:
 
 # add the min and max allowed radii
 for cat in catalogs.values():
-    cat["r_eff_min"] = (
-        cat["r_eff_pc_rmax_15pix_best"] - cat["r_eff_pc_rmax_15pix_e-_with_dist"]
-    )
-    cat["r_eff_max"] = (
-        cat["r_eff_pc_rmax_15pix_best"] + cat["r_eff_pc_rmax_15pix_e+_with_dist"]
-    )
+    cat["r_eff_min"] = cat["r_eff_pc_rmax_15pix_best"] - cat["r_eff_pc_rmax_15pix_e-"]
+    cat["r_eff_max"] = cat["r_eff_pc_rmax_15pix_best"] + cat["r_eff_pc_rmax_15pix_e+"]
 
 fig, ax = bpl.subplots()
 xs = np.logspace(-1, 2, 1000)
