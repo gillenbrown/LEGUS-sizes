@@ -156,13 +156,15 @@ def eff_profile_r_eff_with_rmax(eta, a, q, rmax):
 #
 # ======================================================================================
 # add the columns we want to the table
+fits_catalog["r_eff_pixels_rmax_15pix_best"] = -99.9
 fits_catalog["r_eff_pixels_rmax_15pix_e+"] = -99.9
 fits_catalog["r_eff_pixels_rmax_15pix_e-"] = -99.9
+fits_catalog["r_eff_arcsec_rmax_15pix_best"] = -99.9
+fits_catalog["r_eff_arcsec_rmax_15pix_e+"] = -99.9
+fits_catalog["r_eff_arcsec_rmax_15pix_e-"] = -99.9
 fits_catalog["r_eff_pc_rmax_15pix_best"] = -99.9
 fits_catalog["r_eff_pc_rmax_15pix_e+"] = -99.9
 fits_catalog["r_eff_pc_rmax_15pix_e-"] = -99.9
-fits_catalog["r_eff_pc_rmax_15pix_e+_with_dist"] = -99.9
-fits_catalog["r_eff_pc_rmax_15pix_e-_with_dist"] = -99.9
 
 # first calculate the best fit value
 fits_catalog["r_eff_pixels_rmax_15pix_best"] = eff_profile_r_eff_with_rmax(
@@ -188,30 +190,29 @@ for row in fits_catalog:
     row["r_eff_pixels_rmax_15pix_e+"] = max(hi - row["r_eff_pixels_rmax_15pix_best"], 0)
     row["r_eff_pixels_rmax_15pix_e-"] = max(row["r_eff_pixels_rmax_15pix_best"] - lo, 0)
 
+    # First convert this to arcseconds
+    row["r_eff_arcsec_rmax_15pix_best"] = utils.pixels_to_arcsec(
+        row["r_eff_pixels_rmax_15pix_best"], home_dir
+    )
+    row["r_eff_arcsec_rmax_15pix_e+"] = utils.pixels_to_arcsec(
+        row["r_eff_pixels_rmax_15pix_e+"], home_dir
+    )
+    row["r_eff_arcsec_rmax_15pix_e-"] = utils.pixels_to_arcsec(
+        row["r_eff_pixels_rmax_15pix_e-"], home_dir
+    )
+
     # Then we can convert to pc. First do it without including distance errors
-    best, low_e, high_e = utils.pixels_to_pc_with_errors(
-        final_catalog_path.parent.parent,
-        row["r_eff_pixels_rmax_15pix_best"],
-        row["r_eff_pixels_rmax_15pix_e-"],
-        row["r_eff_pixels_rmax_15pix_e+"],
-        include_distance_err=False,
+    best, low_e, high_e = utils.arcsec_to_pc_with_errors(
+        home_dir,
+        row["r_eff_arcsec_rmax_15pix_best"],
+        row["r_eff_arcsec_rmax_15pix_e-"],
+        row["r_eff_arcsec_rmax_15pix_e+"],
     )
 
     row["r_eff_pc_rmax_15pix_best"] = best
     row["r_eff_pc_rmax_15pix_e+"] = high_e
     row["r_eff_pc_rmax_15pix_e-"] = low_e
 
-    # Then recalculate the errors including the distance errors
-    _, low_e, high_e = utils.pixels_to_pc_with_errors(
-        final_catalog_path.parent.parent,
-        row["r_eff_pixels_rmax_15pix_best"],
-        row["r_eff_pixels_rmax_15pix_e-"],
-        row["r_eff_pixels_rmax_15pix_e+"],
-        include_distance_err=True,
-    )
-
-    row["r_eff_pc_rmax_15pix_e+_with_dist"] = high_e
-    row["r_eff_pc_rmax_15pix_e-_with_dist"] = low_e
 
 # ======================================================================================
 #
