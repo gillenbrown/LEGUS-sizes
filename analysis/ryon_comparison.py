@@ -132,10 +132,7 @@ for idx, (field, cat) in enumerate(matches.items()):
         x=cat["r_eff_Galfit"][mask],
         y=cat["r_eff_pc_no_rmax_best"][mask],
         xerr=[cat["e_r_eff-_Galfit"][mask], cat["e_r_eff+_Galfit"][mask]],
-        yerr=[
-            cat["r_eff_pc_no_rmax_e-"][mask],
-            cat["r_eff_pc_no_rmax_e+"][mask],
-        ],
+        yerr=[cat["r_eff_pc_no_rmax_e-"][mask], cat["r_eff_pc_no_rmax_e+"][mask],],
         markerfacecolor=c,
         markeredgecolor=c,
         markersize=5,

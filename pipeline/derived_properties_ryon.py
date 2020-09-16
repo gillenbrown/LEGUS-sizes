@@ -173,21 +173,21 @@ for row in fits_catalog:
 
     # First convert this to arcseconds
     row["r_eff_arcsec_no_rmax_best"] = utils.pixels_to_arcsec(
-            row["r_eff_pixels_no_rmax_best"], home_dir
+        row["r_eff_pixels_no_rmax_best"], home_dir
     )
     row["r_eff_arcsec_no_rmax_e+"] = utils.pixels_to_arcsec(
-            row["r_eff_pixels_no_rmax_e+"], home_dir
+        row["r_eff_pixels_no_rmax_e+"], home_dir
     )
     row["r_eff_arcsec_no_rmax_e-"] = utils.pixels_to_arcsec(
-            row["r_eff_pixels_no_rmax_e-"], home_dir
+        row["r_eff_pixels_no_rmax_e-"], home_dir
     )
 
     # Then we can convert to pc. First do it without including distance errors
     best, low_e, high_e = utils.arcsec_to_pc_with_errors(
-            home_dir,
-            row["r_eff_arcsec_no_rmax_best"],
-            row["r_eff_arcsec_no_rmax_e-"],
-            row["r_eff_arcsec_no_rmax_e+"],
+        home_dir,
+        row["r_eff_arcsec_no_rmax_best"],
+        row["r_eff_arcsec_no_rmax_e-"],
+        row["r_eff_arcsec_no_rmax_e+"],
     )
 
     row["r_eff_pc_no_rmax_best"] = best
