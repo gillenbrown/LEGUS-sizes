@@ -24,6 +24,8 @@ import utils
 final_catalog_path = Path(sys.argv[1]).absolute()
 fits_catalog_path = Path(sys.argv[2]).absolute()
 fits_catalog = table.Table.read(fits_catalog_path, format="hdf5")
+size_dir = final_catalog_path.parent
+home_dir = size_dir.parent
 
 # We want to get the values out of the padded arrays where there are nans
 def unpad(padded_array):
@@ -162,36 +164,33 @@ for row in fits_catalog:
     )
     # then get the 1 sigma error range of that
     low, hi = np.percentile(all_r_eff_pixels, [15.85, 84.15])
-    # subtract the middle to get the error range
+    # subtract the middle to get the error range. If the best fit it outside the error
+    # range, make the error in that direction zero.
     row["r_eff_pixels_no_rmax_e+"] = max(hi - row["r_eff_pixels_no_rmax_best"], 0)
     row["r_eff_pixels_no_rmax_e-"] = max(row["r_eff_pixels_no_rmax_best"] - low, 0)
 
+    # First convert this to arcseconds
+    row["r_eff_arcsec_no_rmax_best"] = utils.pixels_to_arcsec(
+            row["r_eff_pixels_no_rmax_best"], home_dir
+    )
+    row["r_eff_arcsec_no_rmax_e+"] = utils.pixels_to_arcsec(
+            row["r_eff_pixels_no_rmax_e+"], home_dir
+    )
+    row["r_eff_arcsec_no_rmax_e-"] = utils.pixels_to_arcsec(
+            row["r_eff_pixels_no_rmax_e-"], home_dir
+    )
+
     # Then we can convert to pc. First do it without including distance errors
-    best, low_e, high_e = utils.pixels_to_pc_with_errors(
-        final_catalog_path.parent.parent,
-        row["r_eff_pixels_no_rmax_best"],
-        row["r_eff_pixels_no_rmax_e-"],
-        row["r_eff_pixels_no_rmax_e+"],
-        include_distance_err=False,
-        ryon=True,
+    best, low_e, high_e = utils.arcsec_to_pc_with_errors(
+            home_dir,
+            row["r_eff_arcsec_no_rmax_best"],
+            row["r_eff_arcsec_no_rmax_e-"],
+            row["r_eff_arcsec_no_rmax_e+"],
     )
 
     row["r_eff_pc_no_rmax_best"] = best
     row["r_eff_pc_no_rmax_e+"] = high_e
     row["r_eff_pc_no_rmax_e-"] = low_e
-
-    # Then recalculate the errors including the distance errors
-    _, low_e, high_e = utils.pixels_to_pc_with_errors(
-        final_catalog_path.parent.parent,
-        row["r_eff_pixels_no_rmax_best"],
-        row["r_eff_pixels_no_rmax_e-"],
-        row["r_eff_pixels_no_rmax_e+"],
-        include_distance_err=True,
-        ryon=True,
-    )
-
-    row["r_eff_pc_no_rmax_e+_with_dist"] = high_e
-    row["r_eff_pc_no_rmax_e-_with_dist"] = low_e
 
 # ======================================================================================
 #
@@ -231,32 +230,28 @@ for row in fits_catalog:
     row["r_eff_pixels_rmax_15pix_e+"] = max(hi - row["r_eff_pixels_rmax_15pix_best"], 0)
     row["r_eff_pixels_rmax_15pix_e-"] = max(row["r_eff_pixels_rmax_15pix_best"] - lo, 0)
 
+    # First convert this to arcseconds
+    row["r_eff_arcsec_rmax_15pix_best"] = utils.pixels_to_arcsec(
+        row["r_eff_pixels_rmax_15pix_best"], home_dir
+    )
+    row["r_eff_arcsec_rmax_15pix_e+"] = utils.pixels_to_arcsec(
+        row["r_eff_pixels_rmax_15pix_e+"], home_dir
+    )
+    row["r_eff_arcsec_rmax_15pix_e-"] = utils.pixels_to_arcsec(
+        row["r_eff_pixels_rmax_15pix_e-"], home_dir
+    )
+
     # Then we can convert to pc. First do it without including distance errors
-    best, low_e, high_e = utils.pixels_to_pc_with_errors(
-        final_catalog_path.parent.parent,
-        row["r_eff_pixels_rmax_15pix_best"],
-        row["r_eff_pixels_rmax_15pix_e-"],
-        row["r_eff_pixels_rmax_15pix_e+"],
-        include_distance_err=False,
-        ryon=True,
+    best, low_e, high_e = utils.arcsec_to_pc_with_errors(
+        home_dir,
+        row["r_eff_arcsec_rmax_15pix_best"],
+        row["r_eff_arcsec_rmax_15pix_e-"],
+        row["r_eff_arcsec_rmax_15pix_e+"],
     )
 
     row["r_eff_pc_rmax_15pix_best"] = best
     row["r_eff_pc_rmax_15pix_e+"] = high_e
     row["r_eff_pc_rmax_15pix_e-"] = low_e
-
-    # Then recalculate the errors including the distance errors
-    _, low_e, high_e = utils.pixels_to_pc_with_errors(
-        final_catalog_path.parent.parent,
-        row["r_eff_pixels_rmax_15pix_best"],
-        row["r_eff_pixels_rmax_15pix_e-"],
-        row["r_eff_pixels_rmax_15pix_e+"],
-        include_distance_err=True,
-        ryon=True,
-    )
-
-    row["r_eff_pc_rmax_15pix_e+_with_dist"] = high_e
-    row["r_eff_pc_rmax_15pix_e-_with_dist"] = low_e
 
 # ======================================================================================
 #
