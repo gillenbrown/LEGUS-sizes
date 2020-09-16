@@ -141,13 +141,15 @@ def eff_profile_r_eff_with_rmax(eta, a, q, rmax):
 #
 # ======================================================================================
 # add the columns we want to the table
+fits_catalog["r_eff_pixels_no_rmax_best"] = -99.9
 fits_catalog["r_eff_pixels_no_rmax_e+"] = -99.9
 fits_catalog["r_eff_pixels_no_rmax_e-"] = -99.9
+fits_catalog["r_eff_arcsec_no_rmax_best"] = -99.9
+fits_catalog["r_eff_arcsec_no_rmax_e+"] = -99.9
+fits_catalog["r_eff_arcsec_no_rmax_e-"] = -99.9
 fits_catalog["r_eff_pc_no_rmax_best"] = -99.9
 fits_catalog["r_eff_pc_no_rmax_e+"] = -99.9
 fits_catalog["r_eff_pc_no_rmax_e-"] = -99.9
-fits_catalog["r_eff_pc_no_rmax_e+_with_dist"] = -99.9
-fits_catalog["r_eff_pc_no_rmax_e-_with_dist"] = -99.9
 
 # first calculate the best fit value
 fits_catalog["r_eff_pixels_no_rmax_best"] = eff_profile_r_eff_no_rmax(
@@ -198,13 +200,15 @@ for row in fits_catalog:
 #
 # ======================================================================================
 # add the columns we want to the table
+fits_catalog["r_eff_pixels_rmax_15pix_best"] = -99.9
 fits_catalog["r_eff_pixels_rmax_15pix_e+"] = -99.9
 fits_catalog["r_eff_pixels_rmax_15pix_e-"] = -99.9
+fits_catalog["r_eff_arcsec_rmax_15pix_best"] = -99.9
+fits_catalog["r_eff_arcsec_rmax_15pix_e+"] = -99.9
+fits_catalog["r_eff_arcsec_rmax_15pix_e-"] = -99.9
 fits_catalog["r_eff_pc_rmax_15pix_best"] = -99.9
 fits_catalog["r_eff_pc_rmax_15pix_e+"] = -99.9
 fits_catalog["r_eff_pc_rmax_15pix_e-"] = -99.9
-fits_catalog["r_eff_pc_rmax_15pix_e+_with_dist"] = -99.9
-fits_catalog["r_eff_pc_rmax_15pix_e-_with_dist"] = -99.9
 
 # first calculate the best fit value
 fits_catalog["r_eff_pixels_rmax_15pix_best"] = eff_profile_r_eff_with_rmax(
