@@ -87,10 +87,10 @@ param_limits = {
     "central_surface_brightness_best": (10, 1e8),
     "x_pix_snapshot_oversampled_best": (25, 35),
     "y_pix_snapshot_oversampled_best": (25, 35),
-    "scale_radius_pixels_best": (0.01, 100),
+    "scale_radius_pixels_best": (0.05, 20),
     "axis_ratio_best": (-0.05, 1.05),
     "position_angle_best": (0, np.pi),
-    "power_law_slope_best": (0.1, 100),
+    "power_law_slope_best": (0, 3),
     "local_background_best": (-500, 1000),
 }
 # put things on these limits
@@ -108,7 +108,7 @@ param_scale = {
     "scale_radius_pixels_best": "log",
     "axis_ratio_best": "linear",
     "position_angle_best": "linear",
-    "power_law_slope_best": "log",
+    "power_law_slope_best": "linear",
     "local_background_best": "linear",
 }
 param_bins = {
@@ -118,7 +118,7 @@ param_bins = {
     "scale_radius_pixels_best": np.logspace(-2, 2, 41),
     "axis_ratio_best": np.arange(-0.1, 1.1, 0.05),
     "position_angle_best": np.arange(0, 3.5, 0.1),
-    "power_law_slope_best": np.logspace(-1, 2, 41),
+    "power_law_slope_best": np.arange(0, 5, 0.1),
     "local_background_best": np.arange(-300, 1500, 100),
 }
 
@@ -192,7 +192,12 @@ failure_color = bpl.color_cycle[3]
 # ======================================================================================
 # This will have several columns for different parameters, with the rows being the
 # different ways of assessing each parameter
-fig, axs = bpl.subplots(ncols=3, figsize=[16, 6])
+fig, axs = bpl.subplots(
+    ncols=3,
+    figsize=[16, 6],
+    tight_layout=False,
+    gridspec_kw={"top": 0.9, "bottom": 0.2, "left": 0.08, "right": 0.98},
+)
 for ax, param in zip(axs, plot_params):
     # Then the cumulative histogram
     ax.plot(
@@ -210,7 +215,6 @@ for ax, param in zip(axs, plot_params):
 
     if param == "axis_ratio_best":
         ax.legend(loc=2)
-        ax.set_title(run_name)
     ax.add_labels(x_label=params[param])
     if param == "scale_radius_pixels_best":
         ax.add_labels(y_label="Cumulative Number of Clusters")
@@ -229,7 +233,7 @@ for ax, param in zip(axs, plot_params):
         which="both",
         direction="out",
     )
-
+fig.suptitle(run_name)
 fig.savefig(plot_name.parent / "cumulative.png")
 
 # ======================================================================================
