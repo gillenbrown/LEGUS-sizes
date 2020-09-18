@@ -13,9 +13,6 @@ endif
 # We'll do this complicated line that just gets all directories inside data_home
 data_dirs = $(sort $(dir $(wildcard $(data_home)/*/)))
 
-# then filter out the ones that Ryon used, to compare to those
-ryon_dirs = $(filter %ngc1313-e/ %ngc1313-w/ %ngc628-c/ %ngc628-e/, $(data_dirs))
-
 # ------------------------------------------------------------------------------
 #
 # Configuration variables
@@ -44,7 +41,6 @@ mask_script = ./pipeline/make_mask_image.py
 fitting_script = ./pipeline/fit.py
 fit_utils = ./pipeline/fit_utils.py
 final_catalog_script = ./pipeline/derived_properties.py
-final_catalog_script_no_mask = ./pipeline/derived_properties_ryon.py
 comparison_script = ./analysis/ryon_comparison.py
 radii_def_plot_script = ./analysis/radii_def_comp_plot.py
 parameters_dist_script = ./analysis/parameter_distribution.py
@@ -61,7 +57,6 @@ experiment_script = ./testing/experiments.py
 # ------------------------------------------------------------------------------
 my_dirname = size/
 my_dirs = $(foreach dir,$(data_dirs),$(dir)$(my_dirname))
-my_dirs_ryon = $(foreach dir,$(ryon_dirs),$(dir)$(my_dirname))
 cluster_fit_dirs = $(foreach dir,$(my_dirs),$(dir)cluster_fit_plots)
 cluster_plot_dirs = $(foreach dir,$(my_dirs),$(dir)plots)
 local_plots_dir = ./plots_$(run_name)/
@@ -81,9 +76,7 @@ psf_comp_plot = psf_paper_my_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_f
 sigma_image = sigma_electrons.fits
 mask = mask_image.fits
 fit = cluster_fits_$(run_name)_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.h5
-fit_no_mask = cluster_fits_$(run_name)_no_masking_size_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.h5
 final_cat = final_catalog_$(run_name)_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.txt
-final_cat_no_mask = final_catalog_$(run_name)_no_masking_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.txt
 
 # ------------------------------------------------------------------------------
 #
@@ -99,9 +92,7 @@ psf_comp_plots = $(foreach dir,$(my_dirs),$(dir)$(psf_comp_plot))
 sigma_images = $(foreach dir,$(my_dirs),$(dir)$(sigma_image))
 masks = $(foreach dir,$(my_dirs),$(dir)$(mask))
 fits = $(foreach dir,$(my_dirs),$(dir)$(fit))
-fits_no_mask = $(foreach dir,$(my_dirs_ryon),$(dir)$(fit_no_mask))
 final_cats = $(foreach dir,$(my_dirs),$(dir)$(final_cat))
-final_cats_no_mask = $(foreach dir,$(my_dirs_ryon),$(dir)$(final_cat_no_mask))
 
 # determine which psfs to use for fitting
 ifeq ($(psf_type),my)
@@ -121,16 +112,14 @@ endif
 # ------------------------------------------------------------------------------
 psf_demo_image = $(local_plots_dir)psf_demo_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.pdf
 comparison_plot = $(local_plots_dir)comparison_plot_size_$(fit_region_size).png
-radii_def_comp_plot = $(local_plots_dir)radii_def_comp_plot_$(fit_region_size).png
 param_dist_plot = $(local_plots_dir)parameter_distribution_size_$(fit_region_size).png
-param_dist_plot_no_mask = $(local_plots_dir)parameter_distribution_ryon_galaxies_size_$(fit_region_size).png
 all_fields_hist_plot = $(local_plots_dir)all_fields_$(fit_region_size).png
 mass_size_plot = $(local_plots_dir)mass_size_relation_$(fit_region_size).png
 example_fit_plot = $(local_plots_dir)example_fit.png
 fit_quality_plot = $(local_plots_dir)fit_quality.png
-plots = $(psf_demo_image) $(psf_comp_plots) $(comparison_plot)\
-        $(radii_def_comp_plot) $(param_dist_plot) $(param_dist_plot_no_mask) \
-        $(all_fields_hist_plot) $(mass_size_plot) $(fit_quality_plot)
+plots = $(psf_demo_image) $(psf_comp_plots) $(comparison_plot) \
+        $(param_dist_plot) $(all_fields_hist_plot) $(mass_size_plot) \
+        $(example_fit_plot) $(fit_quality_plot)
 experiments_sentinel = ./testing/experiments_done.txt
 
 # ------------------------------------------------------------------------------
@@ -147,14 +136,14 @@ all: $(all_my_dirs) $(plots) $(experiments_sentinel)
 # if the files we try to remove don't exist
 .PHONY: clean
 clean:
-	rm $(final_cats) $(final_cats_no_mask) $(plots) || true
+	rm $(final_cats) $(plots) || true
 
 # have another option to remove the fits too, just not the PSFs. Be careful
 # that we only remove the plots for this image size.
 debug_plots = $(foreach dir,$(cluster_fit_dirs),$(dir)/*size_$(fit_region_size)*)
 .PHONY: clean_fits
 clean_fits:
-	rm -r $(fits) $(fits_no_mask) $(debug_plots) || true
+	rm -r $(fits) $(debug_plots) || true
 	make clean
 
 # but if they really want to nuke everything too they can
@@ -224,31 +213,17 @@ to_rm_debug_plots =  $(1)cluster_fit_plots/*size_$(fit_region_size)_$(2)*
 $(fits): %: | $(fitting_script) $(fit_utils) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask) $$(dir %)$$(cat)
 	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(dir $@)$(cat) $(fit_region_size)
 
-# for the no masking case we pass an extra parameter
-$(fits_no_mask): %: | $(fitting_script) $(fit_utils) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask) $$(dir %)$$(cat)
-	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(dir $@)$(cat) $(fit_region_size) ryon_like
-
 # Add the derived properties to these catalogs
 .SECONDEXPANSION:
 $(final_cats): %: | $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask)
 	python $(final_catalog_script) $@ $(dir $@)$(fit) $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(fit_region_size)
 
-.SECONDEXPANSION:
-$(final_cats_no_mask): %: | $(final_catalog_script_no_mask) $$(dir %)$$(fit_no_mask)
-	python $(final_catalog_script_no_mask) $@ $(dir $@)$(fit_no_mask)
-
 # Make the comparison to Ryon+17's results
-$(comparison_plot): $(comparison_script) $(final_cats_no_mask)
-	python $(comparison_script) $@ $(final_cats_no_mask)
-
-$(radii_def_comp_plot): $(radii_def_plot_script) $(final_cats_no_mask)
-	python $(radii_def_plot_script) $@ $(final_cats_no_mask)
+$(comparison_plot): $(comparison_script) $(final_cats)
+	python $(comparison_script) $@ $(final_cats)
 
 $(param_dist_plot): $(parameters_dist_script) $(final_cats)
 	python $(parameters_dist_script) $@ $(final_cats)
-
-$(param_dist_plot_no_mask): $(parameters_dist_script) $(final_cats_no_mask)
-	python $(parameters_dist_script) $@ $(final_cats_no_mask)
 
 $(all_fields_hist_plot): $(final_cats) $(all_fields_script)
 	python $(all_fields_script) $@ $(final_cats)

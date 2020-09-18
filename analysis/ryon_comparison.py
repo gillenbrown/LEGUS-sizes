@@ -94,15 +94,14 @@ num_clusters = 0
 for field, cat in matches.items():
     for row in cat:
         if row["Eta"] > 1.3 and row["power_law_slope_best"] > 1.3:
-            my_r_eff = row["r_eff_pc_no_rmax_best"]
+            my_r_eff = row["r_eff_pc_rmax_15pix_best"]
             ryon_r_eff = row["r_eff_Galfit"]
             if my_r_eff > ryon_r_eff:
                 ryon_err = row["e_r_eff+_Galfit"]
-                my_err = row["r_eff_pc_no_rmax_e-"]
+                my_err = row["r_eff_pc_rmax_15pix_e-"]
             else:
                 ryon_err = row["e_r_eff-_Galfit"]
-                my_err = row["r_eff_pc_no_rmax_e+"]
-
+                my_err = row["r_eff_pc_rmax_15pix_e+"]
             used_err = max(ryon_err, my_err)
             diff = (my_r_eff - ryon_r_eff) / used_err
             if diff < 10:
@@ -130,9 +129,12 @@ for idx, (field, cat) in enumerate(matches.items()):
 
     ax.errorbar(
         x=cat["r_eff_Galfit"][mask],
-        y=cat["r_eff_pc_no_rmax_best"][mask],
+        y=cat["r_eff_pc_rmax_15pix_best"][mask],
         xerr=[cat["e_r_eff-_Galfit"][mask], cat["e_r_eff+_Galfit"][mask]],
-        yerr=[cat["r_eff_pc_no_rmax_e-"][mask], cat["r_eff_pc_no_rmax_e+"][mask],],
+        yerr=[
+            cat["r_eff_pc_rmax_15pix_e-"][mask],
+            cat["r_eff_pc_rmax_15pix_e+"][mask],
+        ],
         markerfacecolor=c,
         markeredgecolor=c,
         markersize=5,
