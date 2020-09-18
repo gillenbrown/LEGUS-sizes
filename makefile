@@ -117,8 +117,8 @@ mass_size_plot = $(local_plots_dir)mass_size_relation_$(fit_region_size).png
 example_fit_plot = $(local_plots_dir)example_fit.png
 fit_quality_plot = $(local_plots_dir)fit_quality.png
 plots = $(psf_demo_image) $(psf_comp_plots) $(comparison_plot) \
-        $(param_dist_plot) $(param_dist_plot_no_mask) $(all_fields_hist_plot)  \
-        $(mass_size_plot) $(example_fit_plot) $(fit_quality_plot)
+        $(param_dist_plot) $(all_fields_hist_plot) $(mass_size_plot) \
+        $(example_fit_plot) $(fit_quality_plot)
 experiments_sentinel = ./testing/experiments_done.txt
 
 # ------------------------------------------------------------------------------
@@ -135,14 +135,14 @@ all: $(all_my_dirs) $(plots) $(experiments_sentinel)
 # if the files we try to remove don't exist
 .PHONY: clean
 clean:
-	rm $(final_cats) $(final_cats_no_mask) $(plots) || true
+	rm $(final_cats) $(plots) || true
 
 # have another option to remove the fits too, just not the PSFs. Be careful
 # that we only remove the plots for this image size.
 debug_plots = $(foreach dir,$(cluster_fit_dirs),$(dir)/*size_$(fit_region_size)*)
 .PHONY: clean_fits
 clean_fits:
-	rm -r $(fits) $(fits_no_mask) $(debug_plots) || true
+	rm -r $(fits) $(debug_plots) || true
 	make clean
 
 # but if they really want to nuke everything too they can
