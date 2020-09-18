@@ -73,7 +73,7 @@ snapshot_size_oversampled = snapshot_size * oversampling_factor
 # negative numbers. The position angle actually has similar issues, so we do the similar
 # thing
 bg_scale_factor = 1e3
-theta_scale_factor = 1e2
+theta_scale_factor = 1e3
 
 # ======================================================================================
 #
@@ -279,7 +279,7 @@ def log_priors(
     # # then the upper prior on the major axis
     # log_prior += flat_normal_edge(np.log10(a), np.log10(15), 0.1, 1.0, "upper")
     # then a straight prior on the scale radius
-    log_prior += flat_normal_edge(q, 0.3, 0.1, 1.0, "lower")
+    # log_prior += flat_normal_edge(q, 0.3, 0.1, 1.0, "lower")
     # the width of the prior on the background depends on the value of the power law
     # slope. Below 1 it will be strict (0.1 sigma), as this is when we have issues with
     # estimating the background, while for higher values of eta the background prior
