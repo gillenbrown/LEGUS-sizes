@@ -73,7 +73,7 @@ snapshot_size_oversampled = snapshot_size * oversampling_factor
 # negative numbers. The position angle actually has similar issues, so we do the similar
 # thing
 bg_scale_factor = 1e3
-theta_scale_factor = 1e3
+theta_scale_factor = 1e2
 
 # ======================================================================================
 #
