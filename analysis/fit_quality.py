@@ -363,7 +363,12 @@ for idx_p, param in enumerate(plot_params):
                 zorder=1,
             )
             ax.text(
-                x=xs[1], y=ys[1], ha="center", va="bottom", s=percentile, fontsize=16,
+                x=xs[1],
+                y=ys[1],
+                ha="center",
+                va="bottom",
+                s=percentile,
+                fontsize=16,
             )
 
         ax.set_limits(*param_limits[param], *ind_limits[indicator])

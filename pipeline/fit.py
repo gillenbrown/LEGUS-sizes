@@ -161,7 +161,10 @@ def estimate_background(data, mask, x_c, y_c, min_radius):
 
     if len(good_bg) > 0:
         mean, median, std = stats.sigma_clipped_stats(
-            good_bg, sigma_lower=None, sigma_upper=3.0, maxiters=None,
+            good_bg,
+            sigma_lower=None,
+            sigma_upper=3.0,
+            maxiters=None,
         )
         return mean, std
     else:

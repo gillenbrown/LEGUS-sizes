@@ -210,7 +210,11 @@ for cat_loc in sys.argv[5:]:
     all_ratios = np.concatenate([all_ratios, this_ratio])
 
 ax.hist(
-    all_ratios, alpha=1.0, lw=1, color=bpl.color_cycle[3], bins=np.logspace(-1, 1, 21),
+    all_ratios,
+    alpha=1.0,
+    lw=1,
+    color=bpl.color_cycle[3],
+    bins=np.logspace(-1, 1, 21),
 )
 
 ax.axvline(1.0)

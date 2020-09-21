@@ -120,7 +120,14 @@ def radial_profile_psf(psf):
 # ax1 = fig.add_subplot(gs[:17, 27:], projection="bpl")
 fig = plt.figure(figsize=[9, 4])
 gs = gridspec.GridSpec(
-    ncols=40, nrows=1, left=0.12, right=0.97, bottom=0.2, top=0.99, hspace=0, wspace=0,
+    ncols=40,
+    nrows=1,
+    left=0.12,
+    right=0.97,
+    bottom=0.2,
+    top=0.99,
+    hspace=0,
+    wspace=0,
 )
 ax_r = fig.add_subplot(gs[:, :19], projection="bpl")
 ax_v = fig.add_subplot(gs[:, 18:], projection="bpl")
