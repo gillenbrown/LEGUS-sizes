@@ -81,7 +81,7 @@ theta_scale_factor = 1e2
 #
 # ======================================================================================
 def dummy_list_col(n_rows):
-    return [[-99.9] * i for i in range(n_rows)]
+    return [[-99.9] * 5 for _ in range(n_rows)]
 
 
 n_rows = len(clusters_table)
