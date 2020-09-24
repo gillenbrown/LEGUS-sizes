@@ -12,6 +12,8 @@ endif
 # This directory should have nothing but directories with data
 # We'll do this complicated line that just gets all directories inside data_home
 data_dirs = $(sort $(dir $(wildcard $(data_home)/*/)))
+#all_dirs = $(sort $(dir $(wildcard $(data_home)/*/)))
+#data_dirs = $(filter %ngc628-c/, $(all_dirs))
 
 # ------------------------------------------------------------------------------
 #
@@ -23,7 +25,7 @@ psf_type = my
 psf_pixel_size = 15
 psf_oversampling_factor = 2
 fit_region_size = 30
-run_name = radialweighting3pix_abs_bgscale1e3_thetascale1e2_nopriorsatall
+run_name = radialweighting3pix_abs_bgscale1e3_thetascale1e2_noaprior_noqprior_starta1_starteta2
 
 # ------------------------------------------------------------------------------
 #
