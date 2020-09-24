@@ -136,7 +136,7 @@ def binned_radial_profile(snapshot, oversampling_factor, x_c, y_c, bin_size):
         radii = radii[1:]
         ys = ys[1:]
     else:
-        binned_radii, binned_ys, = [], []
+        binned_radii, binned_ys = [], []
 
     for r_min in np.arange(0, int(np.ceil(max(radii))), bin_size):
         r_max = r_min + bin_size
@@ -275,9 +275,7 @@ ax_big.legend()
 ax_big.set_yscale("log")
 ax_big.add_labels("Radius [pixels]", "Pixel Value [e$^-$]")
 max_pix = 15
-ax_big.set_limits(
-    0, max_pix, 5, 1000,
-)
+ax_big.set_limits(0, max_pix, 5, 1000)
 
 # then add a second scale on top translating into parsecs
 max_pc, _, _ = utils.pixels_to_pc_with_errors(data_dir, max_pix, 0, 0)

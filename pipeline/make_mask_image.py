@@ -114,7 +114,7 @@ def find_stars(data_snapshot, uncertainty_snapshot):
     mask_radius = peaks_table["fwhm"].data * star_radius_fwhm_multiplier
     blank = np.ones(xs.shape) * -1
 
-    return table.Table([xs, ys, mask_radius, blank, blank], names=names,)
+    return table.Table([xs, ys, mask_radius, blank, blank], names=names)
 
 
 # ======================================================================================

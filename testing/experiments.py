@@ -374,7 +374,10 @@ def eta_given_reff_rmax_a(r_eff, r_max, a, q):
         return abs(r_eff - eff_profile_r_eff_with_rmax(a, eta, q, r_max))
 
     return optimize.minimize(
-        to_minimize, x0=(1e-15,), args=(r_eff, r_max, a, q), bounds=[(0, None),]
+        to_minimize,
+        x0=(1e-15,),
+        args=(r_eff, r_max, a, q),
+        bounds=[(0, None)],
     ).x
 
 

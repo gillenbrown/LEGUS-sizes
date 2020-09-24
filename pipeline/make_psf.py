@@ -186,9 +186,7 @@ figname = (
     + f"{oversampling_factor}x_oversampled.png"
 )
 
-fig.savefig(
-    size_home_dir / "plots" / figname, dpi=100,
-)
+fig.savefig(size_home_dir / "plots" / figname, dpi=100)
 
 # ======================================================================================
 #

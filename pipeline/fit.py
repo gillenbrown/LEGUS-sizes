@@ -168,7 +168,10 @@ def estimate_background(data, mask, x_c, y_c, min_radius):
 
     if len(good_bg) > 0:
         mean, median, std = stats.sigma_clipped_stats(
-            good_bg, sigma_lower=None, sigma_upper=3.0, maxiters=None,
+            good_bg,
+            sigma_lower=None,
+            sigma_upper=3.0,
+            maxiters=None,
         )
         return mean, std
     else:
@@ -518,7 +521,9 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         this_result_struct = optimize.minimize(
             calculate_chi_squared,
             args=(data_snapshot, uncertainty_snapshot, temp_mask),
-            x0=params,  # don't use the initial result, to avoid local minima
+            # use the initial result as the starting point since we want to find the
+            # error on that value. This should also speed up the fitting
+            x0=initial_result,
             bounds=bounds,
             method="L-BFGS-B",  # default method when using bounds
             options={
