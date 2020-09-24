@@ -73,7 +73,7 @@ snapshot_size_oversampled = snapshot_size * oversampling_factor
 # negative numbers. The position angle actually has similar issues, so we do the similar
 # thing
 bg_scale_factor = 1e3
-theta_scale_factor = 1e1
+theta_scale_factor = 1e2
 
 # ======================================================================================
 #
@@ -288,8 +288,8 @@ def log_priors(
     # estimating the background, while for higher values of eta the background prior
     # will be less strict. We want a smooth transition of this width, as any sharp
     # transition will give artifacts in the resulting distributions.
-    width = logistic(eta, 0.1, 1.0, 1.0, 0.1) * estimated_bg_sigma
-    log_prior += log_of_normal(background, estimated_bg, width)
+    # width = logistic(eta, 0.1, 1.0, 1.0, 0.1) * estimated_bg_sigma
+    # log_prior += log_of_normal(background, estimated_bg, width)
     return log_prior
 
 
