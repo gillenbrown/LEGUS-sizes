@@ -82,6 +82,10 @@ dist_cols = [
 ]
 for col in dist_cols:
     fits_catalog[col] = [unpad(row[col]) for row in fits_catalog]
+    # Also delete the columns associated with the multiple starting points. For now we
+    # don't do anything with them here
+    del fits_catalog[col + "_x0_variations"]
+del fits_catalog["log_likelihood_x0_variations"]
 
 # ======================================================================================
 #

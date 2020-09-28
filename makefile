@@ -25,7 +25,7 @@ psf_type = my
 psf_pixel_size = 15
 psf_oversampling_factor = 2
 fit_region_size = 30
-run_name = radialweighting3pix_abs_bgscale1e3_thetascale1e2_noaprior_noqprior_starta1_starteta2
+run_name = radialweighting3pix_abs_bgscale1e3_thetascale1e2_noaprior_noqprior_multiplestarts
 
 # ------------------------------------------------------------------------------
 #
