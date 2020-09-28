@@ -595,7 +595,6 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
 # Then go through the catalog
 #
 # ======================================================================================
-clusters_table = clusters_table[:2]
 for row in tqdm(clusters_table):
     # create the snapshot. We use ceiling to get the integer pixel values as
     # python indexing does not include the final value.
