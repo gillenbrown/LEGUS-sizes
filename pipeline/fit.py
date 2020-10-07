@@ -73,7 +73,7 @@ snapshot_size_oversampled = snapshot_size * oversampling_factor
 # negative numbers. The position angle actually has similar issues, so we do the similar
 # thing
 bg_scale_factor = 1e3
-theta_scale_factor = 1e2
+theta_scale_factor = 1
 
 # ======================================================================================
 #
@@ -90,7 +90,7 @@ new_cols = [
     "y_fitted",
     "x_pix_snapshot_oversampled",
     "y_pix_snapshot_oversampled",
-    "central_surface_brightness",
+    "log_luminosity",
     "scale_radius_pixels",
     "axis_ratio",
     "position_angle",
@@ -103,7 +103,7 @@ for col in new_cols:
     clusters_table[col + "_x0_variations"] = dummy_list_col(n_rows)
     clusters_table[col + "_best"] = -99.9
 
-clusters_table["log_likelihood_x0_variations"] = -99.9 * np.ones((n_rows, 7))
+clusters_table["log_likelihood_x0_variations"] = -99.9 * np.ones((n_rows, 13))
 clusters_table["num_boostrapping_iterations"] = -99
 
 # ======================================================================================
@@ -253,7 +253,16 @@ def logistic(x, minimum, maximum, x_0, scale):
 
 
 def log_priors(
-    log_mu_0, x_c, y_c, a, q, theta, eta, background, estimated_bg, estimated_bg_sigma
+    log_luminosity,
+    x_c,
+    y_c,
+    a,
+    q,
+    theta,
+    eta,
+    background,
+    estimated_bg,
+    estimated_bg_sigma,
 ):
     """
     Calculate the prior probability for a given model.
@@ -289,8 +298,8 @@ def log_priors(
     # estimating the background, while for higher values of eta the background prior
     # will be less strict. We want a smooth transition of this width, as any sharp
     # transition will give artifacts in the resulting distributions.
-    width = logistic(eta, 0.1, 1.0, 1.0, 0.1) * estimated_bg_sigma
-    log_prior += log_of_normal(background, estimated_bg, width)
+    # width = logistic(eta, 0.1, 1.0, 1.0, 0.1) * estimated_bg_sigma
+    # log_prior += log_of_normal(background, estimated_bg, width)
     return log_prior
 
 
@@ -390,7 +399,7 @@ def create_boostrap_mask(original_mask, x_c, y_c):
     return temp_mask
 
 
-def postprocess_params(log_mu_0, x_c, y_c, a, q, theta, eta, background):
+def postprocess_params(log_luminosity, x_c, y_c, a, q, theta, eta, background):
     """
     Postprocess the parameters, namely the axis ratio and position angle.
 
@@ -411,12 +420,12 @@ def postprocess_params(log_mu_0, x_c, y_c, a, q, theta, eta, background):
         q_final = 1.0 / q
         a_final = a * q
         theta_final = (theta - (np.pi / 2.0)) % np.pi
-        return log_mu_0, x_c, y_c, a_final, q_final, theta_final, eta, background
+        return log_luminosity, x_c, y_c, a_final, q_final, theta_final, eta, background
     else:
-        return log_mu_0, x_c, y_c, a, q, theta % np.pi, eta, background
+        return log_luminosity, x_c, y_c, a, q, theta % np.pi, eta, background
 
 
-def fit_model(data_snapshot, uncertainty_snapshot, mask):
+def fit_model(data_snapshot, uncertainty_snapshot, mask, x_guess, y_guess):
     """
     Fits an EFF model to the data passed in, using bootstrapping.
 
@@ -434,23 +443,27 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     estimated_bg, bg_scatter = estimate_background(
         data_snapshot, mask, data_center, data_center, 6
     )
-
-    # get the center pixel coordinate in the oversampled snapshot
-    center = snapshot_size_oversampled / 2.0
+    # log luminosity - subtract off the estimated background then apply the mask
+    # to estimate the light belonging to the cluster. We then have to correct for
+    # the oversampling factor, since the model space has different pixel sizes. We
+    # take the mean to combine pixels (this works nicely for the background), but
+    # for the luminosity we need to scale.
+    estimated_l = np.sum((data_snapshot - estimated_bg) * mask_snapshot)
+    estimated_l *= oversampling_factor ** 2
     # Create the initial guesses for the parameters
-    pi4 = np.pi / 4.0
     start_params = (
-        [np.log10(np.max(data_snapshot) * 3)] * 7,  # log of peak brightness.
-        # Increase that to account for bins, as peaks will be averaged lower.
-        [center] * 7,  # X center in the oversampled snapshot
-        [center] * 7,  # Y center in the oversampled snapshot
-        # scale radius, in regular pixels. Start small to avoid fitting other things
-        [1.0, 5.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-        [0.8, 0.8, 0.6, 1.0, 0.8, 0.8, 0.8],  # axis ratio
-        [pi4, pi4, pi4, pi4, -pi4, pi4, pi4],  # position angle
-        # power law slope. Start high to give a sharp cutoff and avoid other stuff
-        [2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 5.0],
-        [estimated_bg / bg_scale_factor] * 7,  # background
+        [np.log10(estimated_l)] * 13,
+        [x_guess] * 13,  # X center in the oversampled snapshot
+        [y_guess] * 13,  # Y center in the oversampled snapshot
+        # scale radius, in regular pixels. I looked at the final distribution of a vs
+        # eta to locate where most clusters were, then picked values that spanned the
+        # full range
+        [3.0, 2.7, 2.3, 2.1, 2.0, 1.3, 1.0, 0.8, 0.3, 0.3, 0.6, 1.0, 2.0],
+        [0.8] * 13,  # axis ratio
+        [0] * 13,  # position angle
+        # power law slope. Same as scale radius
+        [1.1, 1.3, 1.5, 1.7, 1.9, 2.1, 2.3, 2.5, 2.7, 1.1, 1.1, 1.2, 1.2],
+        [estimated_bg / bg_scale_factor] * 13,  # background
     )
 
     # some of the bounds are not used because we put priors on them. We don't use priors
@@ -464,9 +477,12 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
     # allowing the axis ratio and scale radius to be negative. They get squared in the
     # EFF profile anyway, so their sign doesn't matter. They are singular at a=0 and
     # q=0, but hopefully floating point values will stop that from being an issue
+    # Have the center pixel bounds be from the center, so it's easy to detect when
+    # we reached a bound, so we can throw it out.
+    center = snapshot_size_oversampled / 2.0
     center_half_width = 2 * oversampling_factor
     bounds = [
-        (None, 100),  # log of peak brightness.
+        (None, 100),  # log of luminosity.
         (center - center_half_width, center + center_half_width),  # X center
         (center - center_half_width, center + center_half_width),  # Y center
         (None, None),  # scale radius in regular pixels.
@@ -476,13 +492,14 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
         (None, None),  # background
     ]
 
-    # set some of the convergence criteria parameters for the scipy  minimize routine
-    ftol = 2e-9  # ftol is roughly the default value
-    gtol = 1e-7  # stopping value of the gradient, 100x lower than default value
-    eps = 1e-8  # absolute step size for the gradient calculation, default
-    maxfun = np.inf  # max number of function evaluations
-    maxiter = np.inf  # max number of iterations
-    maxls = 200  # max line search steps per iteration. Default is 20
+    # set some of the convergence criteria parameters for the Powell fitting routine.
+    # I don't require too strict convergence, since having multiple starting points
+    # ensures that we're close. I've found it doesn't converge any better with more
+    # strict criteria anyway.
+    xtol = 1e-3
+    ftol = 1e-3
+    maxfev = np.inf
+    maxiter = np.inf
 
     # first get the results when all good pixels are used, to be used as a starting
     # point when bootstrapping is done, to save time. This will be done for each
@@ -495,19 +512,17 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
             args=(data_snapshot, uncertainty_snapshot, mask, estimated_bg, bg_scatter),
             x0=[start_params[j][idx] for j in range(len(start_params))],
             bounds=bounds,
-            method="L-BFGS-B",  # default method when using bounds
+            method="Powell",  # default method when using bounds
             options={
+                "xtol": xtol,
                 "ftol": ftol,
-                "gtol": gtol,
-                "eps": eps,
-                "maxfun": maxfun,
+                "maxfev": maxfev,
                 "maxiter": maxiter,
-                "maxls": maxls,
             },
         )
 
         # Note that we do not postprocess the params until after we've calculated the
-        # log lielihood, as the likelihood function does the postprocessing, and we
+        # log likelihood, as the likelihood function does the postprocessing, and we
         # don't want to do that twice, as it will mess up the background and
         # theta values
         initial_result = initial_result_struct.x
@@ -551,14 +566,12 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask):
             # around that value. This should also reduce the time needed to converge
             x0=initial_result_best,
             bounds=bounds,
-            method="L-BFGS-B",  # default method when using bounds
+            method="Powell",  # default method when using bounds
             options={
+                "xtol": xtol,
                 "ftol": ftol,
-                "gtol": gtol,
-                "eps": eps,
-                "maxfun": maxfun,
+                "maxfev": maxfev,
                 "maxiter": maxiter,
-                "maxls": maxls,
             },
         )
         # store the results after processing them
@@ -616,14 +629,20 @@ for row in tqdm(clusters_table):
 
     mask_snapshot = fit_utils.handle_mask(mask_snapshot, row["ID"])
 
+    # Use the LEGUS center to start the fit at this location
+    x_legus = fit_utils.image_to_oversampled(row["x"] - x_min, oversampling_factor)
+    y_legus = fit_utils.image_to_oversampled(row["y"] - y_min, oversampling_factor)
+
     # then do this fitting!
-    all_results = fit_model(data_snapshot, error_snapshot, mask_snapshot)
+    all_results = fit_model(
+        data_snapshot, error_snapshot, mask_snapshot, x_legus, y_legus
+    )
     results, history, x0_variations, x0_likelihoods = all_results
 
     # Then add these values to the table
     row["num_boostrapping_iterations"] = len(history[0])
 
-    row["central_surface_brightness_best"] = 10 ** results[0]
+    row["log_luminosity_best"] = results[0]
     row["x_pix_snapshot_oversampled_best"] = results[1]
     row["y_pix_snapshot_oversampled_best"] = results[2]
     row["x_fitted_best"] = x_min + fit_utils.oversampled_to_image(
@@ -639,7 +658,7 @@ for row in tqdm(clusters_table):
     row["local_background_best"] = results[7]
 
     # Store the bootstrapping history
-    row["central_surface_brightness"] = [10 ** v for v in history[0]]
+    row["log_luminosity"] = history[0]
     row["x_pix_snapshot_oversampled"] = history[1]
     row["y_pix_snapshot_oversampled"] = history[2]
     row["x_fitted"] = [
@@ -657,9 +676,7 @@ for row in tqdm(clusters_table):
     row["local_background"] = history[7]
 
     # Store the fitting done with different starting points
-    row["central_surface_brightness_x0_variations"] = [
-        10 ** p[0] for p in x0_variations
-    ]
+    row["log_luminosity_x0_variations"] = [p[0] for p in x0_variations]
     row["x_pix_snapshot_oversampled_x0_variations"] = [p[1] for p in x0_variations]
     row["y_pix_snapshot_oversampled_x0_variations"] = [p[2] for p in x0_variations]
     row["x_fitted_x0_variations"] = [
@@ -693,9 +710,7 @@ def pad(array, total_length):
     return final_array
 
 
-max_length_hist = max(
-    [len(row["central_surface_brightness"]) for row in clusters_table]
-)
+max_length_hist = max([len(row["log_luminosity"]) for row in clusters_table])
 max_length_start = len(clusters_table["axis_ratio_x0_variations"][0])
 for col in new_cols:
     clusters_table[col] = [pad(row[col], max_length_hist) for row in clusters_table]

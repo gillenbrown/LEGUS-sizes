@@ -73,7 +73,7 @@ dist_cols = [
     "y_fitted",
     "x_pix_snapshot_oversampled",
     "y_pix_snapshot_oversampled",
-    "central_surface_brightness",
+    "log_luminosity",
     "scale_radius_pixels",
     "axis_ratio",
     "position_angle",
@@ -591,7 +591,7 @@ for row in tqdm(fits_catalog):
 
     # then get the parameters and calculate a few things of interest
     params = [
-        np.log10(row["central_surface_brightness_best"]),
+        row["log_luminosity_best"],
         fit_utils.image_to_oversampled(snapshot_x_cen, oversampling_factor),
         fit_utils.image_to_oversampled(snapshot_y_cen, oversampling_factor),
         row["scale_radius_pixels_best"],

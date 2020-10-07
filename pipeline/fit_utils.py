@@ -10,13 +10,14 @@ from scipy import signal
 # Create the functions that will be used in the fitting procedure
 #
 # ======================================================================================
-def eff_profile_2d(x, y, log_mu_0, x_c, y_c, a, q, theta, eta):
+def eff_profile_2d(x, y, log_luminosity, x_c, y_c, a, q, theta, eta):
     """
     2-dimensional EFF profile, in pixel units
 
     :param x: X pixel values
     :param y: Y pixel values
-    :param log_mu_0: Log of the central surface brightness
+    :param log_luminosity: Log of the luminosity of the cluster, in the same units as
+                           the image
     :param x_c: Center X pixel coordinate
     :param y_c: Center Y pixel coordinate
     :param a: Scale radius in the major axis direction
@@ -28,9 +29,29 @@ def eff_profile_2d(x, y, log_mu_0, x_c, y_c, a, q, theta, eta):
     x_prime = (x - x_c) * np.cos(theta) + (y - y_c) * np.sin(theta)
     y_prime = -(x - x_c) * np.sin(theta) + (y - y_c) * np.cos(theta)
 
+    # need to guard against zeros for a and q
+    if a == 0:
+        a = 1e-15
+    if q == 0:
+        q = 1e-15
+
     x_term = (x_prime / a) ** 2
     y_term = (y_prime / (q * a)) ** 2
-    return (10 ** log_mu_0) * (1 + x_term + y_term) ** (-eta)
+    # use all the other parameters to turn luminosity into mu (assume 15 pixel
+    # maximum radius).
+    mu_0_term_a = 10 ** (log_luminosity) * (eta - 1) / (np.pi * a ** 2)
+    mu_0_term_b = 1 - (1 + (15 / a) ** 2) ** (1 - eta)
+    # sometimes parameters can conspire to make the bottom term essentially or
+    # identically zero. Guard against this. We do need to be careful about the sign,
+    # since this can be negative.
+    if mu_0_term_b == 0:
+        mu_0_term_b = 1e-15
+    mu_0_term_b = np.sign(mu_0_term_b) * max(abs(mu_0_term_b), 1e-15)
+
+    # then combine the two terms
+    mu_0 = mu_0_term_a / mu_0_term_b
+
+    return mu_0 * (1 + x_term + y_term) ** (-eta)
 
 
 def convolve_with_psf(in_array, psf):
@@ -49,7 +70,7 @@ def bin_data_2d(data, oversampling_factor):
 
 
 def create_model_image(
-    log_mu_0,
+    log_luminosity,
     x_c,
     y_c,
     a,
@@ -84,7 +105,7 @@ def create_model_image(
         y_values[y, :] = y
 
     model_image = eff_profile_2d(
-        x_values, y_values, log_mu_0, x_c_internal, y_c_internal, a, q, theta, eta
+        x_values, y_values, log_luminosity, x_c_internal, y_c_internal, a, q, theta, eta
     )
     # convolve without the background first, to do an ever better job avoiding edge
     # effects, as the model should be zero near the boundaries anyway, matching the zero
