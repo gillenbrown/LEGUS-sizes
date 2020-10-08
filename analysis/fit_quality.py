@@ -70,7 +70,7 @@ n_good = np.sum(success_mask)
 # ======================================================================================
 # I'll have several things that need to be tracked for each parameter
 params = {
-    "central_surface_brightness_best": "Central Surface Brightness [e$^-$]",
+    "log_luminosity_best": "Log Luminosity [e$^-$]",
     "x_pix_snapshot_oversampled_best": "X Center",
     "y_pix_snapshot_oversampled_best": "Y Center",
     "scale_radius_pixels_best": "Scale Radius [pixels]",
@@ -81,7 +81,7 @@ params = {
 }
 plot_params = ["scale_radius_pixels_best", "axis_ratio_best", "power_law_slope_best"]
 param_limits = {
-    "central_surface_brightness_best": (10, 1e8),
+    "log_luminosity_best": (1, 8),
     "x_pix_snapshot_oversampled_best": (25, 35),
     "y_pix_snapshot_oversampled_best": (25, 35),
     "scale_radius_pixels_best": (0.05, 20),
@@ -99,7 +99,7 @@ for param in param_limits:
         0.99 * param_limits[param][1]
     )
 param_scale = {
-    "central_surface_brightness_best": "log",
+    "log_luminosity_best": "linear",
     "x_pix_snapshot_oversampled_best": "linear",
     "y_pix_snapshot_oversampled_best": "linear",
     "scale_radius_pixels_best": "log",
@@ -109,7 +109,7 @@ param_scale = {
     "local_background_best": "linear",
 }
 param_bins = {
-    "central_surface_brightness_best": np.logspace(1, 8, 41),
+    "log_luminosity_best": np.arange(1, 8, 0.5),
     "x_pix_snapshot_oversampled_best": np.arange(25, 35, 0.25),
     "y_pix_snapshot_oversampled_best": np.arange(25, 35, 0.25),
     "scale_radius_pixels_best": np.logspace(-2, 2, 41),

@@ -31,10 +31,9 @@ big_catalog = table.vstack(catalogs, join_type="inner")
 fig, axs = bpl.subplots(ncols=3, nrows=3, figsize=[15, 11])
 axs = axs.flatten()
 
-axs[0].hist(big_catalog["central_surface_brightness_best"], bins=np.logspace(1, 10, 41))
-axs[0].add_labels("Central Surface Brightness [e$^-$]", "Number of Clusters")
-axs[0].set_limits(10, 1e10)
-axs[0].set_xscale("log")
+axs[0].hist(big_catalog["log_luminosity_best"], bins=np.linspace(1, 10, 41))
+axs[0].add_labels("Log Luminosity [e$^-$]", "Number of Clusters")
+axs[0].set_limits(1, 10)
 
 axs[1].hist(big_catalog["x_pix_snapshot_oversampled_best"], bin_size=0.25)
 axs[1].add_labels("X Position [pixels]", "Number of Clusters")
