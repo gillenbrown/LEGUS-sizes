@@ -345,12 +345,21 @@ def negative_log_likelihood(
     # is on the physically reasonable values, we need to make sure that's correct.
     log_prior = log_priors(*params, estimated_bg, estimated_bg_sigma)
     log_likelihood = log_data_likelihood + log_prior
-    assert not np.isnan(log_prior)
-    assert not np.isnan(log_data_likelihood)
-    assert not np.isinf(log_prior)
-    assert not np.isinf(log_data_likelihood)
-    assert not np.isneginf(log_prior)
-    assert not np.isneginf(log_data_likelihood)
+    try:
+        assert not np.isnan(log_prior)
+        assert not np.isnan(log_data_likelihood)
+        assert not np.isinf(log_prior)
+        assert not np.isinf(log_data_likelihood)
+        assert not np.isneginf(log_prior)
+        assert not np.isneginf(log_data_likelihood)
+    except AssertionError:
+        print("\n\n\n\n\n========= ERROR ==========")
+        print("These params were responsible:")
+        for item in params:
+            print(item)
+        print("========= END OF ERROR ==========\n\n\n\n\n")
+        # estimate a chi^2 of 1000 per pixel if something went wrong
+        log_likelihood = -1000 * snapshot_size_oversampled**2
     # return the negative of this so we can minimize this value
     return -log_likelihood
 
