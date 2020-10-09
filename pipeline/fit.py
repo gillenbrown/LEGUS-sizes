@@ -359,7 +359,7 @@ def negative_log_likelihood(
             print(item)
         print("========= END OF ERROR ==========\n\n\n\n\n")
         # estimate a chi^2 of 1000 per pixel if something went wrong
-        log_likelihood = -1000 * snapshot_size_oversampled**2
+        log_likelihood = -1000 * snapshot_size_oversampled ** 2
     # return the negative of this so we can minimize this value
     return -log_likelihood
 
@@ -577,7 +577,13 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, x_guess, y_guess):
         # fit to this selection of pixels
         this_result_struct = optimize.minimize(
             negative_log_likelihood,
-            args=(data_snapshot, uncertainty_snapshot, temp_mask),
+            args=(
+                data_snapshot,
+                uncertainty_snapshot,
+                temp_mask,
+                estimated_bg,
+                bg_scatter,
+            ),
             # use the best fit results as the initial guess, to get the uncertainty
             # around that value. This should also reduce the time needed to converge
             x0=initial_result_best,
