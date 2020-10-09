@@ -550,14 +550,14 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, x_guess, y_guess):
 
     # Then we do bootstrapping
     n_variables = len(initial_result_best)
-    param_history = [[0.7] for _ in range(n_variables)]
+    param_history = [[] for _ in range(n_variables)]
     param_std_last = [np.inf for _ in range(n_variables)]
 
-    converge_criteria = 0.5  # fractional change in std required for convergence
+    converge_criteria = 0.1  # fractional change in std required for convergence
     converged = [False for _ in range(n_variables)]
-    check_spacing = 1  # how many iterations between checking the std
+    check_spacing = 20  # how many iterations between checking the std
     iteration = 0
-    while False:  # not all(converged):
+    while not all(converged):
         iteration += 1
 
         # make a new mask
