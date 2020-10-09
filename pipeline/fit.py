@@ -103,7 +103,18 @@ for col in new_cols:
     clusters_table[col + "_x0_variations"] = dummy_list_col(n_rows)
     clusters_table[col + "_best"] = -99.9
 
-clusters_table["log_likelihood_x0_variations"] = -99.9 * np.ones((n_rows, 13))
+# Make the grid of a and eta to have the multiple starting points. We'll use this later
+a_grid = np.logspace(-1, 1, 12)
+eta_grid = np.arange(1.1, 3.0, 0.2)
+a_values = []
+eta_values = []
+for a in a_grid:
+    for eta in eta_grid:
+        a_values.append(a)
+        eta_values.append(eta)
+n_grid = len(a_values)
+
+clusters_table["log_likelihood_x0_variations"] = -99.9 * np.ones((n_rows, n_grid))
 clusters_table["num_boostrapping_iterations"] = -99
 
 # ======================================================================================
@@ -452,18 +463,14 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, x_guess, y_guess):
     estimated_l *= oversampling_factor ** 2
     # Create the initial guesses for the parameters
     start_params = (
-        [np.log10(estimated_l)] * 13,
-        [x_guess] * 13,  # X center in the oversampled snapshot
-        [y_guess] * 13,  # Y center in the oversampled snapshot
-        # scale radius, in regular pixels. I looked at the final distribution of a vs
-        # eta to locate where most clusters were, then picked values that spanned the
-        # full range
-        [3.0, 2.7, 2.3, 2.1, 2.0, 1.3, 1.0, 0.8, 0.3, 0.3, 0.6, 1.0, 2.0],
-        [0.8] * 13,  # axis ratio
-        [0] * 13,  # position angle
-        # power law slope. Same as scale radius
-        [1.1, 1.3, 1.5, 1.7, 1.9, 2.1, 2.3, 2.5, 2.7, 1.1, 1.1, 1.2, 1.2],
-        [estimated_bg / bg_scale_factor] * 13,  # background
+        [np.log10(estimated_l)] * n_grid,
+        [x_guess] * n_grid,  # X center in the oversampled snapshot
+        [y_guess] * n_grid,  # Y center in the oversampled snapshot
+        a_values,  # scale radius, in regular pixels.
+        [0.8] * n_grid,  # axis ratio
+        [0] * n_grid,  # position angle
+        eta_values,  # power law slope
+        [estimated_bg / bg_scale_factor] * n_grid,  # background
     )
 
     # some of the bounds are not used because we put priors on them. We don't use priors

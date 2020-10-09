@@ -429,6 +429,20 @@ for ax, color_ind in zip(axs, indicators):
         s=2,
         alpha=1,
     )
+    a_grid = np.logspace(-1, 1, 12)
+    eta_grid = np.arange(1.1, 3.0, 0.2)
+    a_values = []
+    eta_values = []
+    for a in a_grid:
+        for eta in eta_grid:
+            a_values.append(a)
+            eta_values.append(eta)
+    n_grid = len(a_values)
+
+    ax.scatter(
+        eta_values, a_values, s=30, marker="o", alpha=1, c=bpl.color_cycle[3], zorder=0
+    )
+
     ax.add_labels(params[x_param], params[y_param])
     ax.set_limits(*param_limits[x_param], *param_limits[y_param])
     ax.set_xscale(param_scale[x_param])
