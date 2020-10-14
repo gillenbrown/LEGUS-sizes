@@ -70,10 +70,8 @@ snapshot_size_oversampled = snapshot_size * oversampling_factor
 # basically no change in the fit quality. To alleviate these issues, we simple scale
 # the background value used in the fit. We divide it by some large number. This simple
 # fix solves both issues. Using the log would also work, but is harder since we have
-# negative numbers. The position angle actually has similar issues, so we do the similar
-# thing
+# negative numbers.
 bg_scale_factor = 1e3
-theta_scale_factor = 1
 
 # ======================================================================================
 #
@@ -431,7 +429,6 @@ def postprocess_params(log_luminosity, x_c, y_c, a, q, theta, eta, background):
     """
     # handle background
     background *= bg_scale_factor
-    theta *= theta_scale_factor
 
     # q and a can be negative, fix that before any further processing
     a = abs(a)
