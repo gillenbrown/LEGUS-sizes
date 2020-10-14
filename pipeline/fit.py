@@ -82,6 +82,17 @@ def dummy_list_col(n_rows):
     return np.array([[-99.9] * k for k in range(n_rows)], dtype="object")
 
 
+# Make the grid of a and eta to have the multiple starting points. We'll use this later
+a_grid = np.logspace(-1, 1, 12)
+eta_grid = np.arange(1.1, 3.0, 0.2)
+a_values = []
+eta_values = []
+for a in a_grid:
+    for eta in eta_grid:
+        a_values.append(a)
+        eta_values.append(eta)
+n_grid = len(a_values)
+
 n_rows = len(clusters_table)
 new_cols = [
     "x_fitted",
@@ -98,19 +109,8 @@ new_cols = [
 
 for col in new_cols:
     clusters_table[col] = dummy_list_col(n_rows)
-    clusters_table[col + "_x0_variations"] = dummy_list_col(n_rows)
+    clusters_table[col + "_x0_variations"] = -99.9 * np.ones((n_rows, n_grid))
     clusters_table[col + "_best"] = -99.9
-
-# Make the grid of a and eta to have the multiple starting points. We'll use this later
-a_grid = np.logspace(-1, 1, 12)
-eta_grid = np.arange(1.1, 3.0, 0.2)
-a_values = []
-eta_values = []
-for a in a_grid:
-    for eta in eta_grid:
-        a_values.append(a)
-        eta_values.append(eta)
-n_grid = len(a_values)
 
 clusters_table["log_likelihood_x0_variations"] = -99.9 * np.ones((n_rows, n_grid))
 clusters_table["num_boostrapping_iterations"] = -99
