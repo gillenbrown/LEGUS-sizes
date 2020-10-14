@@ -37,28 +37,6 @@ for item in sys.argv[3:]:
 big_catalog = table.vstack(catalogs, join_type="inner")
 # multiply the MAD by 100 to get it to percent
 # big_catalog["profile_mad"] *= 100
-# mark clusters with failed fits, defined as when they hit the boundaries of the center
-big_catalog["good"] = big_catalog["x_pix_snapshot_oversampled_best"] != 26.00
-big_catalog["good"] = np.logical_and(
-    big_catalog["good"], big_catalog["x_pix_snapshot_oversampled_best"] != 34.00
-)
-big_catalog["good"] = np.logical_and(
-    big_catalog["good"], big_catalog["y_pix_snapshot_oversampled_best"] != 26.00
-)
-big_catalog["good"] = np.logical_and(
-    big_catalog["good"], big_catalog["y_pix_snapshot_oversampled_best"] != 34.00
-)
-# throw out very small axis ratios
-big_catalog["good"] = np.logical_and(
-    big_catalog["good"], big_catalog["axis_ratio_best"] > 0.2
-)
-# throw out ones outside of the prior limits
-big_catalog["good"] = np.logical_and(
-    big_catalog["good"], big_catalog["scale_radius_pixels_best"] > 0.1
-)
-big_catalog["good"] = np.logical_and(
-    big_catalog["good"], big_catalog["scale_radius_pixels_best"] < 15
-)
 
 success_mask = big_catalog["good"].data
 n_good = np.sum(success_mask)

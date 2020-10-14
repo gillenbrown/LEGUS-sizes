@@ -681,6 +681,25 @@ for row in tqdm(fits_catalog):
     row["estimated_local_background_diff_sigma"] = diff / bg_scatter
     row["fit_rms"] = this_rms
 
+# Then we determine which clusters are good. First we do simple checks based on the
+# parameter values
+masks = []
+masks.append(fits_catalog["axis_ratio_best"] > 0.5)
+masks.append(fits_catalog["scale_radius_pixels_best"] > 0.1)
+masks.append(fits_catalog["scale_radius_pixels_best"] < 15.0)
+masks.append(fits_catalog["x_pix_snapshot_oversampled_best"] != 26.00)
+masks.append(fits_catalog["x_pix_snapshot_oversampled_best"] != 34.00)
+masks.append(fits_catalog["y_pix_snapshot_oversampled_best"] != 26.00)
+masks.append(fits_catalog["y_pix_snapshot_oversampled_best"] != 34.00)
+# Then we use the boundaries for the quality measure of the cumulative distribution
+masks.append(fits_catalog["profile_diff_mad"] < 0.11860371059644502)
+masks.append(fits_catalog["profile_diff_max"] < 0.2422950857276166)
+masks.append(fits_catalog["profile_diff_last"] < 0.15756898102675565)
+# then combine them all together
+fits_catalog["good"] = True
+for mask in masks:
+    fits_catalog["good"] = np.logical_and(fits_catalog["good"], mask)
+
 # Then add one back to the output catalog to be comparable to LEGUS results. This is
 # because of Python being zero indexed
 fits_catalog["x_pix_single_fitted_best"] = fits_catalog["x_fitted_best"] + 1

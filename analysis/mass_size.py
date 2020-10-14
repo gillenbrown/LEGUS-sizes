@@ -44,14 +44,8 @@ print(f"Total Clusters: {len(big_catalog)}")
 mask = big_catalog["age_yr"] <= 200e6
 print(f"Clusters with age < 200 Myr: {np.sum(mask)}")
 
-mask = np.logical_and(mask, big_catalog["scale_radius_pixels_best"] > 0.1)
-print(f"Clusters with scale radius > 0.1 pixel: {np.sum(mask)}")
-
-mask = np.logical_and(mask, big_catalog["scale_radius_pixels_best"] < 15.0)
-print(f"Clusters with scale radius < 15 pixels: {np.sum(mask)}")
-
-mask = np.logical_and(mask, big_catalog["axis_ratio_best"] > 0.2)
-print(f"Clusters with axis ratio > 0.2: {np.sum(mask)}")
+mask = np.logical_and(mask, big_catalog["good"] > 0.1)
+print(f"Clusters with good fits: {np.sum(mask)}")
 
 # ======================================================================================
 #
