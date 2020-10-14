@@ -358,8 +358,8 @@ def negative_log_likelihood(
         for item in params:
             print(item)
         print("========= END OF ERROR ==========\n\n\n\n\n")
-        # estimate a chi^2 of 1000 per pixel if something went wrong
-        log_likelihood = -1000 * snapshot_size_oversampled ** 2
+        # estimate a chi^2 of 1 million per pixel if something went wrong
+        log_likelihood = -1e6 * snapshot_size_oversampled ** 2
     # return the negative of this so we can minimize this value
     return -log_likelihood
 
