@@ -738,6 +738,5 @@ def pad(array, total_length):
 max_length_hist = max([len(row["log_luminosity"]) for row in clusters_table])
 for col in new_cols:
     clusters_table[col] = [pad(row[col], max_length_hist) for row in clusters_table]
-    clusters_table[col + "_x0_variations"] = [
 
 clusters_table.write(str(final_catalog), format="hdf5", path="table", overwrite=True)
