@@ -287,6 +287,7 @@ def rms(sigmas, x_c, y_c, max_radius):
     :param max_radius: Maximum radius to include in the calculation
     :return: sqrt(mean(sigmas**2)) where r < max_radius
     """
+    sigmas *= fit_utils.radial_weighting(sigmas, x_c, y_c, style="annulus")
     good_sigmas = []
     for x in range(sigmas.shape[1]):
         for y in range(sigmas.shape[0]):
@@ -310,6 +311,38 @@ def mad_of_cumulative(radii, model_cumulative, data_cumulative, max_radius):
     mask_good = radii < max_radius
     diffs = np.abs(model_cumulative - data_cumulative) / data_cumulative
     return np.median(diffs[mask_good])
+
+
+def max_diff_cumulative(radii, model_cumulative, data_cumulative, max_radius):
+    """
+    Calculate the maximum relative absolute deviation of the cumulative distribution
+    within some radius. This is maximum(abs(model - data) / data) where r < r_max
+
+    :param radii: List of radii
+    :param model_cumulative: Cumulative pixel values for the model as a function of r
+    :param data_cumulative: Cumulative pixel values for the data as a function of r
+    :param max_radius: Maximum radius to include in the calculation
+    :return: maximum(abs(model - data) / data) where r < r_max
+    """
+    mask_good = radii < max_radius
+    diffs = np.abs(model_cumulative - data_cumulative) / data_cumulative
+    return np.max(diffs[mask_good])
+
+
+def diff_cumulative_at_max_radius(radii, model_cumulative, data_cumulative, max_radius):
+    """
+    Calculate the relative absolute deviation of the cumulative distribution at some
+    radius. This is abs(model - data) / data where r = r_max
+
+    :param radii: List of radii
+    :param model_cumulative: Cumulative pixel values for the model as a function of r
+    :param data_cumulative: Cumulative pixel values for the data as a function of r
+    :param max_radius: Maximum radius to include in the calculation
+    :return: abs(model - data) / data where r = r_max
+    """
+    best_idx = np.argmin(abs(radii - max_radius))
+    diffs = np.abs(model_cumulative - data_cumulative) / data_cumulative
+    return diffs[best_idx]
 
 
 def estimate_background(data, mask, x_c, y_c, min_radius):
@@ -518,9 +551,15 @@ def plot_model_set(
             "Radius (pixels)", "Cumulative Background Subtracted Pixel Values [$e^{-}$]"
         )
 
-    # calculate the relative median devation of cumulative profile and the RMS
+    # calculate different quality metrics of cumulative profile and the RMS
     median_diff = mad_of_cumulative(
-        radii, model_ys_cumulative, data_ys_cumulative, max_radius=cut_radius
+        radii, model_ys_cumulative, data_ys_cumulative, cut_radius
+    )
+    max_diff = max_diff_cumulative(
+        radii, model_ys_cumulative, data_ys_cumulative, cut_radius
+    )
+    last_diff = diff_cumulative_at_max_radius(
+        radii, model_ys_cumulative, data_ys_cumulative, cut_radius
     )
     this_rms = rms(sigma_image, snapshot_x_cen, snapshot_y_cen, cut_radius)
 
@@ -539,7 +578,9 @@ def plot_model_set(
             f"cut radius = {cut_radius:.2f} pixels\n"
             f"estimated background = {estimated_bg:.2f}$\pm${bg_scatter:.2f}\n"
             f"RMS = {this_rms:,.2f}\n"
-            f"MAD of cumulative profile = {100 * median_diff:.2f}%\n",
+            f"MAD of cumulative profile = {100 * median_diff:.2f}%\n"
+            f"Max diff of cumulative profile = {100 * max_diff:.2f}%\n"
+            f"Diff of cumulative profile at cut radius = {100 * last_diff:.2f}%\n",
             "lower right",
             fontsize=15,
         )
@@ -548,7 +589,7 @@ def plot_model_set(
         plt.close(fig)
         del fig
 
-    return median_diff, this_rms
+    return median_diff, max_diff, last_diff, this_rms
 
 
 # ======================================================================================
@@ -557,7 +598,9 @@ def plot_model_set(
 #
 # ======================================================================================
 # add the columns we want to the table
-fits_catalog["profile_mad"] = -99.9
+fits_catalog["profile_diff_mad"] = -99.9
+fits_catalog["profile_diff_max"] = -99.9
+fits_catalog["profile_diff_last"] = -99.9
 fits_catalog["estimated_local_background"] = -99.9
 fits_catalog["estimated_local_background_scatter"] = -99.9
 fits_catalog["estimated_local_background_diff_sigma"] = -99.9
@@ -608,7 +651,7 @@ for row in tqdm(fits_catalog):
         data_snapshot, mask_snapshot, snapshot_x_cen, snapshot_y_cen, cut_radius
     )
 
-    profile_mad, this_rms = plot_model_set(
+    quality_metrics = plot_model_set(
         data_snapshot,
         error_snapshot,
         mask_snapshot,
@@ -625,8 +668,12 @@ for row in tqdm(fits_catalog):
         ),
         False,
     )
+    profile_diff_mad, profile_diff_max, profile_diff_last, this_rms = quality_metrics
 
-    row["profile_mad"] = profile_mad
+    row["profile_diff_mad"] = profile_diff_mad
+    row["profile_diff_max"] = profile_diff_max
+    row["profile_diff_last"] = profile_diff_last
+    row["profile_diff_max"] = profile_diff_max
     row["estimated_local_background"] = estimated_bg
     row["estimated_local_background_scatter"] = bg_scatter
     # then calculate the difference in background
