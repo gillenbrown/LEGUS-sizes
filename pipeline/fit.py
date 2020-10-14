@@ -520,7 +520,8 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, x_guess, y_guess):
     # first get the results when all good pixels are used, to be used as a starting
     # point when bootstrapping is done, to save time. This will be done for each
     # starting point
-    param_x0_variations = []
+    param_x0_variations_raw = []
+    param_x0_variations_postprocessed = []
     log_likelihood_x0_variations = []
     for idx in range(len(start_params[0])):
         initial_result_struct = optimize.minimize(
@@ -542,7 +543,6 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, x_guess, y_guess):
         # don't want to do that twice, as it will mess up the background and
         # theta values
         initial_result = initial_result_struct.x
-        param_x0_variations.append(postprocess_params(*initial_result))
         this_log_likelihood = -1 * negative_log_likelihood(
             initial_result,
             data_snapshot,
@@ -551,14 +551,17 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, x_guess, y_guess):
             estimated_bg,
             bg_scatter,
         )
+        param_x0_variations_raw.append(initial_result)
+        param_x0_variations_postprocessed.append(postprocess_params(*initial_result))
         log_likelihood_x0_variations.append(this_log_likelihood)
 
     # then examine the likelihood of each, and pick the one with the highest likelihood
     best_idx = np.argmax(log_likelihood_x0_variations)
-    initial_result_best = param_x0_variations[best_idx]
+    initial_result_best_postprocessed = param_x0_variations_postprocessed[best_idx]
+    initial_result_best_raw = param_x0_variations_raw[best_idx]
 
     # Then we do bootstrapping
-    n_variables = len(initial_result_best)
+    n_variables = len(initial_result_best_raw)
     param_history = [[] for _ in range(n_variables)]
     param_std_last = [np.inf for _ in range(n_variables)]
 
@@ -571,7 +574,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, x_guess, y_guess):
 
         # make a new mask
         temp_mask = create_boostrap_mask(
-            mask, initial_result_best[1], initial_result_best[2]
+            mask, initial_result_best_raw[1], initial_result_best_raw[2]
         )
 
         # fit to this selection of pixels
@@ -586,7 +589,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, x_guess, y_guess):
             ),
             # use the best fit results as the initial guess, to get the uncertainty
             # around that value. This should also reduce the time needed to converge
-            x0=initial_result_best,
+            x0=initial_result_best_raw,
             bounds=bounds,
             method="Powell",  # default method when using bounds
             options={
@@ -618,9 +621,9 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, x_guess, y_guess):
 
     # then we're done!
     return (
-        initial_result_best,
+        initial_result_best_postprocessed,
         np.array(param_history),
-        param_x0_variations,
+        param_x0_variations_postprocessed,
         log_likelihood_x0_variations,
     )
 
