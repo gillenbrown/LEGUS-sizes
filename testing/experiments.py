@@ -125,7 +125,7 @@ bg_start = np.min(data_snapshot)
 mu_start = np.log10(np.max(data_snapshot) * 3)
 
 # use the best fit parameters when we're not varying eta
-log_mu_0 = np.log10(row["central_surface_brightness_best"])
+log_luminosity = row["log_luminosity_best"]
 x_c = row["x_pix_snapshot_oversampled_best"]
 y_c = row["y_pix_snapshot_oversampled_best"]
 q = row["axis_ratio_best"]

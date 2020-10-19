@@ -212,22 +212,70 @@ catalog.rename_columns(old_colnames, new_colnames)
 
 # Then restrict to classes 1 and 2, which are the more normal ones. We have to be more
 # careful about which one we use, since not all clusters have the same classifcation
-# system. These are in order of the preferred scheme to use.
-if "class_mode_human" in new_colnames:
-    class_col = "class_mode_human"
-elif "class_linden_whitmore" in new_colnames:
-    class_col = "class_linden_whitmore"
-    print(f"\n------ {home_dir.name} uses Linden Whitmore scheme\n")
-elif "class_whitmore" in new_colnames:
-    class_col = "class_whitmore"
-    print(f"\n------ {home_dir.name} uses Whitmore only scheme\n")
+# system.
+if home_dir.name == "ngc5194-ngc5195-mosaic":
+    # Here we use the class_mode_human, but then supplement it with the ML
+    # classification for ones that weren't classified by humans
+    mask_h1 = catalog["class_mode_human"] == 1
+    mask_h2 = catalog["class_mode_human"] == 2
+
+    mask_not_inspected = catalog["class_mode_human"] == 0
+    mask_ml1 = np.logical_and(catalog["class_ml"] == 1, mask_not_inspected)
+    mask_ml2 = np.logical_and(catalog["class_ml"] == 2, mask_not_inspected)
+
+    mask_h = np.logical_or(mask_h1, mask_h2)
+    mask_ml = np.logical_or(mask_ml1, mask_ml2)
+    mask = np.logical_or(mask_h, mask_ml)
+
+    print(f"\n------ {home_dir.name} uses human classification supplemented with ML\n")
+
+elif home_dir.name == "ngc4449":
+    # Here we use the class_mode_human, but then supplement it with the ML
+    # classification for ones that weren't classified by humans. This is almost
+    # identical to the NGC5194, but the column names and indices are different
+    mask_h1 = catalog["class_whitmore"] == 1
+    mask_h2 = catalog["class_whitmore"] == 2
+
+    mask_not_inspected = catalog["class_whitmore"] == 5  # this is correct!
+    mask_ml1 = np.logical_and(catalog["class_ml"] == 1, mask_not_inspected)
+    mask_ml2 = np.logical_and(catalog["class_ml"] == 2, mask_not_inspected)
+
+    mask_h = np.logical_or(mask_h1, mask_h2)
+    mask_ml = np.logical_or(mask_ml1, mask_ml2)
+    mask = np.logical_or(mask_h, mask_ml)
+
+    print(f"\n------ {home_dir.name} uses human classification supplemented with ML\n")
+
+elif home_dir.name == "ngc1566":
+    # Here we simply use the hybrid method, as the documentation says it is the one
+    # to use
+    mask_1 = catalog["class_hybrid"] == 1
+    mask_2 = catalog["class_hybrid"] == 2
+    mask = np.logical_or(mask_1, mask_2)
+
+    print(f"\n------ {home_dir.name} uses the hybrid human/ML scheme\n")
+
 else:
-    print("\n".join(new_colnames))
-    raise ValueError("No class found!")
-idxs_1 = np.where(catalog[class_col] == 1)
-idxs_2 = np.where(catalog[class_col] == 2)
-idxs = np.union1d(idxs_1, idxs_2)
-catalog = catalog[idxs]
+    # We then use the human classifications. For most this is simply the
+    # class_mode_human flag, but for some there are others.
+    # These are in order of the preferred scheme to use.
+    if "class_mode_human" in new_colnames:
+        class_col = "class_mode_human"
+    elif "class_linden_whitmore" in new_colnames:
+        class_col = "class_linden_whitmore"
+        print(f"\n------ {home_dir.name} uses Linden Whitmore scheme\n")
+    elif "class_whitmore" in new_colnames:
+        class_col = "class_whitmore"
+        print(f"\n------ {home_dir.name} uses Whitmore only scheme\n")
+    else:
+        print("\n".join(new_colnames))
+        raise ValueError("No class found!")
+    mask_1 = catalog[class_col] == 1
+    mask_2 = catalog[class_col] == 2
+    mask = np.logical_or(mask_1, mask_2)
+
+# Then restrict to just the selected clusters
+catalog = catalog[mask]
 
 # Create a new column that we can use for python indexing. These pixel coords are set up
 # so that the corner value is (1,1), not (0,0)

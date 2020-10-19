@@ -102,7 +102,6 @@ for field, cat in matches.items():
             else:
                 ryon_err = row["e_r_eff-_Galfit"]
                 my_err = row["r_eff_pc_rmax_15pix_e+"]
-
             used_err = max(ryon_err, my_err)
             diff = (my_r_eff - ryon_r_eff) / used_err
             if diff < 10:

@@ -24,8 +24,12 @@ bpl.set_style()
 #
 # ======================================================================================
 plot_name = Path(sys.argv[1]).resolve()
+# run name is the second argument, parse it a bit
+run_name = sys.argv[2]
+run_name = run_name.replace("_", " ").title()
+
 catalogs = []
-for item in sys.argv[2:]:
+for item in sys.argv[3:]:
     cat = table.Table.read(item, format="ascii.ecsv")
     cat["galaxy"] = Path(item).parent.parent.name
     catalogs.append(cat)
@@ -33,33 +37,9 @@ for item in sys.argv[2:]:
 big_catalog = table.vstack(catalogs, join_type="inner")
 # multiply the MAD by 100 to get it to percent
 # big_catalog["profile_mad"] *= 100
-# mark clusters with failed fits, defined as when they hit the boundaries of the center
-big_catalog["good"] = big_catalog["success"]
-big_catalog["good"] = np.logical_and(
-    big_catalog["good"], big_catalog["x_pix_snapshot_oversampled_best"] != 26.00
-)
-big_catalog["good"] = np.logical_and(
-    big_catalog["good"], big_catalog["x_pix_snapshot_oversampled_best"] != 34.00
-)
-big_catalog["good"] = np.logical_and(
-    big_catalog["good"], big_catalog["y_pix_snapshot_oversampled_best"] != 26.00
-)
-big_catalog["good"] = np.logical_and(
-    big_catalog["good"], big_catalog["y_pix_snapshot_oversampled_best"] != 34.00
-)
-# throw out very small axis ratios
-big_catalog["good"] = np.logical_and(
-    big_catalog["good"], big_catalog["axis_ratio_best"] > 0.2
-)
-# throw out ones outside of the prior limits
-big_catalog["good"] = np.logical_and(
-    big_catalog["good"], big_catalog["scale_radius_pixels_best"] > 0.1
-)
-big_catalog["good"] = np.logical_and(
-    big_catalog["good"], big_catalog["scale_radius_pixels_best"] < 15
-)
 
 success_mask = big_catalog["good"].data
+n_good = np.sum(success_mask)
 
 # ======================================================================================
 #
@@ -68,7 +48,7 @@ success_mask = big_catalog["good"].data
 # ======================================================================================
 # I'll have several things that need to be tracked for each parameter
 params = {
-    "central_surface_brightness_best": "Central Surface Brightness [e$^-$]",
+    "log_luminosity_best": "Log Luminosity [e$^-$]",
     "x_pix_snapshot_oversampled_best": "X Center",
     "y_pix_snapshot_oversampled_best": "Y Center",
     "scale_radius_pixels_best": "Scale Radius [pixels]",
@@ -79,13 +59,13 @@ params = {
 }
 plot_params = ["scale_radius_pixels_best", "axis_ratio_best", "power_law_slope_best"]
 param_limits = {
-    "central_surface_brightness_best": (10, 1e8),
+    "log_luminosity_best": (1, 8),
     "x_pix_snapshot_oversampled_best": (25, 35),
     "y_pix_snapshot_oversampled_best": (25, 35),
-    "scale_radius_pixels_best": (0.01, 100),
+    "scale_radius_pixels_best": (0.05, 20),
     "axis_ratio_best": (-0.05, 1.05),
     "position_angle_best": (0, np.pi),
-    "power_law_slope_best": (0.1, 100),
+    "power_law_slope_best": (0, 3),
     "local_background_best": (-500, 1000),
 }
 # put things on these limits
@@ -97,23 +77,23 @@ for param in param_limits:
         0.99 * param_limits[param][1]
     )
 param_scale = {
-    "central_surface_brightness_best": "log",
+    "log_luminosity_best": "linear",
     "x_pix_snapshot_oversampled_best": "linear",
     "y_pix_snapshot_oversampled_best": "linear",
     "scale_radius_pixels_best": "log",
     "axis_ratio_best": "linear",
     "position_angle_best": "linear",
-    "power_law_slope_best": "log",
+    "power_law_slope_best": "linear",
     "local_background_best": "linear",
 }
 param_bins = {
-    "central_surface_brightness_best": np.logspace(1, 8, 41),
+    "log_luminosity_best": np.arange(1, 8, 0.5),
     "x_pix_snapshot_oversampled_best": np.arange(25, 35, 0.25),
     "y_pix_snapshot_oversampled_best": np.arange(25, 35, 0.25),
     "scale_radius_pixels_best": np.logspace(-2, 2, 41),
     "axis_ratio_best": np.arange(-0.1, 1.1, 0.05),
     "position_angle_best": np.arange(0, 3.5, 0.1),
-    "power_law_slope_best": np.logspace(-1, 2, 41),
+    "power_law_slope_best": np.arange(0, 5, 0.1),
     "local_background_best": np.arange(-300, 1500, 100),
 }
 
@@ -182,6 +162,57 @@ failure_color = bpl.color_cycle[3]
 
 # ======================================================================================
 #
+# Simple plot of cumulative histograms
+#
+# ======================================================================================
+# This will have several columns for different parameters, with the rows being the
+# different ways of assessing each parameter
+fig, axs = bpl.subplots(
+    ncols=3,
+    figsize=[16, 6],
+    tight_layout=False,
+    gridspec_kw={"top": 0.9, "bottom": 0.2, "left": 0.08, "right": 0.98},
+)
+for ax, param in zip(axs, plot_params):
+    # Then the cumulative histogram
+    ax.plot(
+        *make_cumulative_histogram(big_catalog[param][success_mask]),
+        color=success_color,
+        lw=2,
+        label=f"Success (N={n_good:,})",
+    )
+    ax.plot(
+        *make_cumulative_histogram(big_catalog[param][~success_mask]),
+        color=failure_color,
+        lw=2,
+        label=f"Failure (N={len(big_catalog) - n_good:,})",
+    )
+
+    if param == "axis_ratio_best":
+        ax.legend(loc=2)
+    ax.add_labels(x_label=params[param])
+    if param == "scale_radius_pixels_best":
+        ax.add_labels(y_label="Cumulative Number of Clusters")
+        ax.axvline(0.1, ls=":")
+        ax.axvline(15, ls=":")
+    ax.set_limits(*param_limits[param], 0, 5000)
+    ax.set_xscale(param_scale[param])
+
+    # set ticks on top and bottom
+    ax.tick_params(
+        axis="both",
+        top=True,
+        bottom=True,
+        left=True,
+        right=True,
+        which="both",
+        direction="out",
+    )
+fig.suptitle(run_name)
+fig.savefig(plot_name.parent / "cumulative.png")
+
+# ======================================================================================
+#
 # Then make the plot
 #
 # ======================================================================================
@@ -209,7 +240,7 @@ for idx_p, param in enumerate(plot_params):
         histtype="step",
         color=success_color,
         lw=2,
-        label="Success",
+        label=f"Success (N={n_good:,})",
     )
     ax.hist(
         big_catalog[param][~success_mask],
@@ -217,14 +248,18 @@ for idx_p, param in enumerate(plot_params):
         histtype="step",
         color=failure_color,
         lw=2,
-        label="Failure",
+        label=f"Failure (N={len(big_catalog) - n_good:,})",
     )
-    ax.set_title(params[param])
+
+    if idx_p == 1:
+        ax.set_title(f"{run_name}\n{params[param]}")
+    else:
+        ax.set_title(params[param])
     if idx_p == 0:
         ax.add_labels(y_label="Number of Clusters")
     ax.set_limits(*param_limits[param])
     ax.set_xscale(param_scale[param])
-    if param == "axis_ratio":
+    if param == "axis_ratio_best":
         ax.legend(loc=2)
     # set ticks on top and bottom
     ax.tick_params(
@@ -372,6 +407,20 @@ for ax, color_ind in zip(axs, indicators):
         s=2,
         alpha=1,
     )
+    a_grid = np.logspace(-1, 1, 12)
+    eta_grid = np.arange(1.1, 3.0, 0.2)
+    a_values = []
+    eta_values = []
+    for a in a_grid:
+        for eta in eta_grid:
+            a_values.append(a)
+            eta_values.append(eta)
+    n_grid = len(a_values)
+
+    ax.scatter(
+        eta_values, a_values, s=30, marker="o", alpha=1, c=bpl.color_cycle[3], zorder=0
+    )
+
     ax.add_labels(params[x_param], params[y_param])
     ax.set_limits(*param_limits[x_param], *param_limits[y_param])
     ax.set_xscale(param_scale[x_param])

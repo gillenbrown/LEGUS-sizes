@@ -12,6 +12,8 @@ endif
 # This directory should have nothing but directories with data
 # We'll do this complicated line that just gets all directories inside data_home
 data_dirs = $(sort $(dir $(wildcard $(data_home)/*/)))
+#all_dirs = $(sort $(dir $(wildcard $(data_home)/*/)))
+#data_dirs = $(filter %ngc628-c/, $(all_dirs))
 
 # ------------------------------------------------------------------------------
 #
@@ -23,6 +25,7 @@ psf_type = my
 psf_pixel_size = 15
 psf_oversampling_factor = 2
 fit_region_size = 30
+run_name = final
 
 # ------------------------------------------------------------------------------
 #
@@ -58,7 +61,7 @@ my_dirname = size/
 my_dirs = $(foreach dir,$(data_dirs),$(dir)$(my_dirname))
 cluster_fit_dirs = $(foreach dir,$(my_dirs),$(dir)cluster_fit_plots)
 cluster_plot_dirs = $(foreach dir,$(my_dirs),$(dir)plots)
-local_plots_dir = ./plots/
+local_plots_dir = ./plots_$(run_name)/
 all_my_dirs = $(my_dirs) $(cluster_fit_dirs) $(cluster_plot_dirs) $(local_plots_dir)
 
 # ------------------------------------------------------------------------------
@@ -74,8 +77,8 @@ psf_my = psf_my_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_overs
 psf_comp_plot = psf_paper_my_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.png
 sigma_image = sigma_electrons.fits
 mask = mask_image.fits
-fit = cluster_fits_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.h5
-final_cat = final_catalog_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.txt
+fit = cluster_fits_$(run_name)_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.h5
+final_cat = final_catalog_$(run_name)_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.txt
 
 # ------------------------------------------------------------------------------
 #
@@ -118,7 +121,7 @@ example_fit_plot = $(local_plots_dir)example_fit.png
 fit_quality_plot = $(local_plots_dir)fit_quality.png
 plots = $(psf_demo_image) $(psf_comp_plots) $(comparison_plot) \
         $(param_dist_plot) $(all_fields_hist_plot) $(mass_size_plot) \
-        $(example_fit_plot) $(fit_quality_plot)
+        $(fit_quality_plot)
 experiments_sentinel = ./testing/experiments_done.txt
 
 # ------------------------------------------------------------------------------
@@ -234,7 +237,7 @@ $(example_fit_plot): $(final_cats) $(example_plot_script)
 	python $(example_plot_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) $(fit_region_size)
 
 $(fit_quality_plot): $(final_cats) $(fit_quality_script)
-	python $(fit_quality_script) $@ $(final_cats)
+	python $(fit_quality_script) $@ $(run_name) $(final_cats)
 
 $(experiments_sentinel): $(final_cats) $(experiment_script)
 	python $(experiment_script) $@ $(final_cats)
