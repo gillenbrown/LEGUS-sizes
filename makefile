@@ -12,8 +12,7 @@ endif
 # This directory should have nothing but directories with data
 # We'll do this complicated line that just gets all directories inside data_home
 data_dirs = $(sort $(dir $(wildcard $(data_home)/*/)))
-#all_dirs = $(sort $(dir $(wildcard $(data_home)/*/)))
-#data_dirs = $(filter %ngc628-c/, $(all_dirs))
+ryon_dirs = $(filter %ngc1313-e/ %ngc1313-w/ %ngc628-e/ %ngc628-c/, $(data_dirs))
 
 # ------------------------------------------------------------------------------
 #
@@ -79,6 +78,8 @@ sigma_image = sigma_electrons.fits
 mask = mask_image.fits
 fit = cluster_fits_$(run_name)_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.h5
 final_cat = final_catalog_$(run_name)_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.txt
+fit_ryon = cluster_fits_$(run_name)_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled_ryonlike.h5
+final_cat_ryon = final_catalog_$(run_name)_$(fit_region_size)_pixels_psf_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled_ryonlike.txt
 
 # ------------------------------------------------------------------------------
 #
@@ -95,6 +96,8 @@ sigma_images = $(foreach dir,$(my_dirs),$(dir)$(sigma_image))
 masks = $(foreach dir,$(my_dirs),$(dir)$(mask))
 fits = $(foreach dir,$(my_dirs),$(dir)$(fit))
 final_cats = $(foreach dir,$(my_dirs),$(dir)$(final_cat))
+fits_ryon = $(foreach dir,$(my_dirs),$(dir)$(fit_ryon))
+final_cats_ryon = $(foreach dir,$(my_dirs),$(dir)$(final_cat_ryon))
 
 # determine which psfs to use for fitting
 ifeq ($(psf_type),my)
@@ -215,14 +218,22 @@ to_rm_debug_plots =  $(1)cluster_fit_plots/*size_$(fit_region_size)_$(2)*
 $(fits): %: $(fitting_script) $(fit_utils) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask) $$(dir %)$$(cat)
 	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(dir $@)$(cat) $(fit_region_size)
 
+.SECONDEXPANSION:
+$(fits_ryon): %: $(fitting_script) $(fit_utils) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask) $$(dir %)$$(cat)
+	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(dir $@)$(cat) $(fit_region_size) ryon_like
+
 # Add the derived properties to these catalogs
 .SECONDEXPANSION:
 $(final_cats): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask)
 	python $(final_catalog_script) $@ $(dir $@)$(fit) $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(fit_region_size)
 
+.SECONDEXPANSION:
+$(final_cats_ryon): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit_ryon) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask)
+	python $(final_catalog_script) $@ $(dir $@)$(fit_ryon) $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(fit_region_size) ryon_like
+
 # Make the comparison to Ryon+17's results
-$(comparison_plot): $(comparison_script) $(final_cats)
-	python $(comparison_script) $@ $(final_cats)
+$(comparison_plot): $(comparison_script) $(final_cats_ryon)
+	python $(comparison_script) $@ $(final_cats_ryon)
 
 $(param_dist_plot): $(parameters_dist_script) $(final_cats)
 	python $(parameters_dist_script) $@ $(final_cats)

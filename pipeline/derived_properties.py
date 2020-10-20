@@ -37,6 +37,13 @@ oversampling_factor = int(sys.argv[4])
 sigma_image_path = Path(sys.argv[5]).absolute()
 mask_image_path = Path(sys.argv[6]).absolute()
 snapshot_size = int(sys.argv[7])
+if len(sys.argv) > 8:
+    if len(sys.argv) != 9 or sys.argv[8] != "ryon_like":
+        raise ValueError("Bad list of parameters to fit.py")
+    else:
+        ryon_like = True
+else:
+    ryon_like = False
 
 size_dir = final_catalog_path.parent
 home_dir = size_dir.parent
@@ -51,6 +58,14 @@ psf = np.maximum(psf, 0)
 psf /= np.sum(psf)
 
 snapshot_size_oversampled = snapshot_size * oversampling_factor
+
+# if we're Ryon-like, do no masking, so the mask will just be -2 (the value for no
+# masked region). Also handle the radial weighting
+if ryon_like:
+    mask_data = np.ones(mask_data.shape) * -2
+    radial_weighting = "none"
+else:
+    radial_weighting = "annulus"
 
 # ======================================================================================
 #
@@ -123,7 +138,7 @@ def logistic(eta):
 
 def ellipticy_correction(q, eta):
     """
-    Correction for ellipticity. This given R_eff(q) / R_eff(q=1)
+    Correction for ellipticity. This gives R_eff(q) / R_eff(q=1)
 
     This is a generalized form of the simplified form used in Ryon's analysis. It's
     simply a line of arbitrary slope passing through (q=1, correction=1) as circular
@@ -154,6 +169,37 @@ def eff_profile_r_eff_with_rmax(eta, a, q, rmax):
     return ellipticy_correction(q, eta) * a * np.sqrt(term_2)
 
 
+# Quantities to be used for the Ryon comparison
+def ellipticity_correction_simple(q):
+    """
+    Correction for ellipticity. This gives R_eff(q) / R_eff(q=1)
+
+    This gives (1 + q) * 0.5, as used in Ryon.
+    """
+    return 0.5 * (1 + q)
+
+
+def eff_profile_r_eff_ryon(eta, a, q, rmax):
+    """
+    Calculate the effective radius of an EFF profile, assuming no maximum radius
+
+    This is the equation used in Ryon+17
+
+    :param eta: Power law slope of the EFF profile
+    :param a: Scale radius of the EFF profile, in any units.
+    :param q: Axis ratio of the profile
+    :param rmax: not used, for same parameter list as other function
+    :return: Effective radius, in the same units as a
+    """
+    return ellipticity_correction_simple(q) * a * np.sqrt(0.5 ** (1 / (1 - eta)) - 1)
+
+
+# determine which one to use
+if ryon_like:
+    r_eff_func = eff_profile_r_eff_ryon
+else:
+    r_eff_func = eff_profile_r_eff_with_rmax
+
 # ======================================================================================
 #
 # Then add these quantities to the table
@@ -171,7 +217,7 @@ fits_catalog["r_eff_pc_rmax_15pix_e+"] = -99.9
 fits_catalog["r_eff_pc_rmax_15pix_e-"] = -99.9
 
 # first calculate the best fit value
-fits_catalog["r_eff_pixels_rmax_15pix_best"] = eff_profile_r_eff_with_rmax(
+fits_catalog["r_eff_pixels_rmax_15pix_best"] = r_eff_func(
     fits_catalog["power_law_slope_best"],
     fits_catalog["scale_radius_pixels_best"],
     fits_catalog["axis_ratio_best"],
@@ -181,7 +227,7 @@ fits_catalog["r_eff_pixels_rmax_15pix_best"] = eff_profile_r_eff_with_rmax(
 # calculate the distribution of all effective radii in each case
 for row in fits_catalog:
     # Calculate the effective radius in pixels for all bootstrapping iterations
-    all_r_eff_pixels = eff_profile_r_eff_with_rmax(
+    all_r_eff_pixels = r_eff_func(
         row["power_law_slope"],
         row["scale_radius_pixels"],
         row["axis_ratio"],
@@ -205,7 +251,7 @@ for row in fits_catalog:
         row["r_eff_pixels_rmax_15pix_e-"], home_dir
     )
 
-    # Then we can convert to pc. First do it without including distance errors
+    # Then we can convert to pc.
     best, low_e, high_e = utils.arcsec_to_pc_with_errors(
         home_dir,
         row["r_eff_arcsec_rmax_15pix_best"],
@@ -224,7 +270,10 @@ for row in fits_catalog:
 #
 # ======================================================================================
 def create_plot_name(id):
-    return f"{galaxy_name}_{id:04}_size_{snapshot_size}.png"
+    name = f"{galaxy_name}_{id:04}_size_{snapshot_size}"
+    if ryon_like:
+        name += "_ryonlike"
+    return name + ".png"
 
 
 def create_radial_profile(model_psf_bin_image, cluster_snapshot, mask, x_c, y_c):
@@ -287,7 +336,7 @@ def rms(sigmas, x_c, y_c, max_radius):
     :param max_radius: Maximum radius to include in the calculation
     :return: sqrt(mean(sigmas**2)) where r < max_radius
     """
-    sigmas *= fit_utils.radial_weighting(sigmas, x_c, y_c, style="annulus")
+    sigmas *= fit_utils.radial_weighting(sigmas, x_c, y_c, style=radial_weighting)
     good_sigmas = []
     for x in range(sigmas.shape[1]):
         for y in range(sigmas.shape[0]):
@@ -399,7 +448,7 @@ def plot_model_set(
         cluster_snapshot,
         fit_utils.oversampled_to_image(params[1], oversampling_factor),
         fit_utils.oversampled_to_image(params[2], oversampling_factor),
-        style="annulus",
+        style=radial_weighting,
     )
     sigma_image *= weights_snapshot
 

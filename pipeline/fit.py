@@ -58,9 +58,12 @@ sigma_data = fits.open(sigma_image_path)["PRIMARY"].data
 mask_data = fits.open(mask_image_path)["PRIMARY"].data
 clusters_table = table.Table.read(cluster_catalog_path, format="ascii.ecsv")
 # if we're Ryon-like, do no masking, so the mask will just be -2 (the value for no
-# masked region)
+# masked region). Also handle the radial weighting
 if ryon_like:
     mask_data = np.ones(mask_data.shape) * -2
+    radial_weighting = "none"
+else:
+    radial_weighting = "annulus"
 
 snapshot_size_oversampled = snapshot_size * oversampling_factor
 
@@ -146,9 +149,12 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
         cluster_snapshot,
         fit_utils.oversampled_to_image(params[1], oversampling_factor),
         fit_utils.oversampled_to_image(params[2], oversampling_factor),
-        style="annulus",
+        style=radial_weighting,
     )
-    return np.sum(np.abs(sigma_snapshot))
+    if ryon_like:
+        return np.sum(sigma_snapshot ** 2)
+    else:
+        return np.sum(np.abs(sigma_snapshot))
 
 
 def estimate_background(data, mask, x_c, y_c, min_radius):
@@ -294,6 +300,8 @@ def log_priors(
 
     :return: Total prior probability for the given model.
     """
+    if ryon_like:
+        return 0
     log_prior = 0
     # prior are multiplicative, or additive in log space
     # have the low prior be on the minor axis
