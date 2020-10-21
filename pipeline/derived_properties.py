@@ -730,6 +730,24 @@ for row in tqdm(fits_catalog):
     row["estimated_local_background_diff_sigma"] = diff / bg_scatter
     row["fit_rms"] = this_rms
 
+# ======================================================================================
+#
+# Quality cuts
+#
+# ======================================================================================
+# First determine the fractional errors for the cluters
+fits_catalog["fractional_err-"] = (
+    fits_catalog["r_eff_pc_rmax_15pix_e-"] / fits_catalog["r_eff_pc_rmax_15pix_best"]
+)
+fits_catalog["fractional_err+"] = (
+    fits_catalog["r_eff_pc_rmax_15pix_e+"] / fits_catalog["r_eff_pc_rmax_15pix_best"]
+)
+fits_catalog["fractional_err"] = np.maximum(
+    fits_catalog["fractional_err-"], fits_catalog["fractional_err+"]
+)
+del fits_catalog["fractional_err-"]
+del fits_catalog["fractional_err+"]
+
 # Then we determine which clusters are good. First we do simple checks based on the
 # parameter values
 masks = []
@@ -744,6 +762,7 @@ masks.append(fits_catalog["y_pix_snapshot_oversampled_best"] != 34.00)
 masks.append(fits_catalog["profile_diff_mad"] < 0.11860371059644502)
 masks.append(fits_catalog["profile_diff_max"] < 0.2422950857276166)
 masks.append(fits_catalog["profile_diff_last"] < 0.15756898102675565)
+masks.append(fits_catalog["fractional_err"] < 0.22429976383435668)
 # then combine them all together
 fits_catalog["good"] = True
 for mask in masks:
