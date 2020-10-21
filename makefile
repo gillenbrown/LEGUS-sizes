@@ -58,6 +58,7 @@ experiment_script = ./testing/experiments.py
 # ------------------------------------------------------------------------------
 my_dirname = size/
 my_dirs = $(foreach dir,$(data_dirs),$(dir)$(my_dirname))
+my_dirs_ryon = $(foreach dir,$(ryon_dirs),$(dir)$(my_dirname))
 cluster_fit_dirs = $(foreach dir,$(my_dirs),$(dir)cluster_fit_plots)
 cluster_plot_dirs = $(foreach dir,$(my_dirs),$(dir)plots)
 local_plots_dir = ./plots_$(run_name)/
@@ -96,8 +97,8 @@ sigma_images = $(foreach dir,$(my_dirs),$(dir)$(sigma_image))
 masks = $(foreach dir,$(my_dirs),$(dir)$(mask))
 fits = $(foreach dir,$(my_dirs),$(dir)$(fit))
 final_cats = $(foreach dir,$(my_dirs),$(dir)$(final_cat))
-fits_ryon = $(foreach dir,$(ryon_dirs),$(dir)$(fit_ryon))
-final_cats_ryon = $(foreach dir,$(ryon_dirs),$(dir)$(final_cat_ryon))
+fits_ryon = $(foreach dir,$(my_dirs_ryon),$(dir)$(fit_ryon))
+final_cats_ryon = $(foreach dir,$(my_dirs_ryon),$(dir)$(final_cat_ryon))
 
 # determine which psfs to use for fitting
 ifeq ($(psf_type),my)
