@@ -351,6 +351,14 @@ def negative_log_likelihood(
     # is on the physically reasonable values, we need to make sure that's correct.
     log_prior = log_priors(*params, estimated_bg, estimated_bg_sigma)
     log_likelihood = log_data_likelihood + log_prior
+    # With bad parameters, it is possible to get a nan or infinity value. This is
+    # particularly possible with very negative eta values. If we get something bad,
+    # make the likelihoood negative infinity. This is fine when using the Powell
+    # method as it does not rely on the gradient, so using infinity for this shouldn't
+    # affect the fitting dramatically. [Note that I'm not sure what's causing these bad
+    # parameter values. I am setting bounds, but it appears that there are function
+    # calls being made with values outside these bounds, for reasons I do not
+    # understand.]
     try:
         assert not np.isnan(log_prior)
         assert not np.isnan(log_data_likelihood)
@@ -359,13 +367,7 @@ def negative_log_likelihood(
         assert not np.isneginf(log_prior)
         assert not np.isneginf(log_data_likelihood)
     except AssertionError:
-        print("\n\n\n\n\n========= ERROR ==========")
-        print("These params were responsible:")
-        for item in params:
-            print(item)
-        print("========= END OF ERROR ==========\n\n\n\n\n")
-        # estimate a chi^2 of 1 million per pixel if something went wrong
-        log_likelihood = -1e6 * snapshot_size_oversampled ** 2
+        log_likelihood = -np.inf  # zero likelihood
     # return the negative of this so we can minimize this value
     return -log_likelihood
 
