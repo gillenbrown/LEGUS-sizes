@@ -96,8 +96,8 @@ sigma_images = $(foreach dir,$(my_dirs),$(dir)$(sigma_image))
 masks = $(foreach dir,$(my_dirs),$(dir)$(mask))
 fits = $(foreach dir,$(my_dirs),$(dir)$(fit))
 final_cats = $(foreach dir,$(my_dirs),$(dir)$(final_cat))
-fits_ryon = $(foreach dir,$(my_dirs),$(dir)$(fit_ryon))
-final_cats_ryon = $(foreach dir,$(my_dirs),$(dir)$(final_cat_ryon))
+fits_ryon = $(foreach dir,$(ryon_dirs),$(dir)$(fit_ryon))
+final_cats_ryon = $(foreach dir,$(ryon_dirs),$(dir)$(final_cat_ryon))
 
 # determine which psfs to use for fitting
 ifeq ($(psf_type),my)
