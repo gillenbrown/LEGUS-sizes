@@ -42,6 +42,9 @@ if len(sys.argv) > 8:
         raise ValueError("Bad list of parameters to fit.py")
     else:
         ryon_like = True
+        # Ryon's radius calculation breaks for eta < 1. To make the output cleaner,
+        # suppress those warnings
+        np.seterr(over="ignore", invalid="ignore")
 else:
     ryon_like = False
 
@@ -191,12 +194,23 @@ def eff_profile_r_eff_ryon(eta, a, q, rmax):
     :param rmax: not used, for same parameter list as other function
     :return: Effective radius, in the same units as a
     """
-    return ellipticity_correction_simple(q) * a * np.sqrt(0.5 ** (1 / (1 - eta)) - 1)
+    correction = ellipticity_correction_simple(q)
+    # This breaks for eta < 1, so handle that
+    with np.errstate(over="raise", invalid="raise"):
+        try:
+            r_eff = correction * a * np.sqrt(0.5 ** (1 / (1 - eta)) - 1)
+        except (FloatingPointError, OverflowError):
+            r_eff = np.inf
+        if np.isnan(r_eff):
+            r_eff = np.inf
+    return r_eff
 
 
 # determine which one to use
 if ryon_like:
-    r_eff_func = eff_profile_r_eff_ryon
+    # We need to vectorize it because of the if statements in this function. They don't
+    # work on regular numpy arrays
+    r_eff_func = np.vectorize(eff_profile_r_eff_ryon)
 else:
     r_eff_func = eff_profile_r_eff_with_rmax
 
