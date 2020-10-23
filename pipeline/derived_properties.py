@@ -799,13 +799,15 @@ del fits_catalog["fractional_err+"]
 # Then we determine which clusters are good. First we do simple checks based on the
 # parameter values
 masks = []
-masks.append(fits_catalog["axis_ratio_best"] > 0.5)
+masks.append(fits_catalog["axis_ratio_best"] > 0.3)
 masks.append(fits_catalog["scale_radius_pixels_best"] > 0.1)
 masks.append(fits_catalog["scale_radius_pixels_best"] < 15.0)
-masks.append(fits_catalog["x_pix_snapshot_oversampled_best"] != 26.00)
-masks.append(fits_catalog["x_pix_snapshot_oversampled_best"] != 34.00)
-masks.append(fits_catalog["y_pix_snapshot_oversampled_best"] != 26.00)
-masks.append(fits_catalog["y_pix_snapshot_oversampled_best"] != 34.00)
+# include some buffer on the pixel boundaries, since some are very close to this
+# boundary and should be thrown out
+masks.append(fits_catalog["x_pix_snapshot_oversampled_best"] > 26.1)
+masks.append(fits_catalog["x_pix_snapshot_oversampled_best"] < 33.9)
+masks.append(fits_catalog["y_pix_snapshot_oversampled_best"] > 26.10)
+masks.append(fits_catalog["y_pix_snapshot_oversampled_best"] < 33.9)
 # Then we use the boundaries for the quality measure of the cumulative distribution
 masks.append(fits_catalog["profile_diff_reff"] < 0.09455432398891235)
 # then combine them all together
