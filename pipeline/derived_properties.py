@@ -392,7 +392,7 @@ def max_diff_cumulative(radii, model_cumulative, data_cumulative, max_radius):
     return np.max(diffs[mask_good])
 
 
-def diff_cumulative_at_max_radius(radii, model_cumulative, data_cumulative, max_radius):
+def diff_cumulative_at_radius(radii, model_cumulative, data_cumulative, max_radius):
     """
     Calculate the relative absolute deviation of the cumulative distribution at some
     radius. This is abs(model - data) / data where r = r_max
@@ -406,6 +406,33 @@ def diff_cumulative_at_max_radius(radii, model_cumulative, data_cumulative, max_
     best_idx = np.argmin(abs(radii - max_radius))
     diffs = np.abs(model_cumulative - data_cumulative) / data_cumulative
     return diffs[best_idx]
+
+
+def diff_cumulative_at_reff_data(radii, model_cumulative, data_cumulative):
+    """
+    Calculate the relative absolute deviation of the cumulative distribution at the
+    estimated r_eff for the data
+
+    :param radii: List of radii
+    :param model_cumulative: Cumulative pixel values for the model as a function of r
+    :param data_cumulative: Cumulative pixel values for the data as a function of r
+    :return: abs(model - data) / data where r = r_max
+    """
+    # first get the total included light at the outer extent of the box
+    out_idx = np.argmin(abs(radii - snapshot_size / 2.0))
+    data_total = data_cumulative[out_idx]
+    # then find the radius that encloses half of this light. We need to be careful here,
+    # as varying backgrounds can cause the background-subtracted cumulative profile
+    # go down (as the background can be negative in some ares). This can cause the
+    # profile to cross 1/2 multiple times. We do not use argmin as it would select
+    # the closest one. We want the first time the profile crosses 1/2.
+    for i in range(len(radii)):
+        if data_cumulative[i] > 0.5 * data_total:
+            half_idx = i
+            break
+    # then we calculate the difference at this radius
+    diffs = np.abs(model_cumulative - data_cumulative) / data_cumulative
+    return diffs[half_idx]
 
 
 def estimate_background(data, mask, x_c, y_c, min_radius):
@@ -621,8 +648,11 @@ def plot_model_set(
     max_diff = max_diff_cumulative(
         radii, model_ys_cumulative, data_ys_cumulative, cut_radius
     )
-    last_diff = diff_cumulative_at_max_radius(
+    last_diff = diff_cumulative_at_radius(
         radii, model_ys_cumulative, data_ys_cumulative, cut_radius
+    )
+    r_eff_diff = diff_cumulative_at_reff_data(
+        radii, model_ys_cumulative, data_ys_cumulative
     )
     this_rms = rms(sigma_image, snapshot_x_cen, snapshot_y_cen, cut_radius)
 
@@ -643,7 +673,8 @@ def plot_model_set(
             f"RMS = {this_rms:,.2f}\n"
             f"MAD of cumulative profile = {100 * median_diff:.2f}%\n"
             f"Max diff of cumulative profile = {100 * max_diff:.2f}%\n"
-            f"Diff of cumulative profile at cut radius = {100 * last_diff:.2f}%\n",
+            f"Diff of cumulative profile at cut radius = {100 * last_diff:.2f}%\n"
+            f"Diff of cumulative profile at data $R_{eff}$ = {100 * last_diff:.2f}%\n",
             "lower right",
             fontsize=15,
         )
@@ -652,7 +683,7 @@ def plot_model_set(
         plt.close(fig)
         del fig
 
-    return median_diff, max_diff, last_diff, this_rms
+    return median_diff, max_diff, last_diff, r_eff_diff, this_rms
 
 
 # ======================================================================================
@@ -664,6 +695,7 @@ def plot_model_set(
 fits_catalog["profile_diff_mad"] = -99.9
 fits_catalog["profile_diff_max"] = -99.9
 fits_catalog["profile_diff_last"] = -99.9
+fits_catalog["profile_diff_reff"] = -99.9
 fits_catalog["estimated_local_background"] = -99.9
 fits_catalog["estimated_local_background_scatter"] = -99.9
 fits_catalog["estimated_local_background_diff_sigma"] = -99.9
@@ -708,8 +740,11 @@ for row in tqdm(fits_catalog):
     ]
 
     r_eff = row["r_eff_pixels_rmax_15pix_best"]
-    # Determine the radius within to calculate the fitting quality estimates
-    cut_radius = np.minimum(snapshot_size / 2.0, 3 * r_eff)
+    # Determine the radius within to calculate the fitting quality estimates. Restrict
+    # the maximum value to be 15 pixels, the radius of the box. Additionally, set the
+    # minimum to be 1 pixel to make sure at least some pixels are included in the
+    # calculations of the fit quality metrics
+    cut_radius = np.maximum(1.0, np.minimum(snapshot_size / 2.0, 3 * r_eff))
     estimated_bg, bg_scatter = estimate_background(
         data_snapshot, mask_snapshot, snapshot_x_cen, snapshot_y_cen, cut_radius
     )
@@ -731,18 +766,17 @@ for row in tqdm(fits_catalog):
         ),
         False,
     )
-    profile_diff_mad, profile_diff_max, profile_diff_last, this_rms = quality_metrics
 
-    row["profile_diff_mad"] = profile_diff_mad
-    row["profile_diff_max"] = profile_diff_max
-    row["profile_diff_last"] = profile_diff_last
-    row["profile_diff_max"] = profile_diff_max
+    row["profile_diff_mad"] = quality_metrics[0]
+    row["profile_diff_max"] = quality_metrics[1]
+    row["profile_diff_last"] = quality_metrics[2]
+    row["profile_diff_reff"] = quality_metrics[3]
     row["estimated_local_background"] = estimated_bg
     row["estimated_local_background_scatter"] = bg_scatter
     # then calculate the difference in background
     diff = row["local_background_best"] - estimated_bg
     row["estimated_local_background_diff_sigma"] = diff / bg_scatter
-    row["fit_rms"] = this_rms
+    row["fit_rms"] = quality_metrics[4]
 
 # ======================================================================================
 #
@@ -773,10 +807,7 @@ masks.append(fits_catalog["x_pix_snapshot_oversampled_best"] != 34.00)
 masks.append(fits_catalog["y_pix_snapshot_oversampled_best"] != 26.00)
 masks.append(fits_catalog["y_pix_snapshot_oversampled_best"] != 34.00)
 # Then we use the boundaries for the quality measure of the cumulative distribution
-masks.append(fits_catalog["profile_diff_mad"] < 0.11860371059644502)
-masks.append(fits_catalog["profile_diff_max"] < 0.2422950857276166)
-masks.append(fits_catalog["profile_diff_last"] < 0.15756898102675565)
-masks.append(fits_catalog["fractional_err"] < 0.22429976383435668)
+masks.append(fits_catalog["profile_diff_reff"] < 0.09455432398891235)
 # then combine them all together
 fits_catalog["good"] = True
 for mask in masks:

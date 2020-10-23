@@ -99,17 +99,17 @@ param_bins = {
 
 indicators = {
     "fit_rms": "Fit RMS",
-    "profile_mad": "Relative MAD of\nCumulative Profile",
+    "profile_diff_reff": "Deviation of\nCumulative Profile",
     "estimated_local_background_diff_sigma": "Estimated Local\nBackground Error",
 }
 ind_limits = {
     "fit_rms": (0.1, 100),
-    "profile_mad": (1e-3, 1),
+    "profile_diff_reff": (1e-3, 1),
     "estimated_local_background_diff_sigma": (-3, 3),
 }
 ind_scale = {
     "fit_rms": "log",
-    "profile_mad": "log",
+    "profile_diff_reff": "log",
     "estimated_local_background_diff_sigma": "linear",
 }
 
