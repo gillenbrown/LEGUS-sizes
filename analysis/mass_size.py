@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 from astropy import table
 from astropy.io import fits
+from scipy import optimize
 import betterplotlib as bpl
 
 # need to add the correct path to import utils
@@ -44,8 +45,168 @@ print(f"Total Clusters: {len(big_catalog)}")
 mask = big_catalog["age_yr"] <= 200e6
 print(f"Clusters with age < 200 Myr: {np.sum(mask)}")
 
-mask = np.logical_and(mask, big_catalog["good"] > 0.1)
+mask = np.logical_and(mask, big_catalog["good"])
 print(f"Clusters with good fits: {np.sum(mask)}")
+
+mask = np.logical_and(mask, big_catalog["mass_msun_max"] > 1)
+print(f"Clusters with nonzero mass error: {np.sum(mask)}")
+
+# ======================================================================================
+#
+# Fit the mass-size model
+#
+# ======================================================================================
+fit_mass_lower_limit = 1e3
+fit_mass_upper_limit = np.inf
+fit_mask = np.logical_and(mask, big_catalog["mass_msun"] > fit_mass_lower_limit)
+fit_mask = np.logical_and(fit_mask, big_catalog["mass_msun"] < fit_mass_upper_limit)
+
+# First get the parameters to be used, and transform them into log
+log_mass = np.log10(big_catalog["mass_msun"][fit_mask])
+# mass errors are reported as min and max values
+log_mass_err_hi = np.log10(big_catalog["mass_msun_max"][fit_mask]) - log_mass
+log_mass_err_lo = log_mass - np.log10(big_catalog["mass_msun_min"][fit_mask])
+
+# do the same thing with the radii, although it's a bit uglier since we don't report
+# min and max, just the errors
+r_eff = big_catalog["r_eff_pc_rmax_15pix_best"][fit_mask]
+r_eff_err_hi = big_catalog["r_eff_pc_rmax_15pix_e+"][fit_mask]
+r_eff_err_lo = big_catalog["r_eff_pc_rmax_15pix_e-"][fit_mask]
+
+log_r_eff = np.log10(r_eff)
+log_r_eff_err_hi = np.log10(r_eff + r_eff_err_hi) - log_r_eff
+log_r_eff_err_lo = log_r_eff - np.log10(r_eff - r_eff_err_lo)
+
+# This fitting is based off the prescriptions in Hogg, Bovy, Lang 2010 (arxiv:1008.4686)
+# sections 7 and 8. We incorporate the uncertainties in x and y by calculating the
+# difference and sigma along the line orthogonal to the best fit line.
+
+# define the functions that project the distance and uncertainty along the line
+def unit_vector_perp_to_line(slope):
+    """
+    Equation 29 of Hogg, Bovy, Lang 2010 (arxiv:1008.4686)
+    :param slope: Slope of the line
+    :return: Two component unit vector perpendicular to the line
+    """
+    return np.array([-slope, 1]).T / np.sqrt(1 + slope ** 2)
+
+
+def project_data_differences(slope, intercept):
+    """
+    Calculate the orthogonal displacement of all data points from the line specified.
+    See equation 30 of Hogg, Bovy, Lang 2010 (arxiv:1008.4686)
+
+    I made a simpler version of this equation by examining the geometry of the
+    situation. The orthogonal direction to a line can be obtained fairly easily.
+
+    I include a commented out version of the original implementation. Both
+    implementations give the same results
+
+    :param slope: Slope of the line
+    :param intercept: Intercept of the line
+    :return: Orthogonal displacement of all datapoints from this line
+    """
+    # v_hat = unit_vector_perp_to_line(slope)
+    # data_array = np.array([masses_log, r_eff_log])
+    # dot_term = np.dot(v_hat, data_array)
+    #
+    # theta = np.arctan(slope)
+    # return dot_term - intercept * np.cos(theta)
+
+    return np.cos(np.arctan(slope)) * (log_r_eff - (slope * log_mass + intercept))
+
+
+def project_data_variance(slope, intercept):
+    """
+    Calculate the orthogonal uncertainty of all data points from the line specified.
+    See equation 31 of Hogg, Bovy, Lang 2010 (arxiv:1008.4686)
+
+    :param slope: Slope of the line
+    :param intercept: Intercept of the line
+    :return: Orthogonal displacement of all datapoints from this line
+    """
+    # make dummy error arrays, which will be filled later
+    log_r_eff_errors = np.zeros(log_r_eff_err_lo.shape)
+    log_mass_errors = np.zeros(log_mass_err_lo.shape)
+    # determine which errors to use. This is done on a datapoint by datapoint basis.
+    # If the datapoint is above the best fit line, we use the lower errors on reff,
+    # if it is below the line we use the upper errors.
+    expected_values = log_mass * slope + intercept
+    mask_above = log_r_eff > expected_values
+
+    log_r_eff_errors[mask_above] = log_r_eff_err_lo[mask_above]
+    log_r_eff_errors[~mask_above] = log_r_eff_err_hi[~mask_above]
+
+    # Errors on mass are similar, but it depends on the sign of the slope. For a
+    # positive slope, we use the upper errors for points above the line, and lower
+    # errors for points below the line. This is opposite for negative slope. This can
+    # be determined by examining the direction the orthogonal line will go in each of
+    # these cases.
+    if slope > 0:
+        log_mass_errors[mask_above] = log_mass_err_hi[mask_above]
+        log_mass_errors[~mask_above] = log_mass_err_lo[~mask_above]
+    else:
+        log_mass_errors[mask_above] = log_mass_err_lo[mask_above]
+        log_mass_errors[~mask_above] = log_mass_err_hi[~mask_above]
+    # convert to variance
+    log_mass_variance = log_mass_errors ** 2
+    log_r_eff_variance = log_r_eff_errors ** 2
+
+    # Then we follow the equation 31 to project this along the direction requested.
+    # Since our covariance array is diagonal already (no covariance terms), Equation
+    # 26 is simple and Equation 31 can be simplified. Note that this has limits
+    # of log_mass_variance if slope = infinity (makes sense, as the horizontal direction
+    # would be perpendicular to that line), and log_r_eff_variance if slope = 0 (makes
+    # sense, as the vertical direction is perpendicular to that line).
+    return (slope ** 2 * log_mass_variance + log_r_eff_variance) / (1 + slope ** 2)
+
+
+# Then we can define the functions to minimize
+def negative_log_likelihood(params):
+    """
+    Function to be minimized. We use negative log likelihood, as minimizing this
+    maximizes likelihood.
+
+    The functional form is taken from Hogg, Bovy, Lang 2010 (arxiv:1008.4686) eq 35.
+
+    :param params: Slope, intercept, and standard deviation of intrinsic scatter
+    :return: Value for the negative log likelihood
+    """
+    data_variance = project_data_variance(params[0], params[1])
+    data_diffs = project_data_differences(params[0], params[1])
+
+    # calculate the sum of data likelihoods
+    data_likelihoods = -0.5 * np.sum(
+        (data_diffs ** 2) / (data_variance + params[2] ** 2)
+    )
+    # then penalize large intrinsic scatter
+    scatter_likelihood = -0.5 * np.sum(np.log(data_variance + params[2] ** 2))
+    # up to a constant, the sum of these is the likelihood. Return the negative of it
+    # to get the negative log likelihood
+    return -1 * (data_likelihoods + scatter_likelihood)
+
+
+# set some of the convergence criteria parameters for the Powell fitting routine.
+xtol = 1e-10
+ftol = 1e-10
+maxfev = np.inf
+maxiter = np.inf
+# Then try the fitting
+fit_result = optimize.minimize(
+    negative_log_likelihood,
+    x0=[0.1, 0, 0],
+    method="Powell",
+    options={
+        "xtol": xtol,
+        "ftol": ftol,
+        "maxfev": maxfev,
+        "maxiter": maxiter,
+    },
+)
+assert fit_result.success
+print(fit_result.x)
+
+best_slope, best_intercept, best_intrinsic_scatter = fit_result.x
 
 # ======================================================================================
 #
@@ -134,6 +295,30 @@ for unit in ["pc", "pixels"]:
                 s=percentile,
                 fontsize=16,
             )
+        # and plot the best fit line
+        plot_log_masses = np.arange(0, 10, 0.01)
+        plot_log_radii = best_slope * plot_log_masses + best_intercept
+        ax.plot(
+            10 ** plot_log_masses,
+            10 ** plot_log_radii,
+            c=bpl.color_cycle[1],
+            lw=4,
+            zorder=0,
+        )
+        ax.plot(
+            10 ** plot_log_masses,
+            10 ** (plot_log_radii + best_intrinsic_scatter),
+            c=bpl.color_cycle[1],
+            lw=2,
+            zorder=0,
+        )
+        ax.plot(
+            10 ** plot_log_masses,
+            10 ** (plot_log_radii - best_intrinsic_scatter),
+            c=bpl.color_cycle[1],
+            lw=2,
+            zorder=0,
+        )
 
     # then add all the PSF widths. Here we load the PSF and directly measure it's R_eff,
     # so we can have a fair comparison to the clusters
@@ -161,7 +346,7 @@ for unit in ["pc", "pixels"]:
 
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_limits(1e2, 1e6, 0.2, 40)
+    ax.set_limits(1e2, 1e6, 0.1, 40)
     ax.add_labels("Cluster Mass [M$_\odot$]", f"Cluster Effective Radius [{unit}]")
     ax.xaxis.set_ticks_position("both")
     ax.yaxis.set_ticks_position("both")
