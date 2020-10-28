@@ -326,8 +326,13 @@ def get_r_percentiles_moving(radii, masses, percentile, n, dn):
     # then go through chunks of them at a time to get the medians
     masses_median = []
     radii_percentiles = []
-    for left_idx in range(0, len(radii) - n, dn):
+    for left_idx in range(0, len(radii) - dn, dn):
         right_idx = left_idx + n
+        # fix the last bin
+        if right_idx > len(idxs_sort):
+            right_idx = len(idxs_sort)
+            left_idx = right_idx - n
+
         idxs = idxs_sort[left_idx:right_idx]
         this_masses = masses[idxs]
         this_radii = radii[idxs]
@@ -398,7 +403,7 @@ for percentile in [5, 10, 25, 50, 75, 90, 95]:
         radii_percentile,
         c=bpl.almost_black,
         lw=2 * (1 - (abs(percentile - 50) / 50)) + 0.5,
-        zorder=1,
+        zorder=9,
     )
     ax.text(
         x=mass_bins[0],
