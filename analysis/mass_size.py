@@ -51,31 +51,41 @@ print(f"Clusters with good fits: {np.sum(mask)}")
 mask = np.logical_and(mask, big_catalog["mass_msun_max"] > 1)
 print(f"Clusters with nonzero mass error: {np.sum(mask)}")
 
+mass_plot = big_catalog["mass_msun"][mask]
+# mass errors are reported as min and max values
+mass_err_hi_plot = big_catalog["mass_msun_max"][mask] - mass_plot
+mass_err_lo_plot = mass_plot - big_catalog["mass_msun_min"][mask]
+
+r_eff_plot = big_catalog["r_eff_pc_rmax_15pix_best"][mask]
+r_eff_err_hi_plot = big_catalog["r_eff_pc_rmax_15pix_e+"][mask]
+r_eff_err_lo_plot = big_catalog["r_eff_pc_rmax_15pix_e-"][mask]
+
+
 # ======================================================================================
 #
 # Fit the mass-size model
 #
 # ======================================================================================
-fit_mass_lower_limit = 1e3
-fit_mass_upper_limit = np.inf
+fit_mass_lower_limit = 1e1
+fit_mass_upper_limit = 1e6
 fit_mask = np.logical_and(mask, big_catalog["mass_msun"] > fit_mass_lower_limit)
 fit_mask = np.logical_and(fit_mask, big_catalog["mass_msun"] < fit_mass_upper_limit)
 
 # First get the parameters to be used, and transform them into log
-log_mass = np.log10(big_catalog["mass_msun"][fit_mask])
+log_mass_fit = np.log10(big_catalog["mass_msun"][fit_mask])
 # mass errors are reported as min and max values
-log_mass_err_hi = np.log10(big_catalog["mass_msun_max"][fit_mask]) - log_mass
-log_mass_err_lo = log_mass - np.log10(big_catalog["mass_msun_min"][fit_mask])
+log_mass_err_hi_fit = np.log10(big_catalog["mass_msun_max"][fit_mask]) - log_mass_fit
+log_mass_err_lo_fit = log_mass_fit - np.log10(big_catalog["mass_msun_min"][fit_mask])
 
 # do the same thing with the radii, although it's a bit uglier since we don't report
 # min and max, just the errors
-r_eff = big_catalog["r_eff_pc_rmax_15pix_best"][fit_mask]
-r_eff_err_hi = big_catalog["r_eff_pc_rmax_15pix_e+"][fit_mask]
-r_eff_err_lo = big_catalog["r_eff_pc_rmax_15pix_e-"][fit_mask]
+r_eff_fit = big_catalog["r_eff_pc_rmax_15pix_best"][fit_mask]
+r_eff_err_hi_fit = big_catalog["r_eff_pc_rmax_15pix_e+"][fit_mask]
+r_eff_err_lo_fit = big_catalog["r_eff_pc_rmax_15pix_e-"][fit_mask]
 
-log_r_eff = np.log10(r_eff)
-log_r_eff_err_hi = np.log10(r_eff + r_eff_err_hi) - log_r_eff
-log_r_eff_err_lo = log_r_eff - np.log10(r_eff - r_eff_err_lo)
+log_r_eff_fit = np.log10(r_eff_fit)
+log_r_eff_err_hi_fit = np.log10(r_eff_fit + r_eff_err_hi_fit) - log_r_eff_fit
+log_r_eff_err_lo_fit = log_r_eff_fit - np.log10(r_eff_fit - r_eff_err_lo_fit)
 
 # This fitting is based off the prescriptions in Hogg, Bovy, Lang 2010 (arxiv:1008.4686)
 # sections 7 and 8. We incorporate the uncertainties in x and y by calculating the
@@ -91,7 +101,7 @@ def unit_vector_perp_to_line(slope):
     return np.array([-slope, 1]).T / np.sqrt(1 + slope ** 2)
 
 
-def project_data_differences(slope, intercept):
+def project_data_differences(xs, ys, slope, intercept):
     """
     Calculate the orthogonal displacement of all data points from the line specified.
     See equation 30 of Hogg, Bovy, Lang 2010 (arxiv:1008.4686)
@@ -113,10 +123,12 @@ def project_data_differences(slope, intercept):
     # theta = np.arctan(slope)
     # return dot_term - intercept * np.cos(theta)
 
-    return np.cos(np.arctan(slope)) * (log_r_eff - (slope * log_mass + intercept))
+    return np.cos(np.arctan(slope)) * (ys - (slope * xs + intercept))
 
 
-def project_data_variance(slope, intercept):
+def project_data_variance(
+    xs, x_err_down, x_err_up, ys, y_err_down, y_err_up, slope, intercept
+):
     """
     Calculate the orthogonal uncertainty of all data points from the line specified.
     See equation 31 of Hogg, Bovy, Lang 2010 (arxiv:1008.4686)
@@ -126,43 +138,43 @@ def project_data_variance(slope, intercept):
     :return: Orthogonal displacement of all datapoints from this line
     """
     # make dummy error arrays, which will be filled later
-    log_r_eff_errors = np.zeros(log_r_eff_err_lo.shape)
-    log_mass_errors = np.zeros(log_mass_err_lo.shape)
+    x_errors = np.zeros(xs.shape)
+    y_errors = np.zeros(ys.shape)
     # determine which errors to use. This is done on a datapoint by datapoint basis.
-    # If the datapoint is above the best fit line, we use the lower errors on reff,
+    # If the datapoint is above the best fit line, we use the lower errors on y,
     # if it is below the line we use the upper errors.
-    expected_values = log_mass * slope + intercept
-    mask_above = log_r_eff > expected_values
+    expected_values = xs * slope + intercept
+    mask_above = ys > expected_values
 
-    log_r_eff_errors[mask_above] = log_r_eff_err_lo[mask_above]
-    log_r_eff_errors[~mask_above] = log_r_eff_err_hi[~mask_above]
+    y_errors[mask_above] = y_err_down[mask_above]
+    y_errors[~mask_above] = y_err_up[~mask_above]
 
-    # Errors on mass are similar, but it depends on the sign of the slope. For a
+    # Errors on x are similar, but it depends on the sign of the slope. For a
     # positive slope, we use the upper errors for points above the line, and lower
     # errors for points below the line. This is opposite for negative slope. This can
     # be determined by examining the direction the orthogonal line will go in each of
     # these cases.
     if slope > 0:
-        log_mass_errors[mask_above] = log_mass_err_hi[mask_above]
-        log_mass_errors[~mask_above] = log_mass_err_lo[~mask_above]
+        x_errors[mask_above] = x_err_up[mask_above]
+        x_errors[~mask_above] = x_err_down[~mask_above]
     else:
-        log_mass_errors[mask_above] = log_mass_err_lo[mask_above]
-        log_mass_errors[~mask_above] = log_mass_err_hi[~mask_above]
+        x_errors[mask_above] = x_err_down[mask_above]
+        x_errors[~mask_above] = x_err_up[~mask_above]
     # convert to variance
-    log_mass_variance = log_mass_errors ** 2
-    log_r_eff_variance = log_r_eff_errors ** 2
+    x_variance = x_errors ** 2
+    y_variance = y_errors ** 2
 
     # Then we follow the equation 31 to project this along the direction requested.
     # Since our covariance array is diagonal already (no covariance terms), Equation
     # 26 is simple and Equation 31 can be simplified. Note that this has limits
-    # of log_mass_variance if slope = infinity (makes sense, as the horizontal direction
-    # would be perpendicular to that line), and log_r_eff_variance if slope = 0 (makes
+    # of x_variance if slope = infinity (makes sense, as the horizontal direction
+    # would be perpendicular to that line), and y_variance if slope = 0 (makes
     # sense, as the vertical direction is perpendicular to that line).
-    return (slope ** 2 * log_mass_variance + log_r_eff_variance) / (1 + slope ** 2)
+    return (slope ** 2 * x_variance + y_variance) / (1 + slope ** 2)
 
 
 # Then we can define the functions to minimize
-def negative_log_likelihood(params):
+def negative_log_likelihood(params, xs, x_err_down, x_err_up, ys, y_err_down, y_err_up):
     """
     Function to be minimized. We use negative log likelihood, as minimizing this
     maximizes likelihood.
@@ -172,14 +184,19 @@ def negative_log_likelihood(params):
     :param params: Slope, intercept, and standard deviation of intrinsic scatter
     :return: Value for the negative log likelihood
     """
-    data_variance = project_data_variance(params[0], params[1])
-    data_diffs = project_data_differences(params[0], params[1])
+    data_variance = project_data_variance(
+        xs, x_err_down, x_err_up, ys, y_err_down, y_err_up, params[0], params[1]
+    )
+    data_diffs = project_data_differences(xs, ys, params[0], params[1])
 
     # calculate the sum of data likelihoods
     data_likelihoods = -0.5 * np.sum(
         (data_diffs ** 2) / (data_variance + params[2] ** 2)
     )
-    # then penalize large intrinsic scatter
+    # then penalize large intrinsic scatter. This term really comes from the definition
+    # of a Gaussian likelihood. This term is always out front of a Gaussian, but
+    # normally it's just a constant. When we include intrinsic scatter it now
+    # affects the likelihood.
     scatter_likelihood = -0.5 * np.sum(np.log(data_variance + params[2] ** 2))
     # up to a constant, the sum of these is the likelihood. Return the negative of it
     # to get the negative log likelihood
@@ -192,9 +209,18 @@ ftol = 1e-10
 maxfev = np.inf
 maxiter = np.inf
 # Then try the fitting
-fit_result = optimize.minimize(
+best_fit_result = optimize.minimize(
     negative_log_likelihood,
-    x0=[0.1, 0, 0],
+    args=(
+        log_mass_fit,
+        log_mass_err_lo_fit,
+        log_mass_err_hi_fit,
+        log_r_eff_fit,
+        log_r_eff_err_lo_fit,
+        log_r_eff_err_hi_fit,
+    ),
+    bounds=([None, None], [None, None], [0, None]),
+    x0=np.array([0.2, 0, 0.3]),
     method="Powell",
     options={
         "xtol": xtol,
@@ -203,11 +229,69 @@ fit_result = optimize.minimize(
         "maxiter": maxiter,
     },
 )
-assert fit_result.success
-print(fit_result.x)
+assert best_fit_result.success
+print(best_fit_result.x)
 
-best_slope, best_intercept, best_intrinsic_scatter = fit_result.x
+best_slope, best_intercept, best_intrinsic_scatter = best_fit_result.x
 
+# Then do bootstrapping
+n_variables = len(best_fit_result.x)
+param_history = [[] for _ in range(n_variables)]
+param_std_last = [np.inf for _ in range(n_variables)]
+
+converge_criteria = 0.1  # fractional change in std required for convergence
+converged = [False for _ in range(3)]
+check_spacing = 2  # how many iterations between checking the std
+iteration = 0
+while not all(converged):
+    iteration += 1
+
+    # create a new sample of x and y coordinates
+    sample_idxs = np.random.randint(0, len(log_mass_fit), len(log_mass_fit))
+
+    # fit to this set of data
+    this_result = optimize.minimize(
+        negative_log_likelihood,
+        args=(
+            log_mass_fit[sample_idxs],
+            log_mass_err_lo_fit[sample_idxs],
+            log_mass_err_hi_fit[sample_idxs],
+            log_r_eff_fit[sample_idxs],
+            log_r_eff_err_lo_fit[sample_idxs],
+            log_r_eff_err_hi_fit[sample_idxs],
+        ),
+        bounds=([None, None], [None, None], [0, None]),
+        x0=best_fit_result.x,
+        method="Powell",
+        options={
+            "xtol": xtol,
+            "ftol": ftol,
+            "maxfev": maxfev,
+            "maxiter": maxiter,
+        },
+    )
+
+    assert this_result.success
+    # store the results
+    for param_idx in range(n_variables):
+        param_history[param_idx].append(this_result.x[param_idx])
+
+    # then check if we're converged
+    if iteration % check_spacing == 0:
+        for param_idx in range(n_variables):
+            # calculate the new standard deviation
+            this_std = np.std(param_history[param_idx])
+            if this_std == 0:
+                converged[param_idx] = True
+            else:  # actually calculate the change
+                last_std = param_std_last[param_idx]
+                diff = abs((this_std - last_std) / this_std)
+                converged[param_idx] = diff < converge_criteria
+
+            # then set the new last value
+            param_std_last[param_idx] = this_std
+
+print(param_std_last)
 # ======================================================================================
 #
 # make the plot
@@ -234,6 +318,23 @@ def get_r_percentiles(radii, masses, percentile, d_log_M):
             bin_centers.append(10 ** np.mean([np.log10(lower), np.log10(upper)]))
 
     return bin_centers, radii_percentiles
+
+
+def get_r_percentiles_moving(radii, masses, percentile, n, dn):
+    # go through the masses in sorted order
+    idxs_sort = np.argsort(masses)
+    # then go through chunks of them at a time to get the medians
+    masses_median = []
+    radii_percentiles = []
+    for left_idx in range(0, len(radii) - n, dn):
+        right_idx = left_idx + n
+        idxs = idxs_sort[left_idx:right_idx]
+        this_masses = masses[idxs]
+        this_radii = radii[idxs]
+
+        masses_median.append(np.median(this_masses))
+        radii_percentiles.append(np.percentile(this_radii, percentile))
+    return masses_median, radii_percentiles
 
 
 def distance(x1, y1, x2, y2):
@@ -268,95 +369,121 @@ def measure_psf_reff(psf):
 
 
 masses = big_catalog["mass_msun"][mask]
-for unit in ["pc", "pixels"]:
-    radii = big_catalog[f"r_eff_{unit}_rmax_15pix_best"][mask]
-    fig, ax = bpl.subplots()
+fig, ax = bpl.subplots()
 
-    ax.scatter(masses, radii, alpha=1.0, s=2)
-    if unit == "pc":
-        # plot the median and the IQR
-        d_log_M = 0.25
-        for percentile in [5, 10, 25, 50, 75, 90, 95]:
-            mass_bins, radii_percentile = get_r_percentiles(
-                radii, masses, percentile, d_log_M
-            )
-            ax.plot(
-                mass_bins,
-                radii_percentile,
-                c=bpl.almost_black,
-                lw=4 * (1 - (abs(percentile - 50) / 50)) + 0.5,
-                zorder=1,
-            )
-            ax.text(
-                x=mass_bins[0],
-                y=radii_percentile[0],
-                ha="center",
-                va="bottom",
-                s=percentile,
-                fontsize=16,
-            )
-        # and plot the best fit line
-        plot_log_masses = np.arange(0, 10, 0.01)
-        plot_log_radii = best_slope * plot_log_masses + best_intercept
-        ax.plot(
-            10 ** plot_log_masses,
-            10 ** plot_log_radii,
-            c=bpl.color_cycle[1],
-            lw=4,
-            zorder=0,
-        )
-        ax.plot(
-            10 ** plot_log_masses,
-            10 ** (plot_log_radii + best_intrinsic_scatter),
-            c=bpl.color_cycle[1],
-            lw=2,
-            zorder=0,
-        )
-        ax.plot(
-            10 ** plot_log_masses,
-            10 ** (plot_log_radii - best_intrinsic_scatter),
-            c=bpl.color_cycle[1],
-            lw=2,
-            zorder=0,
-        )
+ax.scatter(mass_plot, r_eff_plot, alpha=1.0, s=3, c=bpl.color_cycle[0], zorder=4)
+# Have errorbars separately so they can easily be turned off
+ax.errorbar(
+    x=mass_plot,
+    y=r_eff_plot,
+    alpha=1.0,
+    markersize=0,
+    yerr=[r_eff_err_lo_plot, r_eff_err_hi_plot],
+    xerr=[mass_err_lo_plot, mass_err_hi_plot],
+    lw=0.1,
+    zorder=3,
+    c=bpl.color_cycle[0],
+)
+# plot the median and the IQR
+d_log_M = 0.25
+for percentile in [5, 10, 25, 50, 75, 90, 95]:
+    # mass_bins, radii_percentile = get_r_percentiles(
+    #     r_eff_plot, mass_plot, percentile, d_log_M
+    # )
+    mass_bins, radii_percentile = get_r_percentiles_moving(
+        r_eff_plot, mass_plot, percentile, 100, 50
+    )
+    ax.plot(
+        mass_bins,
+        radii_percentile,
+        c=bpl.almost_black,
+        lw=2 * (1 - (abs(percentile - 50) / 50)) + 0.5,
+        zorder=1,
+    )
+    ax.text(
+        x=mass_bins[0],
+        y=radii_percentile[0],
+        ha="center",
+        va="bottom",
+        s=percentile,
+        fontsize=16,
+    )
+# and plot the best fit line
+plot_log_masses = np.arange(
+    np.log10(fit_mass_lower_limit), np.log10(fit_mass_upper_limit), 0.01
+)
+plot_log_radii = best_slope * plot_log_masses + best_intercept
+ax.plot(
+    10 ** plot_log_masses,
+    10 ** plot_log_radii,
+    c=bpl.color_cycle[3],
+    lw=4,
+    zorder=10,
+    label="$R_{eff} \propto M^{" + f"{best_slope:.2f}" + "}$",
+)
+ax.fill_between(
+    x=10 ** plot_log_masses,
+    y1=10 ** (plot_log_radii - best_intrinsic_scatter),
+    y2=10 ** (plot_log_radii + best_intrinsic_scatter),
+    color="0.8",
+    zorder=0,
+    label=f"Intrinsic Scatter = {best_intrinsic_scatter:.2f} dex",
+)
 
-    # then add all the PSF widths. Here we load the PSF and directly measure it's R_eff,
-    # so we can have a fair comparison to the clusters
-    for cat_loc in sys.argv[5:]:
-        size_home_dir = Path(cat_loc).parent
-        home_dir = size_home_dir.parent
 
-        psf_name = (
-            f"psf_"
-            f"{psf_source}_stars_"
-            f"{psf_width}_pixels_"
-            f"{oversampling_factor}x_oversampled.fits"
-        )
+# Filled in bootstrap interval is currently turned off because the itnerval is smaller
+# than the width of the line
+# # Then add the shaded region of regions allowed by bootstrapping. We'll calculate
+# # the fit line for all the iterations, then at each x value calculate the 68
+# # percent range to shade between.
+# lines = [[] for _ in range(len(plot_log_masses))]
+# for i in range(len(param_history[0])):
+#     this_line = param_history[0][i] * plot_log_masses + param_history[1][i]
+#     for j in range(len(this_line)):
+#         lines[j].append(this_line[j])
+# # Then we can calculate the percentile at each location. The y is in log here,
+# # so scale it back up to regular values
+# upper_limits = [10 ** np.percentile(ys, 84.15) for ys in lines]
+# lower_limits = [10 ** np.percentile(ys, 15.85) for ys in lines]
+#
+# ax.fill_between(
+#     x=10 ** plot_log_masses,
+#     y1=lower_limits,
+#     y2=upper_limits,
+#     zorder=0,
+#     alpha=0.5,
+# )
 
-        psf = fits.open(size_home_dir / psf_name)["PRIMARY"].data
-        psf_size_pixels = measure_psf_reff(psf)
-        if unit == "pc":
-            psf_size_arcsec = utils.pixels_to_arcsec(psf_size_pixels, home_dir)
-            psf_size_pc = utils.arcsec_to_pc_with_errors(
-                home_dir, psf_size_arcsec, 0, 0, False
-            )[0]
-        ax.plot(
-            [7e5, 1e6], [psf_size_pc, psf_size_pc], lw=1, c=bpl.almost_black, zorder=3
-        )
+# then add all the PSF widths. Here we load the PSF and directly measure it's R_eff,
+# so we can have a fair comparison to the clusters
+for cat_loc in sys.argv[5:]:
+    size_home_dir = Path(cat_loc).parent
+    home_dir = size_home_dir.parent
 
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_limits(1e2, 1e6, 0.1, 40)
-    ax.add_labels("Cluster Mass [M$_\odot$]", f"Cluster Effective Radius [{unit}]")
-    ax.xaxis.set_ticks_position("both")
-    ax.yaxis.set_ticks_position("both")
+    psf_name = (
+        f"psf_"
+        f"{psf_source}_stars_"
+        f"{psf_width}_pixels_"
+        f"{oversampling_factor}x_oversampled.fits"
+    )
 
-    if unit == "pc":
-        fig.savefig(plot_name)
-    else:
-        new_name = plot_name.name.strip(".png")
-        new_name += "pix.png"
-        fig.savefig(plot_name.parent / new_name)
+    psf = fits.open(size_home_dir / psf_name)["PRIMARY"].data
+    psf_size_pixels = measure_psf_reff(psf)
+    psf_size_arcsec = utils.pixels_to_arcsec(psf_size_pixels, home_dir)
+    psf_size_pc = utils.arcsec_to_pc_with_errors(
+        home_dir, psf_size_arcsec, 0, 0, False
+    )[0]
+    ax.plot([7e5, 1e6], [psf_size_pc, psf_size_pc], lw=1, c=bpl.almost_black, zorder=3)
+
+ax.set_xscale("log")
+ax.set_yscale("log")
+ax.set_limits(1e2, 1e6, 0.1, 40)
+ax.add_labels("Cluster Mass [M$_\odot$]", "Cluster Effective Radius [pc]")
+ax.xaxis.set_ticks_position("both")
+ax.yaxis.set_ticks_position("both")
+ax.legend(loc=2)
+
+fig.savefig(plot_name)
 
 
 # ======================================================================================
