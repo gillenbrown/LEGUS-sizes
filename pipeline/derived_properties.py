@@ -271,6 +271,7 @@ for row in fits_catalog:
         row["r_eff_arcsec_rmax_15pix_best"],
         row["r_eff_arcsec_rmax_15pix_e-"],
         row["r_eff_arcsec_rmax_15pix_e+"],
+        ryon=ryon_like,
     )
 
     row["r_eff_pc_rmax_15pix_best"] = best
