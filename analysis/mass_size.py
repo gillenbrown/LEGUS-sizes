@@ -203,65 +203,33 @@ def negative_log_likelihood(params, xs, x_err_down, x_err_up, ys, y_err_down, y_
     return -1 * (data_likelihoods + scatter_likelihood)
 
 
-# set some of the convergence criteria parameters for the Powell fitting routine.
-xtol = 1e-10
-ftol = 1e-10
-maxfev = np.inf
-maxiter = np.inf
-# Then try the fitting
-best_fit_result = optimize.minimize(
-    negative_log_likelihood,
-    args=(
-        log_mass_fit,
-        log_mass_err_lo_fit,
-        log_mass_err_hi_fit,
-        log_r_eff_fit,
-        log_r_eff_err_lo_fit,
-        log_r_eff_err_hi_fit,
-    ),
-    bounds=([-1, 1], [None, None], [0, 0.5]),
-    x0=np.array([0.2, 0, 0.3]),
-    method="Powell",
-    options={
-        "xtol": xtol,
-        "ftol": ftol,
-        "maxfev": maxfev,
-        "maxiter": maxiter,
-    },
-)
-assert best_fit_result.success
-print(best_fit_result.x)
+def fit_mass_size_relation(
+    log_mass,
+    log_mass_err_lo,
+    log_mass_err_hi,
+    log_r_eff,
+    log_r_eff_err_lo,
+    log_r_eff_err_hi,
+):
 
-best_slope, best_intercept, best_intrinsic_scatter = best_fit_result.x
-
-# Then do bootstrapping
-n_variables = len(best_fit_result.x)
-param_history = [[] for _ in range(n_variables)]
-param_std_last = [np.inf for _ in range(n_variables)]
-
-converge_criteria = 0.1  # fractional change in std required for convergence
-converged = [False for _ in range(n_variables)]
-check_spacing = 2  # how many iterations between checking the std
-iteration = 0
-while not all(converged):
-    iteration += 1
-
-    # create a new sample of x and y coordinates
-    sample_idxs = np.random.randint(0, len(log_mass_fit), len(log_mass_fit))
-
-    # fit to this set of data
-    this_result = optimize.minimize(
+    # set some of the convergence criteria parameters for the Powell fitting routine.
+    xtol = 1e-10
+    ftol = 1e-10
+    maxfev = np.inf
+    maxiter = np.inf
+    # Then try the fitting
+    best_fit_result = optimize.minimize(
         negative_log_likelihood,
         args=(
-            log_mass_fit[sample_idxs],
-            log_mass_err_lo_fit[sample_idxs],
-            log_mass_err_hi_fit[sample_idxs],
-            log_r_eff_fit[sample_idxs],
-            log_r_eff_err_lo_fit[sample_idxs],
-            log_r_eff_err_hi_fit[sample_idxs],
+            log_mass,
+            log_mass_err_lo,
+            log_mass_err_hi,
+            log_r_eff,
+            log_r_eff_err_lo,
+            log_r_eff_err_hi,
         ),
         bounds=([-1, 1], [None, None], [0, 0.5]),
-        x0=best_fit_result.x,
+        x0=np.array([0.2, 0, 0.3]),
         method="Powell",
         options={
             "xtol": xtol,
@@ -270,28 +238,70 @@ while not all(converged):
             "maxiter": maxiter,
         },
     )
+    assert best_fit_result.success
 
-    assert this_result.success
-    # store the results
-    for param_idx in range(n_variables):
-        param_history[param_idx].append(this_result.x[param_idx])
+    # best_slope, best_intercept, best_intrinsic_scatter = best_fit_result.x
 
-    # then check if we're converged
-    if iteration % check_spacing == 0:
+    # Then do bootstrapping
+    n_variables = len(best_fit_result.x)
+    param_history = [[] for _ in range(n_variables)]
+    param_std_last = [np.inf for _ in range(n_variables)]
+
+    converge_criteria = 0.1  # fractional change in std required for convergence
+    converged = [False for _ in range(n_variables)]
+    check_spacing = 2  # how many iterations between checking the std
+    iteration = 0
+    while not all(converged):
+        iteration += 1
+
+        # create a new sample of x and y coordinates
+        sample_idxs = np.random.randint(0, len(log_mass_fit), len(log_mass_fit))
+
+        # fit to this set of data
+        this_result = optimize.minimize(
+            negative_log_likelihood,
+            args=(
+                log_mass_fit[sample_idxs],
+                log_mass_err_lo_fit[sample_idxs],
+                log_mass_err_hi_fit[sample_idxs],
+                log_r_eff_fit[sample_idxs],
+                log_r_eff_err_lo_fit[sample_idxs],
+                log_r_eff_err_hi_fit[sample_idxs],
+            ),
+            bounds=([-1, 1], [None, None], [0, 0.5]),
+            x0=best_fit_result.x,
+            method="Powell",
+            options={
+                "xtol": xtol,
+                "ftol": ftol,
+                "maxfev": maxfev,
+                "maxiter": maxiter,
+            },
+        )
+
+        assert this_result.success
+        # store the results
         for param_idx in range(n_variables):
-            # calculate the new standard deviation
-            this_std = np.std(param_history[param_idx])
-            if this_std == 0:
-                converged[param_idx] = True
-            else:  # actually calculate the change
-                last_std = param_std_last[param_idx]
-                diff = abs((this_std - last_std) / this_std)
-                converged[param_idx] = diff < converge_criteria
+            param_history[param_idx].append(this_result.x[param_idx])
 
-            # then set the new last value
-            param_std_last[param_idx] = this_std
+        # then check if we're converged
+        if iteration % check_spacing == 0:
+            for param_idx in range(n_variables):
+                # calculate the new standard deviation
+                this_std = np.std(param_history[param_idx])
+                if this_std == 0:
+                    converged[param_idx] = True
+                else:  # actually calculate the change
+                    last_std = param_std_last[param_idx]
+                    diff = abs((this_std - last_std) / this_std)
+                    converged[param_idx] = diff < converge_criteria
 
-print(param_std_last)
+                # then set the new last value
+                param_std_last[param_idx] = this_std
+
+    return best_fit_result.x, param_history
+
+
 # ======================================================================================
 #
 # make the plot
@@ -373,123 +383,154 @@ def measure_psf_reff(psf):
             return sorted_radii[idx]
 
 
-masses = big_catalog["mass_msun"][mask]
-fig, ax = bpl.subplots()
+def make_mass_size_plot(
+    mass,
+    mass_err_lo,
+    mass_err_hi,
+    r_eff,
+    r_eff_err_lo,
+    r_eff_err_hi,
+    best_fit_params,
+    save_name,
+):
 
-ax.scatter(mass_plot, r_eff_plot, alpha=1.0, s=3, c=bpl.color_cycle[0], zorder=4)
-# Have errorbars separately so they can easily be turned off
-ax.errorbar(
-    x=mass_plot,
-    y=r_eff_plot,
-    alpha=1.0,
-    markersize=0,
-    yerr=[r_eff_err_lo_plot, r_eff_err_hi_plot],
-    xerr=[mass_err_lo_plot, mass_err_hi_plot],
-    lw=0.1,
-    zorder=3,
-    c=bpl.color_cycle[0],
-)
-# plot the median and the IQR
-d_log_M = 0.25
-for percentile in [2.5, 16, 50, 84, 97.5]:
-    # mass_bins, radii_percentile = get_r_percentiles(
-    #     r_eff_plot, mass_plot, percentile, d_log_M
-    # )
-    mass_bins, radii_percentile = get_r_percentiles_moving(
-        r_eff_plot, mass_plot, percentile, 100, 50
+    fig, ax = bpl.subplots()
+
+    ax.scatter(mass_plot, r_eff_plot, alpha=1.0, s=3, c=bpl.color_cycle[0], zorder=4)
+    # Have errorbars separately so they can easily be turned off
+    ax.errorbar(
+        x=mass,
+        y=r_eff,
+        alpha=1.0,
+        markersize=0,
+        yerr=[r_eff_err_lo, r_eff_err_hi],
+        xerr=[mass_err_lo, mass_err_hi],
+        lw=0.1,
+        zorder=3,
+        c=bpl.color_cycle[0],
     )
+    # plot the median and the IQR
+    for percentile in [2.5, 16, 50, 84, 97.5]:
+        mass_bins, radii_percentile = get_r_percentiles_moving(
+            r_eff_plot, mass_plot, percentile, 100, 50
+        )
+        ax.plot(
+            mass_bins,
+            radii_percentile,
+            c=bpl.almost_black,
+            lw=2 * (1 - (abs(percentile - 50) / 50)) + 0.5,
+            zorder=9,
+        )
+        ax.text(
+            x=mass_bins[0],
+            y=radii_percentile[0],
+            ha="center",
+            va="bottom",
+            s=percentile,
+            fontsize=16,
+        )
+    # and plot the best fit line
+    plot_log_masses = np.arange(
+        np.log10(fit_mass_lower_limit), np.log10(fit_mass_upper_limit), 0.01
+    )
+    plot_log_radii = best_fit_params[0] * plot_log_masses + best_fit_params[1]
     ax.plot(
-        mass_bins,
-        radii_percentile,
-        c=bpl.almost_black,
-        lw=2 * (1 - (abs(percentile - 50) / 50)) + 0.5,
-        zorder=9,
+        10 ** plot_log_masses,
+        10 ** plot_log_radii,
+        c=bpl.color_cycle[3],
+        lw=4,
+        zorder=10,
+        label="$R_{eff} \propto M^{" + f"{best_fit_params[0]:.2f}" + "}$",
     )
-    ax.text(
-        x=mass_bins[0],
-        y=radii_percentile[0],
-        ha="center",
-        va="bottom",
-        s=percentile,
-        fontsize=16,
+    ax.fill_between(
+        x=10 ** plot_log_masses,
+        y1=10 ** (plot_log_radii - best_fit_params[2]),
+        y2=10 ** (plot_log_radii + best_fit_params[2]),
+        color="0.8",
+        zorder=0,
+        label=f"Intrinsic Scatter = {best_fit_params[2]:.2f} dex",
     )
-# and plot the best fit line
-plot_log_masses = np.arange(
-    np.log10(fit_mass_lower_limit), np.log10(fit_mass_upper_limit), 0.01
-)
-plot_log_radii = best_slope * plot_log_masses + best_intercept
-ax.plot(
-    10 ** plot_log_masses,
-    10 ** plot_log_radii,
-    c=bpl.color_cycle[3],
-    lw=4,
-    zorder=10,
-    label="$R_{eff} \propto M^{" + f"{best_slope:.2f}" + "}$",
-)
-ax.fill_between(
-    x=10 ** plot_log_masses,
-    y1=10 ** (plot_log_radii - best_intrinsic_scatter),
-    y2=10 ** (plot_log_radii + best_intrinsic_scatter),
-    color="0.8",
-    zorder=0,
-    label=f"Intrinsic Scatter = {best_intrinsic_scatter:.2f} dex",
-)
+
+    # Filled in bootstrap interval is currently turned off because the itnerval is smaller
+    # than the width of the line
+    # # Then add the shaded region of regions allowed by bootstrapping. We'll calculate
+    # # the fit line for all the iterations, then at each x value calculate the 68
+    # # percent range to shade between.
+    # lines = [[] for _ in range(len(plot_log_masses))]
+    # for i in range(len(param_history[0])):
+    #     this_line = param_history[0][i] * plot_log_masses + param_history[1][i]
+    #     for j in range(len(this_line)):
+    #         lines[j].append(this_line[j])
+    # # Then we can calculate the percentile at each location. The y is in log here,
+    # # so scale it back up to regular values
+    # upper_limits = [10 ** np.percentile(ys, 84.15) for ys in lines]
+    # lower_limits = [10 ** np.percentile(ys, 15.85) for ys in lines]
+    #
+    # ax.fill_between(
+    #     x=10 ** plot_log_masses,
+    #     y1=lower_limits,
+    #     y2=upper_limits,
+    #     zorder=0,
+    #     alpha=0.5,
+    # )
+
+    # then add all the PSF widths. Here we load the PSF and directly measure it's R_eff,
+    # so we can have a fair comparison to the clusters
+    for cat_loc in sys.argv[5:]:
+        size_home_dir = Path(cat_loc).parent
+        home_dir = size_home_dir.parent
+
+        psf_name = (
+            f"psf_"
+            f"{psf_source}_stars_"
+            f"{psf_width}_pixels_"
+            f"{oversampling_factor}x_oversampled.fits"
+        )
+
+        psf = fits.open(size_home_dir / psf_name)["PRIMARY"].data
+        psf_size_pixels = measure_psf_reff(psf)
+        psf_size_arcsec = utils.pixels_to_arcsec(psf_size_pixels, home_dir)
+        psf_size_pc = utils.arcsec_to_pc_with_errors(
+            home_dir, psf_size_arcsec, 0, 0, False
+        )[0]
+        ax.plot(
+            [7e5, 1e6], [psf_size_pc, psf_size_pc], lw=1, c=bpl.almost_black, zorder=3
+        )
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_limits(1e2, 1e6, 0.1, 40)
+    ax.add_labels("Cluster Mass [M$_\odot$]", "Cluster Effective Radius [pc]")
+    ax.xaxis.set_ticks_position("both")
+    ax.yaxis.set_ticks_position("both")
+    ax.legend(loc=2)
+
+    fig.savefig(save_name)
 
 
-# Filled in bootstrap interval is currently turned off because the itnerval is smaller
-# than the width of the line
-# # Then add the shaded region of regions allowed by bootstrapping. We'll calculate
-# # the fit line for all the iterations, then at each x value calculate the 68
-# # percent range to shade between.
-# lines = [[] for _ in range(len(plot_log_masses))]
-# for i in range(len(param_history[0])):
-#     this_line = param_history[0][i] * plot_log_masses + param_history[1][i]
-#     for j in range(len(this_line)):
-#         lines[j].append(this_line[j])
-# # Then we can calculate the percentile at each location. The y is in log here,
-# # so scale it back up to regular values
-# upper_limits = [10 ** np.percentile(ys, 84.15) for ys in lines]
-# lower_limits = [10 ** np.percentile(ys, 15.85) for ys in lines]
+# ======================================================================================
 #
-# ax.fill_between(
-#     x=10 ** plot_log_masses,
-#     y1=lower_limits,
-#     y2=upper_limits,
-#     zorder=0,
-#     alpha=0.5,
-# )
-
-# then add all the PSF widths. Here we load the PSF and directly measure it's R_eff,
-# so we can have a fair comparison to the clusters
-for cat_loc in sys.argv[5:]:
-    size_home_dir = Path(cat_loc).parent
-    home_dir = size_home_dir.parent
-
-    psf_name = (
-        f"psf_"
-        f"{psf_source}_stars_"
-        f"{psf_width}_pixels_"
-        f"{oversampling_factor}x_oversampled.fits"
-    )
-
-    psf = fits.open(size_home_dir / psf_name)["PRIMARY"].data
-    psf_size_pixels = measure_psf_reff(psf)
-    psf_size_arcsec = utils.pixels_to_arcsec(psf_size_pixels, home_dir)
-    psf_size_pc = utils.arcsec_to_pc_with_errors(
-        home_dir, psf_size_arcsec, 0, 0, False
-    )[0]
-    ax.plot([7e5, 1e6], [psf_size_pc, psf_size_pc], lw=1, c=bpl.almost_black, zorder=3)
-
-ax.set_xscale("log")
-ax.set_yscale("log")
-ax.set_limits(1e2, 1e6, 0.1, 40)
-ax.add_labels("Cluster Mass [M$_\odot$]", "Cluster Effective Radius [pc]")
-ax.xaxis.set_ticks_position("both")
-ax.yaxis.set_ticks_position("both")
-ax.legend(loc=2)
-
-fig.savefig(plot_name)
-
+# Then actually make different versions of this plot
+#
+# ======================================================================================
+fit_legus, fit_legus_history = fit_mass_size_relation(
+    log_mass_fit,
+    log_mass_err_lo_fit,
+    log_mass_err_hi_fit,
+    log_r_eff_fit,
+    log_r_eff_err_lo_fit,
+    log_r_eff_err_hi_fit,
+)
+make_mass_size_plot(
+    mass_plot,
+    mass_err_lo_plot,
+    mass_err_hi_plot,
+    r_eff_plot,
+    r_eff_err_lo_plot,
+    r_eff_err_hi_plot,
+    fit_legus,
+    plot_name,
+)
 
 # ======================================================================================
 #
