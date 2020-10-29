@@ -219,7 +219,7 @@ best_fit_result = optimize.minimize(
         log_r_eff_err_lo_fit,
         log_r_eff_err_hi_fit,
     ),
-    bounds=([None, None], [None, None], [0, None]),
+    bounds=([-1, 1], [None, None], [0, 0.5]),
     x0=np.array([0.2, 0, 0.3]),
     method="Powell",
     options={
@@ -240,7 +240,7 @@ param_history = [[] for _ in range(n_variables)]
 param_std_last = [np.inf for _ in range(n_variables)]
 
 converge_criteria = 0.1  # fractional change in std required for convergence
-converged = [False for _ in range(3)]
+converged = [False for _ in range(n_variables)]
 check_spacing = 2  # how many iterations between checking the std
 iteration = 0
 while not all(converged):
@@ -260,7 +260,7 @@ while not all(converged):
             log_r_eff_err_lo_fit[sample_idxs],
             log_r_eff_err_hi_fit[sample_idxs],
         ),
-        bounds=([None, None], [None, None], [0, None]),
+        bounds=([-1, 1], [None, None], [0, 0.5]),
         x0=best_fit_result.x,
         method="Powell",
         options={
@@ -391,7 +391,7 @@ ax.errorbar(
 )
 # plot the median and the IQR
 d_log_M = 0.25
-for percentile in [5, 10, 25, 50, 75, 90, 95]:
+for percentile in [2.5, 16, 50, 84, 97.5]:
     # mass_bins, radii_percentile = get_r_percentiles(
     #     r_eff_plot, mass_plot, percentile, d_log_M
     # )
