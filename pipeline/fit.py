@@ -18,9 +18,8 @@ from collections import defaultdict
 
 from astropy import table, stats
 from astropy.io import fits
-
 import numpy as np
-from scipy import optimize, special
+from scipy import optimize
 from tqdm import tqdm
 
 import utils
@@ -96,6 +95,7 @@ for a in a_grid:
         eta_values.append(eta)
 n_grid = len(a_values)
 
+# Add the dummy columns for the attributes
 n_rows = len(clusters_table)
 new_cols = [
     "x_fitted",
@@ -144,13 +144,15 @@ def calculate_chi_squared(params, cluster_snapshot, error_snapshot, mask):
     sigma_snapshot = diffs / error_snapshot
     # then use the mask and the weights
     sigma_snapshot *= mask
-    # do the radial weighting. Need to get the data coordinates of the center
+    # do the radial weighting. Need to get the data coordinates of the center.
+    # Note that the radial weighting is not used if Ryon-like is set, see initial setup
     sigma_snapshot *= fit_utils.radial_weighting(
         cluster_snapshot,
         fit_utils.oversampled_to_image(params[1], oversampling_factor),
         fit_utils.oversampled_to_image(params[2], oversampling_factor),
         style=radial_weighting,
     )
+    # Ryon used squares of differences, we use absolute value
     if ryon_like:
         return np.sum(sigma_snapshot ** 2)
     else:
@@ -161,7 +163,7 @@ def estimate_background(data, mask, x_c, y_c, min_radius):
     """
     Estimate the true background value.
 
-    This will be defined to be the median of all pixels beyond min_radius
+    This will be defined to be the median of all unmasked pixels beyond min_radius
 
     :param data: Values at each pixel
     :param x_c: X coordinate of the center, in coordinates of the sigmas snapshot
@@ -187,28 +189,6 @@ def estimate_background(data, mask, x_c, y_c, min_radius):
         return np.min(data), np.inf
 
 
-def mean_of_normal(x_value, y_value, sigma, above):
-    """
-    Calculate the mean required for a normal distribution with a given width to take
-    the given y value at a specific x value.
-
-    :param x_value: Value at which the normal distribution takes a value of `y_value`.
-    :param x_value: Value of the normal distribution at `x_value`
-    :param above: Whether `x_value` should be a greater value than the returned mean
-                  or not. This is needed since there are two roots, placing the normal
-                  distribution lower or higher than the value paseed in.
-    :return: The mean of normal distribution matching the properties above.
-    """
-    if y_value > 1:
-        raise ValueError("Invalid y_value in `center_of_normal`")
-    # This math can be worked out by hand
-    # mean = x +- sqrt(ln(y^-2))
-    second_term = sigma * np.sqrt(np.log(y_value ** (-2)))
-    if above:
-        second_term *= -1
-    return x_value + second_term
-
-
 def log_of_normal(x, mean, sigma):
     """
     Log of the normal distribution PDF. This is normalized to be 0 at the mean.
@@ -219,37 +199,6 @@ def log_of_normal(x, mean, sigma):
     :return: natural log of the normal PDF at this location
     """
     return -0.5 * ((x - mean) / sigma) ** 2
-
-
-def flat_normal_edge(x, edge, side_width, boundary_value, side):
-    """
-    Probability density function that is flat with value at 1, but with a lognormal
-    PDF with fixed width on one side. This returns the log of that density.
-
-    This is useful as it is continuous and smooth at the boundaries of the
-    flat region.
-
-    :param x: Value to determine the value of the PDF at.
-    :param edge: Lower or upper value where the PDF beging to break
-    :param side_log_width: Gaussian width (in dex) of the normal distribution
-                           used for the region on the side.
-    :param boundary_value: The value that the pdf should take at the edge. If this is
-                           1.0, the flat region will extend to the edges. However, if
-                           another is value is preferred at those edges, the flat
-                           region will shrink to make room for that.
-    :param side: whether the lognormal size is on the "lower" or "upper" side
-    :return:
-    """
-    above = side == "upper"
-    mean = mean_of_normal(edge, boundary_value, side_width, above)
-
-    # check that we did the math right for the shape of the distribution
-    assert np.isclose(np.exp(log_of_normal(edge, mean, side_width)), boundary_value)
-
-    if (side == "upper" and x <= mean) or (side == "lower" and x >= mean):
-        return 0
-    else:
-        return log_of_normal(x, mean, side_width)
 
 
 def logistic(x, minimum, maximum, x_0, scale):
@@ -304,12 +253,6 @@ def log_priors(
         return 0
     log_prior = 0
     # prior are multiplicative, or additive in log space
-    # have the low prior be on the minor axis
-    # log_prior += flat_normal_edge(np.log10(a), np.log10(0.1), 0.1, 1.0, "lower")
-    # # then the upper prior on the major axis
-    # log_prior += flat_normal_edge(np.log10(a), np.log10(15), 0.1, 1.0, "upper")
-    # then a straight prior on the scale radius
-    # log_prior += flat_normal_edge(q, 0.3, 0.1, 1.0, "lower")
     # the width of the prior on the background depends on the value of the power law
     # slope. Below 1 it will be strict (0.1 sigma), as this is when we have issues with
     # estimating the background, while for higher values of eta the background prior
@@ -466,7 +409,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, x_guess, y_guess):
 
     """
     data_center = snapshot_size / 2.0
-    # estimate the fixed quantity for the background
+    # estimate the background to use as a prior
     estimated_bg, bg_scatter = estimate_background(
         data_snapshot, mask, data_center, data_center, 6
     )
@@ -477,6 +420,12 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, x_guess, y_guess):
     # for the luminosity we need to scale.
     estimated_l = np.sum((data_snapshot - estimated_bg) * mask_snapshot)
     estimated_l *= oversampling_factor ** 2
+    # check for negative values of luminosity. this does happen for one cluster with an
+    # artifact in the background, where a chunk has lower values. This messes up the
+    # estimated luminosity calculation, nothing else. We need to correct it to be some
+    # nonzero number so we can take a log. 1 is quite low, but it's fine.
+    estimated_l = max(estimated_l, 1)
+
     # Create the initial guesses for the parameters
     start_params = (
         [np.log10(estimated_l)] * n_grid,
@@ -489,10 +438,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, x_guess, y_guess):
         [estimated_bg / bg_scale_factor] * n_grid,  # background
     )
 
-    # some of the bounds are not used because we put priors on them. We don't use priors
-    # for the background or max, as these would depend on the individual cluster, so
-    # I don't use them. Some are not allowed to be zero, so I don't set zero as the
-    # limit, but have a value very close. We allow axis ratios greater than 1 to make
+    # some of the bounds are needed .We allow axis ratios greater than 1 to make
     # the fitting routine have more flexibility. For example, if the position angle is
     # correct but it's aligned with what should be the minor axis instead of the major,
     # the axis ratio can go above one to fix that issue. We then have to process things
@@ -505,7 +451,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, x_guess, y_guess):
     center = snapshot_size_oversampled / 2.0
     center_half_width = 2 * oversampling_factor
     bounds = [
-        (None, 100),  # log of luminosity.
+        (None, 100),  # log of luminosity. Cap needed to stop overflow errors
         (center - center_half_width, center + center_half_width),  # X center
         (center - center_half_width, center + center_half_width),  # Y center
         (None, None),  # scale radius in regular pixels.
@@ -525,8 +471,8 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, x_guess, y_guess):
     maxiter = np.inf
 
     # first get the results when all good pixels are used, to be used as a starting
-    # point when bootstrapping is done, to save time. This will be done for each
-    # starting point
+    # point when bootstrapping is done to save time. This will be done for each
+    # starting point, and we'll pick the best one to use
     param_x0_variations_raw = []
     param_x0_variations_postprocessed = []
     log_likelihood_x0_variations = []
@@ -536,7 +482,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, x_guess, y_guess):
             args=(data_snapshot, uncertainty_snapshot, mask, estimated_bg, bg_scatter),
             x0=[start_params[j][idx] for j in range(len(start_params))],
             bounds=bounds,
-            method="Powell",  # default method when using bounds
+            method="Powell",
             options={
                 "xtol": xtol,
                 "ftol": ftol,
@@ -598,7 +544,7 @@ def fit_model(data_snapshot, uncertainty_snapshot, mask, x_guess, y_guess):
             # around that value. This should also reduce the time needed to converge
             x0=initial_result_best_raw,
             bounds=bounds,
-            method="Powell",  # default method when using bounds
+            method="Powell",
             options={
                 "xtol": xtol,
                 "ftol": ftol,
