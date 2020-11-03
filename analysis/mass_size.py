@@ -34,8 +34,10 @@ big_catalog = table.vstack(catalogs, join_type="inner")
 
 # then filter out some clusters
 print(f"Total Clusters: {len(big_catalog)}")
-mask = big_catalog["age_yr"] <= 200e6
-print(f"Clusters with age < 200 Myr: {np.sum(mask)}")
+mask = big_catalog["good"]
+
+# mask = np.logical_and(mask, big_catalog["age_yr"] <= 200e6)
+# print(f"Clusters with age < 200 Myr: {np.sum(mask)}")
 
 mask = np.logical_and(mask, big_catalog["good"])
 print(f"Clusters with good fits: {np.sum(mask)}")
@@ -357,13 +359,19 @@ def negative_log_likelihood(params, xs, x_err_down, x_err_up, ys, y_err_down, y_
 
     The functional form is taken from Hogg, Bovy, Lang 2010 (arxiv:1008.4686) eq 35.
 
-    :param params: Slope, intercept, and standard deviation of intrinsic scatter
+    :param params: Slope, height at the pivot point, and standard deviation of
+                   intrinsic scatter
     :return: Value for the negative log likelihood
     """
+    # first convert the pivot point value into the intercept
+    pivot_point_x = 4
+    # so params[1] is really y(pivot_point_x) = m (pivot_point_x) + intercept
+    intercept = params[1] - params[0] * pivot_point_x
+
     data_variance = project_data_variance(
-        xs, x_err_down, x_err_up, ys, y_err_down, y_err_up, params[0], params[1]
+        xs, x_err_down, x_err_up, ys, y_err_down, y_err_up, params[0], intercept
     )
-    data_diffs = project_data_differences(xs, ys, params[0], params[1])
+    data_diffs = project_data_differences(xs, ys, params[0], intercept)
 
     # calculate the sum of data likelihoods
     data_likelihoods = -0.5 * np.sum(
@@ -416,7 +424,7 @@ def fit_mass_size_relation(
             log_r_eff_err_hi,
         ),
         bounds=([-1, 1], [None, None], [0, 0.5]),
-        x0=np.array([0.2, 0, 0.3]),
+        x0=np.array([0.2, np.log10(2), 0.3]),
         method="Powell",
         options={
             "xtol": xtol,
@@ -434,9 +442,9 @@ def fit_mass_size_relation(
     param_history = [[] for _ in range(n_variables)]
     param_std_last = [np.inf for _ in range(n_variables)]
 
-    converge_criteria = 0.1  # fractional change in std required for convergence
+    converge_criteria = 0.01  # fractional change in std required for convergence
     converged = [False for _ in range(n_variables)]
-    check_spacing = 2  # how many iterations between checking the std
+    check_spacing = 20  # how many iterations between checking the std
     iteration = 0
     while not all(converged):
         iteration += 1
@@ -496,7 +504,7 @@ def fit_mass_size_relation(
 #
 # ======================================================================================
 def get_r_percentiles(radii, masses, percentile, d_log_M):
-    bins = np.logspace(2, 7, int(5 / d_log_M) + 1)
+    bins = np.logspace(0, 7, int(5 / d_log_M) + 1)
 
     bin_centers = []
     radii_percentiles = []
@@ -510,7 +518,8 @@ def get_r_percentiles(radii, masses, percentile, d_log_M):
         mask_good = np.logical_and(mask_above, mask_below)
 
         good_radii = radii[mask_good]
-        if len(good_radii) > 0:
+        print(lower, upper, len(good_radii))
+        if len(good_radii) > 20:
             radii_percentiles.append(np.percentile(good_radii, percentile))
             # the bin centers will be the mean in log space
             bin_centers.append(10 ** np.mean([np.log10(lower), np.log10(upper)]))
@@ -586,10 +595,15 @@ def measure_psf_reff(psf):
 def plot_best_fit_line(
     ax, best_fit_params, fit_mass_lower_limit=1, fit_mass_upper_limit=1e6
 ):
+    # first convert the pivot point value into the intercept
+    pivot_point_x = 4
+    # so params[1] is really y(pivot_point_x) = m (pivot_point_x) + intercept
+    intercept = best_fit_params[1] - best_fit_params[0] * pivot_point_x
+
     plot_log_masses = np.arange(
         np.log10(fit_mass_lower_limit), np.log10(fit_mass_upper_limit), 0.01
     )
-    plot_log_radii = best_fit_params[0] * plot_log_masses + best_fit_params[1]
+    plot_log_radii = best_fit_params[0] * plot_log_masses + intercept
     ax.plot(
         10 ** plot_log_masses,
         10 ** plot_log_radii,
@@ -690,14 +704,18 @@ def plot_mass_size_dataset(
 
 def add_percentile_lines(ax, mass, r_eff, style="moving"):
     # plot the median and the IQR
-    for percentile in [2.5, 16, 50, 84, 97.5]:
+    for percentile in [5, 25, 75, 95]:
         if style == "moving":
             mass_bins, radii_percentile = get_r_percentiles_moving(
-                r_eff, mass, percentile, 100, 50
+                r_eff, mass, percentile, 200, 200
             )
         elif style == "unique":
             mass_bins, radii_percentile = get_r_percentiles_unique_values(
                 r_eff, mass, percentile
+            )
+        elif style == "fixed_width":
+            mass_bins, radii_percentile = get_r_percentiles(
+                r_eff, mass, percentile, 0.1
             )
         else:
             raise ValueError("Style not recognized")
@@ -705,7 +723,7 @@ def add_percentile_lines(ax, mass, r_eff, style="moving"):
             mass_bins,
             radii_percentile,
             c=bpl.almost_black,
-            lw=2 * (1 - (abs(percentile - 50) / 50)) + 0.5,
+            lw=3 * (1 - (abs(percentile - 50) / 50)) + 0.5,
             zorder=9,
         )
         ax.text(
@@ -730,6 +748,8 @@ fit_legus, fit_legus_history = fit_mass_size_relation(
     log_r_eff_legus,
     log_r_eff_err_lo_legus,
     log_r_eff_err_hi_legus,
+    fit_mass_lower_limit=1e2,
+    fit_mass_upper_limit=1e5,
 )
 
 fig, ax = bpl.subplots()
@@ -743,8 +763,8 @@ plot_mass_size_dataset(
     bpl.color_cycle[0],
 )
 add_percentile_lines(ax, mass_legus, r_eff_legus)
-plot_best_fit_line(ax, fit_legus)
-add_psfs_to_plot(ax)
+plot_best_fit_line(ax, fit_legus, 1e2, 1e5)
+# add_psfs_to_plot(ax)
 format_mass_size_plot(ax)
 fig.savefig(plot_name)
 
@@ -780,6 +800,8 @@ fit_combo, fit_legus_combo = fit_mass_size_relation(
             log_r_eff_err_mw_ocs,
         ]
     ),
+    fit_mass_lower_limit=1,
+    fit_mass_upper_limit=1e5,
 )
 fig, ax = bpl.subplots()
 plot_mass_size_dataset(
@@ -817,11 +839,10 @@ add_percentile_lines(
     ax,
     np.concatenate([mass_legus, mass_m31, mass_mw_ocs]),
     np.concatenate([r_eff_legus, r_eff_m31, r_eff_mw_ocs]),
-    style="moving",
 )
 # add_percentile_lines(ax, mass_m31, r_eff_m31, style="unique")
-plot_best_fit_line(ax, fit_combo, 1, 1e7)
-add_psfs_to_plot(ax, x_max=1e7)
+plot_best_fit_line(ax, fit_combo, 1, 1e5)
+# add_psfs_to_plot(ax, x_max=1e7)
 format_mass_size_plot(ax, xmin=1, xmax=1e7)
 fig.savefig(plot_name.parent / "mass_size_combo.png")
 
