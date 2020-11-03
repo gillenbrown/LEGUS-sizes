@@ -167,6 +167,9 @@ distances_and_errs_mpc = {
     "ugc695": (7.8, 0.6),
     "ugc7408": (7.0, 0.5),
     "ugca281": (5.19, 0.39),
+    # M31 is needed for comparison data: Wagner-Kaiser+ (2015, MNRAS, 451, 724)
+    # optical bands, as used in Krumholz
+    "m31": distance_modulus_distance_and_err(24.32, 0.09),
 }
 
 
