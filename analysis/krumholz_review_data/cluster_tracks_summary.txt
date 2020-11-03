@@ -1,0 +1,34 @@
+SLUG WAS RUN WITH THE FOLLOWING PARAMETERS
+model_name           cluster_tracks
+out_dir              
+sim_type             cluster
+n_trials             1
+time_step            0.001
+end_time             1e+09
+IMF                  /Users/krumholz/Projects/slug2/lib/imf/chabrier.imf
+cluster_mass         10000
+CLF                  /Users/krumholz/Projects/slug2/lib/clf/nodisrupt.clf
+tracks               /Users/krumholz/Projects/slug2
+atmos_dir            /Users/krumholz/Projects/slug2/lib/atmospheres
+yield_dir            /Users/krumholz/Projects/slug2/lib/yields
+min_stoch_mass       120
+redshift             0
+metallicity          1
+specsyn_mode         sb99
+yield_mode           SNII: Sukhbold+16; AGB: Karakas & Lugaro 2016 + Doherty+ 2014
+extinction           yes
+A_V                  0.5
+extinction_curve     /Users/krumholz/Projects/slug2/lib/extinct/SB_ATT_SLUG.dat
+nebular_emission     yes
+nebular_density      100
+nebular_temperature  -1
+nebular_phi          0.5
+nebular_logU         -3
+phot_mode            AB
+out_cluster          1
+out_cluster_phot     1
+out_cluster_spec     0
+out_cluster_sn       0
+out_cluster_yield    0
+out_cluster_ew       0
+phot_bands           QH0, LBOL, GALEX_FUV, WFC3_UVIS_F225W, WFC3_UVIS_F336W, WFC3_UVIS_F438W, WFC3_UVIS_F555W, WFC3_UVIS_F814W, WFC3_IR_F110W, WFC3_IR_F160W

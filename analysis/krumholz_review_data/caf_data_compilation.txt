@@ -1,0 +1,139 @@
+# Compilation of measurements of cluster age functions; columns are
+# 1) Galaxy name
+# 2) Best-fit alphaT, where dN/dT ~ T^alphaT
+# 3) Error on alphaT; in cases where the authors have not specified an
+#    error, we estimate one as explained in the notes for that object
+# 4) Lower limit of sample used to measure alphaT (log yr); values are approximate
+# 5) Upper limit of sample used to measure alphaT (log yr); values are approximate
+# 6) Lower mass limit of measurement; if not formally stated, most massive object in sample (log Msun)
+# 7) Upper mass limit of measurement; if not formally stated, most massive object in sample (log Msun)
+# 8) Method (phot = unresolved photometry, cmd = color-magnitude diagram)
+# 9) Exclusive: is catalog construction "exclusive" or "inclusive" about what is called
+#    a cluster; 1 = exclusive, 0 = inclusive
+# 10) Reference; reference codes are as follows:
+#     DG08 = de Grijs & Goodwin, 2008, MNRAS, 383, 1000
+#     SV11 = Silva-Villa & Larson, 2011, A&A, 529, A25
+#     B13 = Baumgardt et al., 2013, MNRAS, 430, 676
+#     F14 = Fouesneau et al., 2014, ApJ, 786, 117
+#     SV14 = Silva-Villa et al., 2014, MNRAS, 440, L116
+#     R14 = Ryon et al., 2014, ApJ, 143, 33
+#     C17 = Chandar et al., 2017, ApJ, 849, 128
+#     A17 = Adamo et al., 2017, ApJ, 841, 131
+#     L17 = Linden et al., 2017, ApJ, 843, 91L
+#     M18 = Messa et al., 2018, MNRAS, 473, 996
+#     M18b = Messa et al., 2018, MNRAS, 477, 1683
+# 11) Additional notes; see bottom
+
+Galaxy_Name   	 alphaT	 alphaT_err 	 T_lo	T_hi	M_lo	M_hi	Method	Exclusive	Source	Notes
+
+SMC		 0.0	 0.13		 6.5	8.2	3.0	4.5	phot	1		DG08	1
+NGC7793		 -0.55	 0.20		 7.0	8.7	4.0	5.0	phot	1		SV11	--
+NGC1313		 -0.60	 0.10		 7.0	8.7	4.0	5.0	phot	1		SV11	--
+LMC		 -0.3	 0.15		 7.0	8.3	3.7	5.3	phot	1		B13	2
+M31_reg1      	 -0.1	 0.25		 6.0	8.0	2.2	3.0	phot	1		F14	3
+M31_reg1      	 -1.11	 0.10		 8.0	9.0	3.0	4.4	phot	1		F14	3
+M31_reg2      	 -0.1	 0.25		 6.0	8.0	2.2	3.0	phot	1		F14	3
+M31_reg2      	 -1.21	 0.10		 8.0	9.0	3.0	5.2	phot	1		F14	3
+M31_reg3      	 -0.1	 0.25		 6.0	8.0	2.2	3.0	phot	1		F14	3
+M31_reg3      	 -1.39	 0.10		 8.0	9.0	3.0	4.3	phot	1		F14	3
+M83_reg1      	 -0.63	 0.11		 6.5	8.5	3.7	5.2	phot	1		SV14	4
+M83_reg2      	 -0.29	 0.11		 6.5	8.5	3.7	5.2	phot	1		SV14	4
+M83_reg3      	 -0.06	 0.14		 6.5	8.5	3.7	5.2	phot	1		SV14	4
+M83_reg4      	 -0.46	 0.13		 6.5	8.5	3.7	5.2	phot	1		SV14	4
+M83_reg5      	 -0.48	 0.19		 6.5	8.5	3.7	5.2	phot	1		SV14	4
+M83_reg6      	 -0.32	 0.12		 6.5	8.5	3.7	5.2	phot	1		SV14	4
+M83_reg7      	 -0.10	 0.11		 6.5	8.5	3.7	5.2	phot	1		SV14	4
+NGC2997		 -0.10	 0.00		 7.0	8.0	3.7	4.9	phot	1		R14	--
+LMC_m1        	 -0.75	 0.07		 6.0	8.6	4.0	4.8	phot	0		C17	--
+LMC_m2        	 -0.68	 0.07		 6.0	8.6	3.4	4.0	phot	0		C17	--
+LMC_m3        	 -0.54	 0.10		 6.0	8.6	2.8	3.4	phot	0		C17	--
+SMC_m1        	 -0.73	 0.17		 6.0	8.6	3.5	4.5	phot	0		C17	--
+SMC_m2	      	 -0.70	 0.16		 6.0	8.6	3.0	3.5	phot	0		C17	--
+NGC4214_m1    	 -1.15	 0.18		 6.0	8.6	3.2	5.0	phot	0		C17	--
+NGC4214_m2    	 -0.59	 0.02		 6.0	8.6	2.8	3.2	phot	0		C17	--
+NGC4449_m1    	 -1.30	 0.22		 6.0	8.6	4.3	6.0	phot	0		C17	--
+NGC4449_m2    	 -0.92	 0.12		 6.0	8.6	4.0	4.3	phot	0		C17	--
+M83_m1	      	 -0.37	 0.08		 6.0	8.6	4.0	5.2	phot	0		C17	--
+M83_m2	      	 -0.43	 0.17		 6.0	8.6	3.5	4.0	phot	0		C17	--
+M51_m1	      	 -0.62	 0.07		 6.0	8.6	4.5	6.0	phot	0		C17	--
+M51_m2	      	 -0.64	 0.20		 6.0	8.6	4.0	4.5	phot	0		C17	--
+M51_m3	      	 -0.71	 0.03		 6.0	8.6	3.8	4.0	phot	0		C17	--
+Antennae_m1   	 -1.05	 0.11		 6.0	8.6	5.0	6.5	phot	0		C17	--
+Antennae_m2   	 -1.04	 0.30		 6.0	8.6	4.3	5.0	phot	0		C17	--
+NGC3256_m1    	 -0.59	 0.17		 6.0	8.6	6.0	6.4	phot	0		C17	--
+NGC3256_m2    	 -0.49	 0.10		 6.0	8.6	5.6	6.0	phot	0		C17	--
+NGC0628_m1    	 -0.33	 0.09		 7.0	8.3	3.7	3.9	phot	1		A17	--
+NGC0628_m2    	 -0.02	 0.11		 7.0	8.3	3.9	5.7	phot	1		A17	--
+GOALS_m1      	 -0.90	 0.30		 6.5	8.7	6.0	8.0	phot	0		L17	5
+GOALS_m2      	 -0.87	 0.10		 6.6	8.0	5.3	6.0	phot	0		L17	5
+NGC1614	      	 -0.96	 0.18		 6.6	8.0	5.3	6.0	phot	0		L17	5
+Arp148		 -0.87	 0.38		 6.6	8.0	5.3	6.0	phot	0		L17	5
+NGC3690W      	 -1.26	 0.12		 6.6	8.0	5.3	6.0	phot	0		L17	5
+IRAS20351+2521	 -1.19	 0.11		 6.6	8.0	5.3	6.0	phot	0		L17	5
+NGC6786		 -1.29	 0.18		 6.6	8.0	5.3	6.0	phot	0		L17	5
+UGC09618NED02	 -1.18	 0.23		 6.6	8.0	5.3	6.0	phot	0		L17	5
+M51_m1	     	 -0.39	 0.04		 7.0	8.5	3.7	4.0	phot	1		M18	--
+M51_m2	      	 -0.27	 0.07		 7.0	8.5	4.0	4.5	phot	1		M18	--
+M51_m3	      	 -0.16	 0.10		 7.0	8.5	4.5	5.5	phot	1		M18	--
+M51_reg1	 -0.50	 0.09		 7.0	8.5	3.7	5.5	phot	1		M18b	6
+M51_reg2	 -0.38	 0.07		 7.0	8.5	3.7	5.5	phot	1		M18b	6
+M51_reg3	 -0.46	 0.06		 7.0	8.5	3.7	5.5	phot	1		M18b	6
+M51_reg4	 -0.27	 0.06		 7.0	8.5	3.7	5.5	phot	1		M18b	6
+M51_reg5	 -1.29	 0.09		 7.0	8.5	3.7	5.5	phot	1		M18b	6
+
+# General notes
+#
+# -- Entries that do not have any underscore in the galaxy name are
+#    whole-galaxy averages. Entries with _mX are for a particular mass
+#    bin, where more than one mass bin per galaxy is provided. Entries
+#    with _regX are for a particular region of a galaxy, where the way
+#    the regions are defined is explained in the individual notes.
+# -- This compilation includes only the most recent measurements for
+#    each galaxy, EXCEPT where two sets of results have been published
+#    for the same galaxy using different catalog construction
+#    methods. In those cases we include both of the data sets in the
+#    list.
+# -- An error estimate of 0 means that the authors do not list a
+#    formal uncertainty, and we could not determine one from other
+#    information given in their paper.
+#
+# Notes on individual entries
+#
+# 1) DG08 do not actually state a best-fitting slope, but they
+#    say that the data are consistent with a slope of zero, and
+#    they give a 1 sigma limit on the decline in cluster number
+#    between their 3 - 10 Myr and 40 - 160 Myr bins; our listed
+#    uncertainty on alpha_T is equivalent to this limit, taking
+#    the values for each bin to be located at the geometric
+#    mean of the bin. We classify this catalog as exclusive
+#    because it is based mostly on the catalog of Bica et al.,
+#    1999, AJ, 117, 238, who classify objects on a range from
+#    clusters to associations, and in their fits DG08 omit the
+#    objects classified as associations.
+# 2) B13 do not formally state a slope. The value we list is
+#    a fit to their catalog given by Adamo & Bastian, 2018, ASSL,
+#    424, 91; this catlaog is classified as exclusive for the same
+#    reason as DG08 (see note 1).
+# 3) The three regions listed for F14 are three different "bricks"
+#    from the PHAT survey; for the age interval log t = 6 - 8, F14
+#    state that the measured slope is consistent with 1, but do not
+#    give a formal fit or error bars, and C17 point out that in at
+#    least some cases visual examination of the figues suggests a
+#    slightly steeper slope would be preferred. We have made an
+#    eyeball estimate of a slope of 0.9 based on their published
+#    figures, with an error of 0.25
+# 4) SV14 analyze 7 regions within M83 as well as the average of the
+#    galaxy as a whole. They give fits to their age slopes, but do not
+#    report formal uncertainties. We have deduced uncertainties by
+#    measuring the error bars shown in the figure figure 3.
+# 5) The sample in L17 for the galaxy listed as GOALS is a sum of
+#    star clusters detected in 22 ULIRGs targeted by the GOALS
+#    survey. L17 also report individual fits for galaxy containing
+#    25 or more clusters, which we list separately, including only
+#    those galaxies for which a reasonable fit was obtained
+#    (defined as an error on alpha_T <= 0.4)
+# 6) M18b divide their sample into radial bins containing both equal
+#    numbers of clusters and equal area. The numbers we list here
+#    are for their equal cluster number decomposition. The region we
+#    list as M51_reg5 is the region they identify as the molecular
+#    ring (MR in their tables).

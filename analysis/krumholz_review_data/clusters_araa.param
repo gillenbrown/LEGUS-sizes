@@ -1,0 +1,211 @@
+########################################################################
+# SLUG parameter file for the sample tracks used in Krumholz, McKee, &
+# Bland-Hawthorn, ARA&A, 2019
+########################################################################
+
+##############
+# Basic data #
+##############
+
+# Name of the model; this will become the base name for all output
+# files
+model_name        cluster_tracks
+
+# Level of verbosity while running; allowed values:
+# -- 0 (run silently except for runtime warnings and errors)
+# -- 1 (some basic output)
+# -- 2 (lots of output)
+verbosity        2
+
+
+##################################################################
+# Parameters controlling simulation execution and physical model #
+##################################################################
+
+# Type of simulation. Allowed values:
+# -- cluster (simulate a simple stellar population all formed at time
+#    0)
+# -- galaxy (continuous star formation)
+sim_type  	  cluster
+
+# Number of model galaxies to run
+n_trials          1
+
+# Logarithmic time stepping? Allowed values:
+# -- 0 (no)
+# -- 1 (yes)
+log_time          1
+
+# Length of time step (in yr for linear time step, in dex for
+# logarithmic)
+time_step    	  0.001
+
+# Starting time (in yr)
+# Default: start_time = time_step, only if log_time = 0; otherwise
+# must be set
+start_time        1.0e5
+
+# Maximum evolution time, in yr.
+end_time	  1.000001e9
+
+# Mass of cluster for cluster mode simulation, in Msun; if this set to
+# "cmf", then a new cluster mass will be drawn for each trial from the
+# cmf; can be omitted, and will be ignored, if sim_type = galaxy
+cluster_mass      1e4
+
+
+#############################################
+# Parameters controlling simulation outputs #
+#############################################
+
+# Write out cluster physical properties? Allowed values:
+# -- 0 (no)
+# -- 1 (yes)
+out_cluster        1
+
+# Write out cluster photometry? Allowed values:
+# -- 0 (no)
+# -- 1 (yes)
+out_cluster_phot   1
+
+# Write out cluster spectra? Allowed values:
+# -- 0 (no)
+# -- 1 (yes)
+out_cluster_spec   0
+
+# Write out cluster yields? Allowed values:
+# -- 0 (no)
+# -- 1 (yes)
+out_cluster_yield  0
+
+# Write out cluster supernova histories? Allowed values:
+# -- 0 (no)
+# -- 1 (yes)
+out_cluster_sn     0
+
+# Write output as binary, ASCII, or FITS; allowed values:
+# -- binary
+# -- ascii
+# -- fits
+output_mode        fits
+
+
+#####################################################################
+# Parameters controlling the physical models used for stars         #
+#####################################################################
+
+# IMF (initial mass function) file name
+imf   	          lib/imf/chabrier.imf
+
+# CLF (cluster lifetime function) file name
+clf               lib/clf/nodisrupt.clf
+
+# Stellar tracks to use; allowed values are:
+# -- geneva_2013_vvcrit_00 (Geneva 2013 models, non-rotating)
+# -- geneva_2013_vvcrit_40 (Geneva 2013 models, rotating 40% breakup)
+# -- geneva_mdot_std (Geneva pre-2013 models, standard mass loss rate)
+# -- geneva_mdot_enhanced (Geneva pre-2013 models, x2 mass loss rate)
+# -- padova_tpagb_yes (Padova models, added TP-AGB stars)
+# -- padova_tpagb_no (Padova models, no TP-AGB stars)
+# -- mist_2016_vvcrit_00 (MIST 2016 v1.0 models, non-rotating)
+# -- mist_2016_vvcrit_40 (MIST 2016 v1.0 models, rotating 40% breakup)
+# -- Any file name specifying a track file (generally lib/tracks/...)
+tracks	  	  mist_2016_vvcrit_40
+
+# Spectral synthesis mode, describing which models to use for stellar
+# atmospheres; allowed values are 
+# -- planck (treat stars as blackbodies)
+# -- kurucz (use Kurucz atmospheres, as compiled by Lejeune+ 1997)
+# -- kurucz+hillier (use Hillier models for WR stars, kurucz for all others)
+# -- kurucz+pauldrach (use Pauldrach models for OB stars, kurucz for others)
+# -- sb99 (emulate starburst99 -- Pauldrach for OB stars, Hillier for WR 
+#          stars, kurucz for others)
+specsyn_mode	   sb99
+
+# Minimum stellar mass for full stochastic treatment; lower mass stars are 
+# handled assuming that they are continuously-distributed
+# Default: 0.0
+min_stoch_mass     120.0
+
+# Metallicity; the metallicity of the stellar track set being used,
+# relative to solar (i.e. solar = 1). Note that this keyword should be
+# omitted if you specify the tracks by giving a track file name, since
+# in that case the metallicity will be deduced from which file you
+# have chosen.
+metallicity        1.0
+
+
+#####################################################################
+# Parameters controlling extinction                                 #
+#####################################################################
+
+# Extinction; to turn on extintion, set the parameter A_V. If set to
+# a number, this extinction will be applied to all spectra and
+# photometry. Default behavior, if the A_V parameter is omitted
+# entirely, is not to apply any extinction. If the parameter A_V is
+# set to a real number, this will be interpreted as a uniform
+# extinction that is applied to all light output. Finally, if this
+# parameter is set to any string that cannot be converted to a real
+# number, it will be interpreted as a file name giving the name of a
+# PDF file specifying the distribution of extinctions.
+A_V                  0.5
+
+# File specifying the shape fof the extinction curve
+# Default: lib/extinct/SB_ATT_SLUG.dat (Calzetti+ 2000 starburst
+# attenuation curve)
+extinction_curve     lib/extinct/SB_ATT_SLUG.dat
+
+# Should the same extinction be applied to nebular light and
+# starlight? Default is yes, but if nebular_extinction_factor is set,
+# the stellar extinction will be multiplied by this factor before it
+# is applied to the nebular light, i.e.,
+#    A_{V,neb} = nebular_extinction_factor * A_V
+# As with A_V, this parameter can be set to a real number, to specify
+# a single factor, or to the name of a PDF file specifying a
+# distribution.
+nebular_extinction_factor  2.1
+
+
+#####################################################################
+# Parameters controlling the nebular emission                       #
+#####################################################################
+
+# Compute nebular emission or not
+# -- 0 (no)
+# -- 1 (yes)
+# Default: 1
+compute_nebular      1
+
+# Fraction of ionizing photons assumed to absorbed by H and produce
+# nebular emission within the observed aperture; values < 1 can
+# represent either absorption by dust instead of gas, or escape of
+# ionizing photons outside the observed aperture
+nebular_phi          0.5
+
+#############################################
+# Parameters describing photometric filters #
+#############################################
+
+# All these parameters can be omitted if no photometric output is
+# requested, i.e. if out_integrated_phot = 0 and out_cluster_phot = 0
+# (see below).
+
+# Photometric filters to be used; can be comma- or
+# whitespace-separated. For a list of available filters, see the file
+# lib/filters/FILTER_LIST. In addition to those filters, the following
+# special values are always available:
+# -- QH0 : H ionizing photon luminosity, in phot/s
+# -- QHe0 : He ionizing photon luminosity, in phot/s
+# -- QHe1 : He+ ionizing photon luminosity, in phot/s
+# -- Lbol : bolometric luminosity, in L_sun
+phot_bands         QH0, LBOL, GALEX_FUV, WFC3_UVIS_F225W, WFC3_UVIS_F336W, WFC3_UVIS_F438W, WFC3_UVIS_F555W, WFC3_UVIS_F814W, WFC3_IR_F110W, WFC3_IR_F160W
+
+# Photometry mode; allowed values are
+# -- L_nu (report frequency-averaged luminosity in band, in erg/s/Hz)
+# -- L_lambda (report wavelength-averaged luminosity in band, in erg/s/A)
+# -- AB (report absolute AB magnitude)
+# -- STMAG (report absolute ST magnitude)
+# -- VEGA (report absolute Vega magnitude)
+phot_mode          AB
+
+

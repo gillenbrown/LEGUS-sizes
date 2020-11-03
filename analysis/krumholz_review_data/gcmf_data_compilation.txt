@@ -1,0 +1,39 @@
+# Compilation of measurements of globular cluster mass functions,
+# from Jordan et al., 2007, ApJS, 171, 101. The parameter listed
+# here are their fits to an evolved Schechter function, converting
+# there z-band magnitude values to masses using their favored
+# z-band mass to light ratio. Columns are:
+# 1) Jordan et al.'s B band magnitude bin for the central galaxy;
+#    the row labelled MW is their fit for the Milky Way GC system
+# 2) Delta parameter (log_10 Msun)
+# 3) Error on Delta
+# 4) Mc parameter (log_10 Msun)
+# 5) Error on Mc
+#
+
+Bin		Delta		Delta_err	Mc	Mc_err
+MW		5.40		0.10		5.90	0.10
+0		5.37		0.05		6.49	0.14
+1		5.46		0.04		6.35	0.09
+2		5.43		0.06		6.36	0.15
+3		5.43		0.09		6.40	0.26
+4		5.57		0.08		6.18	0.18
+5		5.51		0.05		6.39	0.13
+6		5.49		0.08		6.55	0.23
+7		5.36		0.06		6.59	0.19
+8		5.59		0.13		5.98	0.27
+9		5.56		0.12		5.97	0.26
+10		5.87		0.22		5.82	0.42
+11		5.76		0.18		5.86	0.35
+12		5.75		0.13		5.91	0.27
+13		5.82		0.24		5.78	0.45
+14		5.67		0.18		5.96	0.39
+15		5.72		0.32		5.56	0.59
+16		5.75		0.26		5.61	0.46
+17		5.96		0.38		5.62	0.65
+18		5.94		0.32		5.60	0.55
+19		6.00		0.36		5.64	0.60
+20		5.73		0.25		5.65	0.46
+21		5.83		0.26		5.62	0.46
+22		5.57		0.20		5.64	0.38
+23		6.31		0.04		5.31	2.21

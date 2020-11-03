@@ -1,0 +1,127 @@
+# Compilation of measurements of Gamma values; columns are:
+# 1) Galaxy name
+# 2) Value of Gamma
+# 3) Lower error on Gamma
+# 4) Upper error on Gamma
+# 5) Lower limit of age interval over which Gamma was measured (log time in yr)
+# 6) Upper limit of age interval over which Gamma was measured (log time in yr)
+# 7) Exclusive or inclusive catalog (0 = inclusive, 1 = exclusive, 2 = see notes)
+# 8) SFR per unit area [log Msun kpc^-2 yr^-1]
+# 9) Starburst (if 1, this galaxy is a starburst for which the SFR is likely
+#    to be non-constant over ~10 Myr; thus Gamma estimates at ages > 10 Myr
+#    should be treated with caution)
+# 9) Reference; codes are as follows:
+#     G10 = Goddard, Bastian, & Kennicutt, 2010, MNRAS, 405, 857
+#     A11 = Adamo et al., 2011, MNRAS, 417, 1904
+#     R14 = Ryon et al., 2014, ApJ, 143, 33
+#     A15 = Adamo et al., 2015, MNRAS, 452, 246
+#     LL15 = Lim & Lee, 2015, ApJ, 804, 123
+#     J16 = Johnson et al., 2016, ApJ, 827, 33
+#     C17 = Chandar et al., 2017, ApJ, 849, 128
+#     M18 = Messa et al., 2018, MNRAS, 473, 996
+#     G18 = Ginsburg & Kruijssen, 2018, ApJ, 864, L17
+# 10) Additional notes; see bottom
+
+Galaxy_Name	Gamma  	   Gamma_lo_err	Gamma_hi_err	T_lo	T_hi	Exclusive	Sigma_SFR	SB	Source	Notes
+NGC1569		0.139	   -0.008	0.008		6.0	7.0	0		-1.62		0	G10	--
+ESO338-IG04	0.50	   -0.10	0.10		6.0	7.0	0		0.02		1	A11	--
+Haro11		0.50	   -0.13	0.15		6.0	7.0	0		0.17		1	A11	--
+ESO185-IG13	0.26	   -0.05	0.05		6.0	7.0	0		-0.45		1	A11	--
+Mrk930		0.25	   -0.10	0.10		6.0	7.0	0		-0.40		1	A11	--
+SBS0335-052E	0.49	   -0.15	0.15		6.0	7.0	1		-0.19		1	A11	--
+NGC2997		0.10	   -0.03	0.03		7.0	8.0	1		-2.01		0	R14	1
+NGC2997_reg1	0.07	   -0.02	0.02		7.0	8.0	1		-2.31		0	R14	1
+NGC2997_reg2	0.12	   -0.04	0.04		7.0	8.0	1		-0.79		0	R14	1
+M83		0.150	   -0.019	0.019		7.0	7.7	1		-1.72		0	A15	2
+M83		0.182	   -0.030	0.030		6.0	7.0	1		-1.72		0	A15	2
+M83_reg1	0.265	   -0.040	0.040		7.0	7.7	1		-1.88		0	A15	2
+M83_reg1	0.193	   -0.040	0.040		6.0	7.0	1		-1.88		0	A15	2
+M83_reg2	0.192	   -0.026	0.026		7.0	7.7	1		-1.56		0	A15	2
+M83_reg2	0.260	   -0.035	0.035		6.0	7.0	1		-1.56		0	A15	2
+M83_reg3	0.098	   -0.016	0.016		7.0	7.7	1		-1.66		0	A15	2
+M83_reg3	0.131	   -0.025	0.025		6.0	7.0	1		-1.66		0	A15	2
+M83_reg4	0.080	   -0.015	0.015		7.0	7.7	1		-1.85		0	A15	2
+M83_reg4	0.137	   -0.031	0.031		6.0	7.0	1		-1.85		0	A15	2
+IC10		0.042	   -0.0		0.0		6.0	7.0	1		-1.52		1	LL15	3
+M31		0.059	   -0.003	0.003		7.0	8.0	0		-2.63		0	J16	4
+M31		0.066	   -0.003	0.004		8.0	8.5	0		-2.62		0	J16	4
+M31_reg1	0.079	   -0.012	0.013		7.0	8.0	0		-2.96		0	J16	4
+M31_reg1	0.092	   -0.008	0.008		8.0	8.5	0		-3.03		0	J16	4
+M31_reg2a	0.076	   -0.007	0.007		7.0	8.0	0		-2.45		0	J16	4
+M31_reg2a	0.036	   -0.006	0.007		8.0	8.5	0		-2.42		0	J16	4
+M31_reg2b	0.051	   -0.006	0.008		7.0	8.0	0		-2.59		0	J16	4
+M31_reg2b	0.065	   -0.009	0.010		8.0	8.5	0		-2.60		0	J16	4
+M31_reg2c	0.054	   -0.007	0.008		7.0	8.0	0		-2.61		0	J16	4
+M31_reg2c	0.065	   -0.008	0.009		8.0	8.5	0		-2.61		0	J16	4
+M31_reg2d	0.044	   -0.005	0.006		7.0	8.0	0		-2.65		0	J16	4
+M31_reg2d	0.066	   -0.005	0.005		8.0	8.5	0		-2.62		0	J16	4
+M31_reg2e	0.080	   -0.009	0.009		7.0	8.0	0		-2.48		0	J16	4
+M31_reg2e	0.073	   -0.008	0.009		8.0	8.5	0		-2.46		0	J16	4
+M31_reg3	0.041	   -0.004	0.005		7.0	8.0	0		-3.13		0	J16	4
+M31_reg3	0.053	   -0.004	0.005		8.0	8.5	0		-3.29		0	J16	4
+LMC		0.27	   -0.09	0.18		6.0	7.0	0		-2.66		0	C17	5
+LMC		0.05	   -0.01	0.03		7.0	8.0	0		-2.66		0	C17	5
+LMC		0.03	   -0.01	0.02		8.0	8.6	0		-2.66		0	C17	5
+SMC		0.36	   -0.12	0.23		6.0	7.0	0		-3.04		0	C17	5
+SMC		0.03	   -0.01	0.02		7.0	8.0	0		-3.04		0	C17	5
+SMC		0.01	   -0.00	0.01		8.0	8.6	0		-3.04		0	C17	5
+NGC4214		0.08	   -0.02	0.05		6.0	7.0	0		-1.66		0	C17	5
+NGC4214		0.02	   -0.01	0.01		7.0	8.0	0		-1.66		0	C17	5
+NGC4214		0.02	   -0.01	0.01		8.0	8.6	0		-1.66		0	C17	5
+NGC4449		0.28	   -0.09	0.19		6.0	7.0	0		-1.89		0	C17	5
+NGC4449		0.03	   -0.01	0.02		7.0	8.0	0		-1.89		0	C17	5
+NGC4449		0.04	   -0.01	0.02		8.0	8.6	0		-1.89		0	C17	5
+M83		0.12	   -0.04	0.08		6.0	7.0	0		-1.89		0	C17	5
+M83		0.10	   -0.04	0.05		7.0	8.0	0		-1.89		0	C17	5
+M83		0.02	   -0.01	0.01		8.0	8.6	0		-1.89		0	C17	5
+M51		0.30	   -0.10	0.18		6.0	7.0	0		-1.80		0	C17	5
+M51		0.05	   -0.01	0.03		7.0	8.0	0		-1.80		0	C17	5
+M51		0.03	   -0.01	0.02		8.0	8.6	0		-1.80		0	C17	5
+Antennae	0.22	   -0.07	0.14		6.0	7.0	0		-0.76		1	C17	5
+Antennae	0.06	   -0.01	0.04		7.0	8.0	0		-0.76		1	C17	5
+Antennae	0.03	   -0.01	0.02		8.0	8.6	0		-0.76		1	C17	5
+NGC3256		0.26	   -0.08	0.17		6.0	7.0	0		0.00		1	C17	5
+NGC3256		0.03	   -0.01	0.02		7.0	8.0	0		0.00		1	C17	5
+NGC3256		0.01	   -0.00	0.01		8.0	8.6	0		0.00		1	C17	5
+M51		0.324	   -0.121	0.121		6.0	7.0	1		-1.88		0	M18	6
+M51		0.186	   -0.024	0.024		7.0	8.0	1		-1.86		0	M18	6
+SgrB2		0.37	   -0.07	0.07		6.0	6.5	2		0.47		0	G18	7
+
+# General notes
+#
+# -- All SFR measurements that are not based on CMDs have been homogenised
+#    to the calibrations of Kennicutt & Evans (2012, ARA&A, 50, 531)
+#
+#
+# Notes on individual entries
+#
+# 1) R14 compute Gamma over the whole galaxy (listed as just NGC2997)
+#    and separately over the disk (NGC2997_reg1) and the circumnuclear
+#    ring (NGC2997_reg2).
+# 2) The values listed as just M83 are whole-galaxy averages; the  values
+#    listed as M83_regXX are measurements in each of A15's equal-area annuli;
+#    they also present measurements in equal number annuli, but we do not
+#    include these in our table
+# 3) Data are from LL15, but the extracted value of Gamma (which is
+#    plotted but not explicitly stated in their paper) and the SFR
+#    (also not reported) is from table B1 of A15.
+# 4) The value listed for just M31 is the average over the whole galaxy;
+#    the entries listed as M31_regXX are sub-regions, defined as
+#    described in J16.
+# 5) C17 report several measures of the SFR. We have used their Halpha
+#    SFRs for log T/yr < 7. For 7 < log T/yr < 8 we use their CMD-based
+#    SFR isf available, and their FUV-based SFR is not. For 8 <
+#    log T/yr < 8.6 we have used their CMD-based SFR if available,
+#    and their 24 micron SFR is not.
+# 6) M18 report Gamma averaged over bins from 10 - 100 Myr and 1 - 10
+#    Myr, as listed in our table, and also from 1 - 100 and 1 - 200
+#    Myr; we include only the two former measurements because only
+#    they are independent. Messa et al., 2018, MNRAS, 477, 1683 also
+#    report measurements in separate radial rings of M51, but we do
+#    not include those here because the measurements are not independent.
+# 7) G18's measurement is for the Sgr B2 cloud in the Milky Way CMZ.
+#    This is not an exclusive or inclusive catalog per our definitions,
+#    since the boundedness is decided by kinematics rather than
+#    morphology. The SFR per unit area listed is their estimate,
+#    and applies just to the annulus from 60 - 120 pc in the CMZ,
+#    not to the Milky Way as a whole.

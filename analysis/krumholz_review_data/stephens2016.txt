@@ -1,0 +1,448 @@
+Title: Linking Dense Gas from the Milky Way to External Galaxies 
+Authors: Stephens I.W., Jackson J.M., Whitaker J.S., Contreras Y., 
+         Guzman A.E., Sanhueza P., Foster J.B., Rathborne J.M. 
+Table: IR and Molecular Fluxes
+================================================================================
+Byte-by-byte Description of file: apj523484t4_mrt.txt
+--------------------------------------------------------------------------------
+   Bytes Format Units             Label    Explanations
+--------------------------------------------------------------------------------
+   1- 20 A20    ---               ID       ATLASGAL identifier (1)
+  22- 33 A12    ---               Class    Mid-IR classification (2)
+  35- 39 F5.2   kpc               Dis      ? Distance (3)
+  41- 44 F4.2   [solLum/kpc2]     logFIR   Log IR flux
+  46- 50 F5.2   [K.km/s.pc2/kpc2] FHCO+    ? Log HCO^+^ line flux
+  52- 56 F5.2   [K.km/s.pc2/kpc2] FHNC     ? Log HNC line flux
+  58- 62 F5.2   [K.km/s.pc2/kpc2] FN2H+    ? Log N_2_H^+^ line flux
+  64- 68 F5.2   [K.km/s.pc2/kpc2] FHCN     ? Log HCN line flux
+  70- 74 F5.2   [K.km/s.pc2/kpc2] FH13CO+  ? Log H^13^CO^+^ line flux
+  76- 80 F5.2   [K.km/s.pc2/kpc2] FHN13C   ? Log HN^13^C line flux
+  82- 86 F5.2   [K.km/s.pc2/kpc2] F13CS    ? Log ^13^CS line flux
+  88- 92 F5.2   [K.km/s.pc2/kpc2] FHNCO4   ? Log HNCO4_0,4_ line flux
+  94- 98 F5.2   [K.km/s.pc2/kpc2] FCH3CN   ? Log CH_3_CN line flux
+ 100-104 F5.2   [K.km/s.pc2/kpc2] FSiO     ? Log SiO line flux
+ 106-110 F5.2   [K.km/s.pc2/kpc2] FHC3N    ? Log HC_3_N line flux
+ 112-116 F5.2   [K.km/s.pc2/kpc2] FC2H     ? Log C_2_H line flux
+--------------------------------------------------------------------------------
+Note (1): This table shows a list of all MALT90 sources that match with an 
+          IRAS source. ATLASGAL clumps have either _S, _A, or _B after their
+          names, as per J. Rathborne et al. (in preparation). Those with the 
+          nomenclature _S are not likely to have multiple clumps along the line
+          of sight. Those with _A and _B are likely to have confusion along the
+          line of sight (i.e., they have two velocity components separated 
+          by > 15 km/s). For all numbers, fits, and figures within the bulk of 
+          the paper, _A and _B components are not used since the IRAS continuum
+          contributed to each the _A and _B components cannot be deduced. We 
+          report the fluxes here for completeness. AGAL344.582-00.024_S and 
+          AGAL346.418+00.279_S luminosities were not used in this paper 
+          because the distances are unrealistically close for H II regions.
+Note (2) Classification based on Spitzer three-color images 
+         (see Section 4.1). 
+Note (3): These are kinematic distances from 
+          J. Whitaker et al. (in preparation). 
+--------------------------------------------------------------------------------
+AGAL000.166-00.446_S HII Region         2.58              0.54                                                       
+AGAL000.281-00.482_S HII Region         3.43  0.96  0.75  0.60  0.95                                                 
+AGAL000.316-00.201_S HII Region         3.91  1.13  0.82  0.62  1.10                                      0.01  0.47 
+AGAL000.496+00.187_S HII Region         3.39              0.54  0.17                                                 
+AGAL000.526+00.182_S HII Region         3.41  0.10  0.12  0.22  0.24                                            0.25 
+AGAL000.631+00.604_S PDR                2.79             -0.22                                                       
+AGAL000.666-00.034_A Protostellar       4.75  1.62  1.38        1.80  0.22              0.75  0.72  0.63        0.27 
+AGAL000.666-00.034_B Protostellar       4.75                          0.70  0.69  0.61        1.10        1.44  1.08 
+AGAL000.769-00.249_A HII Region         2.54 -0.18  0.26  0.35 -0.48                                                 
+AGAL000.769-00.249_B HII Region         2.54                                                                         
+AGAL000.853+00.472_S Quiescent          2.60                                                                         
+AGAL001.008-00.239_A HII Region         2.81                                                                         
+AGAL001.008-00.239_B HII Region         2.81              0.17                                                       
+AGAL001.126-00.107_A HII Region         3.94        0.31                                                        0.21 
+AGAL001.126-00.107_B HII Region         3.94                                                                         
+AGAL001.326-00.152_S HII Region         2.85                                                                         
+AGAL001.489-00.199_A HII Region         2.67                                                                         
+AGAL001.489-00.199_B HII Region         2.67                                                                         
+AGAL002.142+00.009_A HII Region         2.92 -0.34 -0.05 -0.11 -0.28                                                 
+AGAL002.142+00.009_B HII Region         2.92                                                                         
+AGAL002.534+00.199_S Protostellar       2.56  0.53  0.29  0.31  0.32                                                 
+AGAL002.616+00.134_S HII Region         3.25  0.15 -0.08  0.06 -0.02                                                 
+AGAL003.458-00.002_S Protostellar       2.35  0.26  0.35  0.44                                                       
+AGAL003.933-00.004_S HII Region         2.63                                                                         
+AGAL004.416+00.127_S HII Region         3.54                                                                         
+AGAL004.681+00.277_S HII Region         2.58  0.31       -0.45                                                       
+AGAL004.827+00.231_S Protostellar       3.04  0.61  0.50  0.38  0.61                                                 
+AGAL005.076-00.091_S HII Region         2.29  0.23                                                                   
+AGAL005.474-00.244_A HII Region         3.54                                                                         
+AGAL005.474-00.244_B HII Region         3.54                                                                         
+AGAL005.637+00.237_S HII Region         3.39  0.62  0.58  0.50  0.56                                                 
+AGAL006.551-00.097_S HII Region         3.64        0.28  0.06                                                       
+AGAL006.796-00.257_S Protostellar       3.21  0.52  0.51  0.45  0.58                                     -0.34       
+AGAL007.178+00.086_S HII Region         2.83                                                                         
+AGAL007.471+00.059_S HII Region         3.41                                                                         
+AGAL007.601-00.139_S Protostellar       2.67        0.29                                                             
+AGAL007.976-00.357_S HII Region         2.44  0.62  0.31  0.01                                                       
+AGAL008.276+00.512_S HII Region         2.29                                                                         
+AGAL008.672-00.682_S Compact HII        2.38  0.68                                                                   
+AGAL008.736-00.362_S HII Region         3.48              0.70  0.92                                                 
+AGAL008.831-00.027_S Protostellar       2.75  0.25  0.08  0.40                                                       
+AGAL008.872-00.492_S Protostellar       2.97              0.60                                                       
+AGAL009.213-00.202_S HII Region         2.57  1.07  0.58  0.60  0.74        0.31                                     
+AGAL009.628-00.709_S HII Region         2.39                                                                         
+AGAL009.924-00.747_S HII Region         3.16                    0.55                                                 
+AGAL010.462+00.031_S HII Region         4.06  0.98  0.71  0.72  0.85 -0.01             -0.08 -0.06       -0.17  0.11 
+AGAL010.574-00.577_S HII Region         2.63 -0.01              0.44                                                 
+AGAL010.624-00.384_S Protostellar       4.42  1.08  0.86  0.55  1.22 -0.11 -0.22 -0.08             -0.41  0.06  0.58 
+AGAL010.669-00.201_S Protostellar       2.61                                                                         
+AGAL010.681-00.027_A HII Region         2.88             -0.11                                                       
+AGAL010.681-00.027_B HII Region         2.88                                                                         
+AGAL011.034+00.061_S HII Region         3.02             -0.04                                                       
+AGAL011.902-00.141_A Compact HII        3.08        0.43  0.13                                                       
+AGAL011.902-00.141_B Compact HII        3.08                                                                         
+AGAL011.936-00.616_S HII Region         3.81  1.14  0.77  0.99  0.84                                      0.14       
+AGAL012.418+00.506_S HII Region         3.62  0.72  0.44  0.16  0.80  0.04                               -0.13  0.16 
+AGAL012.771+00.336_S HII Region         3.45  0.61  0.50  0.06  0.69                                                 
+AGAL012.888+00.489_S HII Region         3.57  0.64  0.46  0.46  0.55                                     -0.46  0.17 
+AGAL012.908-00.259_S HII Region         3.89        0.88  1.06                                            0.27       
+AGAL012.998-00.357_S HII Region         2.80              0.15                                                       
+AGAL013.131-00.152_S HII Region         3.11        0.60 -0.12                                                       
+AGAL013.658-00.599_S HII Region         3.16  0.48        0.21  0.19                                     -0.53       
+AGAL014.101+00.086_S HII Region         3.17              0.02  0.27                                                 
+AGAL014.331-00.644_S Protostellar       3.51  0.80  0.51  0.78  0.61  0.38  0.03                   -0.69 -0.05  0.36 
+AGAL014.607+00.012_S Protostellar       3.40        0.46  0.12                                                       
+AGAL014.777-00.334_S Protostellar       2.47                                                                         
+AGAL019.488+00.136_S HII Region         3.52                                                                         
+AGAL300.341-00.214_S HII Region    4.29 2.73  0.35 -0.03  0.06  0.41                                                 
+AGAL300.403+00.544_S HII Region    4.30 2.74                                                                         
+AGAL300.504-00.176_A HII Region    9.39 3.37  0.08  0.38        0.35                                                 
+AGAL300.504-00.176_B HII Region   11.09 3.37  0.26              0.52                                                 
+AGAL300.748+00.097_S HII Region    4.35 2.57  0.37              0.23                                                 
+AGAL300.826+01.152_S HII Region    4.36 2.27  0.88  0.49  0.21  0.68                                                 
+AGAL301.136-00.226_S Protostellar  4.40 4.23  0.69  0.32 -0.02  0.79                               -0.14 -0.31  0.09 
+AGAL301.174+01.004_S HII Region    4.40 3.23              0.17                                                       
+AGAL301.474-00.226_S Protostellar  4.44 2.12                                                                         
+AGAL301.731+01.104_S Protostellar  4.47 3.39  0.86  0.60  0.48  0.95                                                 
+AGAL301.814+00.781_S HII Region    4.48 3.36        0.08        0.50                                                 
+AGAL302.021+00.251_S HII Region    4.51 3.02  0.11 -0.02 -0.19  0.20                                                 
+AGAL302.032-00.061_S HII Region    4.51 3.49  0.59              0.58                                                 
+AGAL302.032+00.626_S Protostellar  4.51 2.17                                                                         
+AGAL302.149-00.949_S HII Region   11.88 2.83  0.17                                                                   
+AGAL302.159+00.061_S HII Region    4.52 2.87  0.22              0.19                                                 
+AGAL302.391+00.281_S HII Region    4.55 3.09  0.73  0.29  0.18  0.47                                                 
+AGAL302.486-00.031_S HII Region    4.57 3.12                    0.63                                                 
+AGAL303.118-00.972_S HII Region   11.56 3.12 -0.04              0.08                                                 
+AGAL303.484-00.461_S HII Region   11.54 2.50                                                                         
+AGAL303.931-00.687_S Protostellar 12.16 2.81                                                                         
+AGAL303.999+00.279_S HII Region   12.34 2.34                                                                         
+AGAL304.021+00.292_S Protostellar  4.76 2.86                                                                         
+AGAL304.368-00.336_S HII Region   12.62 2.62                                                                         
+AGAL304.556+00.327_S HII Region    4.82 2.91  0.65  0.43  0.19  0.50                                                 
+AGAL304.586+00.582_S HII Region    2.03 2.49 -0.53       -0.17 -0.18                                                 
+AGAL304.664-00.966_S Protostellar 11.97 2.65  0.23                                                                   
+AGAL304.796+00.581_S HII Region    2.18 2.36                                                                         
+AGAL304.886+00.636_S Protostellar  4.86 2.49  0.53        0.07  0.37                                                 
+AGAL305.196+00.034_S HII Region    4.90 4.23  0.80                                                                   
+AGAL305.209+00.206_S Protostellar  4.90 4.00  0.99  0.78  0.62  1.08                         -0.09 -0.19  0.02  0.50 
+AGAL305.271-00.009_S HII Region    4.91 4.11  0.94  0.78  0.64  1.11  0.17                               -0.17  0.56 
+AGAL305.581+00.037_S PDR           4.95 3.92  0.85  0.64        0.92                                                 
+AGAL305.604-00.689_S HII Region         2.36                                                                         
+AGAL305.616-00.344_S Protostellar  4.95 2.49                                                                         
+AGAL305.799-00.244_S HII Region    4.97 3.59  0.64  0.22  0.22  0.54                                                 
+AGAL307.378-00.944_S Protostellar 12.99 2.31  0.30              0.25                                                 
+AGAL307.561-00.587_S HII Region    7.37 3.55  0.31  0.28  0.07  0.27                                                 
+AGAL307.616-00.259_S HII Region    5.19 3.71  0.70  0.27  0.05  0.76                                            0.36 
+AGAL307.756+00.352_S HII Region    5.20 2.51                    0.32                                                 
+AGAL308.076-00.411_S HII Region    9.57 3.39                                                                         
+AGAL308.652-00.507_S HII Region   10.38 2.65 -0.15             -0.26                                                 
+AGAL308.791+00.171_S HII Region    5.33 2.55                                                                         
+AGAL309.179-00.031_S HII Region    9.49 2.93  0.25              0.25                                                 
+AGAL309.221-00.462_S Protostellar  5.37 2.85  0.86  0.46  0.21  0.88                                            0.40 
+AGAL309.421-00.621_S Compact HII   5.40 2.77  0.87  0.84  0.27  0.91                                                 
+AGAL309.891+00.397_S HII Region    5.45 3.95  0.59  0.36        0.54                                                 
+AGAL309.921+00.477_S HII Region    5.45 4.03        0.45                                                             
+AGAL309.981+00.546_S HII Region    5.46 2.74              0.16                                                       
+AGAL310.014+00.387_S HII Region    5.47 3.74  0.50  0.14  0.23  0.31                                            0.23 
+AGAL310.144+00.759_S Protostellar  5.48 3.43  0.54  0.47  0.28  0.65                                     -0.18 -0.05 
+AGAL310.176-00.116_S Compact HII  11.61 2.99  0.39             -0.02                                                 
+AGAL310.374-00.304_S Protostellar  5.51 2.34  0.45  0.29 -0.03  0.52                                                 
+AGAL310.902-00.381_S HII Region   13.59 3.14        0.18        0.13                                                 
+AGAL311.481+00.361_S HII Region    5.63 3.38                                                                         
+AGAL311.626+00.289_S HII Region    5.65 3.81                                                                         
+AGAL311.642-00.381_S HII Region   14.44 3.14                    0.36                                                 
+AGAL311.899+00.084_S HII Region    5.68 3.90                                                                         
+AGAL311.931+00.207_S PDR           5.68 3.69                    0.73                                                 
+AGAL311.979-00.954_S Protostellar  3.35 2.12  0.38  0.10 -0.09  0.42                                                 
+AGAL312.091+00.074_S HII Region    3.52 3.09              0.32                                                       
+AGAL312.108+00.309_S HII Region    5.70 3.73        0.68  0.52  0.52                                            0.19 
+AGAL312.383-00.416_S HII Region    9.51 2.86                                                                         
+AGAL312.411-01.051_S Protostellar  3.48 2.64  0.29  0.24 -0.05  0.38                                                 
+AGAL312.598+00.044_S Protostellar  5.75 3.36              0.28                                                       
+AGAL313.458+00.191_S HII Region   11.38 3.44  0.27 -0.03 -0.21  0.22                                                 
+AGAL313.576+00.324_S HII Region    8.05 2.92       -0.05 -0.63 -0.28                                                 
+AGAL313.766-00.862_S Protostellar  5.88 3.04  0.73  0.27  0.39  0.48  0.17                               -0.21       
+AGAL314.319+00.111_S Protostellar  3.74 3.10        0.50  0.49                                                       
+AGAL314.907-01.157_S HII Region    8.93 1.57                                                                         
+AGAL314.992+00.094_S Compact HII   6.01 2.16                                                                         
+AGAL315.799-00.379_S HII Region    6.09 2.51             -0.35                                                       
+AGAL316.139-00.506_S HII Region    6.13 3.63  0.21  0.28 -0.08  0.40 -0.16                                     -0.06 
+AGAL316.369-00.371_S HII Region   12.09 3.32  0.47 -0.27 -0.33 -0.04                                                 
+AGAL316.541-00.021_S HII Region    3.12 2.63                                                                         
+AGAL316.588-00.811_S HII Region    3.34 2.76  0.30 -0.32 -0.28  0.32                                                 
+AGAL316.641-00.087_S Protostellar       3.14                                                                         
+AGAL316.959+00.302_S Protostellar  2.99 3.35             -0.02  0.59                                                 
+AGAL317.407+00.109_S PDR           2.94 3.58  0.76  0.55  0.50  0.69                                                 
+AGAL317.429-00.561_S HII Region   15.02 3.42 -0.06             -0.16                                                 
+AGAL317.701+00.109_S HII Region    3.11 2.68        0.48  0.58        0.22                                           
+AGAL317.889-00.059_S HII Region   14.16 2.95 -0.02             -0.17                                                 
+AGAL318.049+00.086_S Protostellar  3.62 3.50  0.95  0.59  0.44  0.83                                                 
+AGAL318.724-00.224_S HII Region    1.68 2.79                                                                         
+AGAL318.776-00.154_S HII Region   10.10 3.15  0.92                                                                   
+AGAL319.088+00.459_S HII Region   10.30 2.78  0.15                                                                   
+AGAL319.161-00.422_S HII Region   11.38 3.64  0.42  0.36  0.28  0.52                                            0.05 
+AGAL319.399-00.012_S HII Region   12.00 3.93  0.19  0.12        0.37                                            0.28 
+AGAL320.244-00.562_S Protostellar  3.67 2.20             -0.04                                                       
+AGAL320.329-00.307_S HII Region    8.37 3.60                    0.37                                                 
+AGAL320.676+00.244_S HII Region    4.30 3.17        0.25  0.05  0.54                                                 
+AGAL320.791+00.717_S Protostellar       2.10                                                                         
+AGAL320.891-00.412_S Protostellar 10.07 3.22  0.30  0.23  0.08  0.50                                     -0.11       
+AGAL321.126-00.266_S HII Region   14.62 2.65 -0.50             -0.42                                                 
+AGAL321.651-00.022_S HII Region   11.18 2.36                                                                         
+AGAL321.719+01.176_S HII Region   10.45 3.65  0.96  0.65  0.58  0.69                                                 
+AGAL322.521+00.636_S Protostellar  3.80 2.11  0.50  0.34  0.18  0.46                                                 
+AGAL322.704-00.331_S HII Region   12.33 2.73 -0.00             -0.37                                                 
+AGAL322.931+01.392_S HII Region         3.05  0.63  0.21  0.41  0.40                                0.04 -0.43       
+AGAL323.459-00.079_S Uncertain     9.03 3.94  0.52  0.25  0.03  0.56                                           -0.02 
+AGAL323.794-00.397_S Compact HII        2.08                                                                         
+AGAL323.799+00.017_S Protostellar  9.74 2.74             -0.13                                                       
+AGAL324.094-00.114_S Protostellar 10.33 2.44  0.26       -0.42                                                       
+AGAL324.113+00.436_S Protostellar 10.22 2.66  0.44  0.43  0.23                                                       
+AGAL324.161+00.229_S HII Region    6.89 3.29  0.24              0.31                                                 
+AGAL324.201+00.121_S HII Region    6.89 4.10  0.80  0.47  0.16  0.82                                                 
+AGAL324.393-00.412_S Protostellar  4.11 1.96 -0.18              0.13                                                 
+AGAL324.718+00.341_S Protostellar  3.56 2.72  0.26  0.13  0.20  0.12                                                 
+AGAL324.923-00.569_S HII Region    4.95 3.29  0.35  0.25  0.05  0.52                                                 
+AGAL325.124+00.026_S HII Region    9.86 3.08  0.54  0.12 -0.21  0.49                                                 
+AGAL325.514+00.414_S HII Region    3.19 2.46                                                                         
+AGAL326.267-00.486_S Protostellar 10.13 2.57  0.38  0.09 -0.26  0.46                                                 
+AGAL326.341+00.504_S Protostellar  7.07 2.17 -0.05       -0.61                                                       
+AGAL326.446+00.907_S HII Region    2.91 4.19                                                                         
+AGAL326.449-00.749_S Protostellar  4.35 3.06  0.53  0.04 -0.05  0.25                                                 
+AGAL326.472-00.377_S HII Region    3.67 3.55  0.65  0.21  0.07  0.56                                            0.34 
+AGAL326.474+00.702_S Protostellar 11.29 3.28  0.90  0.62  0.67  0.86                               -0.12 -0.06  0.20 
+AGAL326.544+00.169_S HII Region    4.87 2.61  0.32        0.10  0.30                                                 
+AGAL326.647+00.749_S Protostellar  2.68 2.11  1.09  0.62  0.50  0.85                                                 
+AGAL326.657+00.594_S HII Region    2.77 4.49  1.49  1.29        1.58  0.47                                      1.08 
+AGAL326.661+00.519_S HII Region   11.41 4.41  0.77  0.42  0.04  0.82                                            0.26 
+AGAL326.724+00.614_S HII Region   11.30 4.30  1.37  1.12  1.04  1.41                                            0.69 
+AGAL326.781-00.242_S Protostellar  4.29 2.91  0.46  0.03 -0.05  0.40                                                 
+AGAL326.796+00.382_A Protostellar 12.60 2.60  0.25  0.03  0.02  0.24                                                 
+AGAL326.796+00.382_B Protostellar 11.29 2.60                                                                         
+AGAL326.877-00.516_S HII Region   10.30 2.78                    0.41                                                 
+AGAL327.119+00.509_S Protostellar  5.36 3.40              0.06                                                       
+AGAL327.358-00.099_S PDR           9.39 2.67                                                                         
+AGAL327.393+00.199_S Protostellar  7.16 2.62  0.48  0.24  0.03  0.38                                                 
+AGAL327.629-00.359_S HII Region         3.47                                                                         
+AGAL327.948-00.117_S Protostellar 11.15 2.64              0.08                                                       
+AGAL327.968-00.716_S HII Region   11.46 2.50                                                                         
+AGAL328.058+00.299_S HII Region    5.63 2.67  0.21  0.05 -0.14  0.25                                                 
+AGAL328.166+00.587_S Protostellar  7.22 2.95  0.20              0.25                                                 
+AGAL328.254-00.532_S Protostellar  3.19 3.92  1.10        1.24                                                       
+AGAL328.308+00.431_S HII Region    7.23 4.45  0.79  0.60  0.41  0.87                                            0.50 
+AGAL328.549+00.271_S Protostellar  3.94 2.54  0.22  0.13 -0.27  0.32                                                 
+AGAL328.579+00.064_S Compact HII   4.36 2.52                                                                         
+AGAL328.656+00.057_S Compact HII   5.74 2.57                                                                         
+AGAL328.809+00.632_S Protostellar  3.03 4.42  0.70  0.55  0.36  0.71 -0.03       -0.15       -0.04  0.16  0.10  0.05 
+AGAL328.824-00.079_S HII Region   12.11 3.26  0.24              0.08                                                 
+AGAL329.066-00.307_S Protostellar 11.58 2.95  0.51  0.50  0.54  0.38                                     -0.12       
+AGAL329.184-00.314_S Protostellar  3.46 3.10  0.58  0.27  0.38  0.40                                0.08 -0.24       
+AGAL329.272+00.116_S Protostellar  4.90 3.75  0.17              0.28                                                 
+AGAL329.337+00.147_S HII Region    7.31 4.30  0.96  0.68        1.00                                     -0.08  0.22 
+AGAL329.406-00.459_S Protostellar  9.90 3.50  0.30  0.08  0.05  0.45                                     -0.32 -0.05 
+AGAL329.424-00.162_S HII Region    4.86 3.25  0.64  0.30  0.14  0.53                                                 
+AGAL329.459+00.169_S HII Region    7.32 3.45  0.86  0.53  0.17  0.94                                                 
+AGAL329.476+00.841_S HII Region    5.22 3.20 -0.02 -0.03        0.28                                                 
+AGAL329.556+00.181_S Protostellar       2.84                                                                         
+AGAL329.721+01.165_S Protostellar  9.76 2.54  0.52  0.14  0.17  0.45                                                 
+AGAL329.734+01.010_S Protostellar  5.28 2.71  0.32 -0.07 -0.46  0.40                                            0.17 
+AGAL329.816+00.141_A Compact HII   5.33 2.88  0.41  0.20  0.15  0.44                                                 
+AGAL329.816+00.141_B Compact HII   4.50 2.88                                                                         
+AGAL329.844+00.752_S HII Region    9.00 2.12                                                                         
+AGAL330.039-00.057_S HII Region         3.04                                                                         
+AGAL330.284+00.492_S HII Region    5.85 3.02        0.10 -0.01  0.32                                                 
+AGAL330.293+00.001_S Compact HII   4.17 2.36  0.00             -0.06                                                 
+AGAL330.294-00.394_S HII Region    5.07 3.74  0.36  0.18        0.46                                                 
+AGAL330.398+00.331_S Compact HII   8.84 2.37                                                                         
+AGAL330.779+00.396_S HII Region   10.47 2.18                                                                         
+AGAL330.879-00.367_S Protostellar  4.13 4.28  1.14  0.85        1.08                                     -0.09  0.64 
+AGAL331.146+00.136_S HII Region    4.82 2.75                    0.70                                                 
+AGAL331.279-00.189_S HII Region    5.47 3.92  0.90  0.48  0.45  0.50                                                 
+AGAL331.388-00.361_S HII Region   10.65 3.80                    1.01                                                 
+AGAL331.418-00.356_S HII Region    4.17 3.54  0.81        0.39  0.79                                                 
+AGAL331.562+00.287_S Protostellar 11.12 2.47  0.56              0.27                                                 
+AGAL331.709+00.602_S Protostellar 10.56 2.85                                            0.28                         
+AGAL331.861+00.059_S HII Region    5.45 2.62  0.45                                                                   
+AGAL332.004-00.124_S HII Region         2.57                                                                         
+AGAL332.059+00.506_S HII Region   12.05 3.32                                                                         
+AGAL332.094-00.421_S HII Region    3.84 4.19        0.36  0.20                                           -0.35  0.42 
+AGAL332.296-00.094_S HII Region    3.47 3.50        0.68  0.56  0.69                                     -0.10  0.31 
+AGAL332.351-00.436_S Protostellar  3.42 2.72  0.69  0.47  0.10  0.54                                                 
+AGAL332.352-00.116_S HII Region    3.50 3.46                    0.96                                                 
+AGAL332.584-00.559_S HII Region    3.57 3.87              0.23                                                       
+AGAL332.766-00.007_S HII Region    5.80 3.32  0.32  0.34  0.37  0.24                                                 
+AGAL332.959+00.776_S PDR           3.25 3.80                                                                         
+AGAL332.962-00.679_S Protostellar  3.45 3.29              0.59                                           -0.12       
+AGAL333.308-00.366_S HII Region    3.57 4.52                                                                         
+AGAL333.314+00.106_S Protostellar  3.33 3.41  0.40  0.31  0.29  0.46                                     -0.13       
+AGAL333.339-00.127_S HII Region   11.16 2.83                                                                         
+AGAL333.466-00.164_S HII Region   11.99 3.57        0.83  0.50                                                       
+AGAL333.583+00.089_S Uncertain     4.84 2.85  0.51  0.33                                                             
+AGAL333.604-00.212_S HII Region    3.52 4.82  1.13  1.04        1.16  0.18  0.15  0.16                          0.79 
+AGAL333.679-00.431_S HII Region         3.06                                                                         
+AGAL333.724+00.364_S HII Region   12.64 3.55  0.62  0.38        0.53                                                 
+AGAL333.733-00.426_S HII Region   14.82 2.97  0.19              0.12                                                 
+AGAL334.044+00.349_S Compact HII   3.95 2.54        0.24  0.02                                                       
+AGAL334.182+00.044_S Uncertain    11.04 2.86  0.07              0.27                                                 
+AGAL334.328-00.286_S HII Region    2.87 2.69                                                                         
+AGAL334.656-00.286_S HII Region   11.96 3.01  0.43  0.31        0.30                                                 
+AGAL334.722-00.654_S HII Region         3.16                                                                         
+AGAL335.197-00.389_S HII Region   15.04 2.54                                                                         
+AGAL335.284-00.154_S HII Region   12.18 2.74                                                                         
+AGAL335.391-00.291_S Compact HII        2.94                                                                         
+AGAL336.020-00.816_S HII Region   12.01 3.53  0.96  0.80  0.77  0.87                                0.08 -0.16  0.34 
+AGAL336.359-00.137_S HII Region   10.55 3.70  0.69  0.15  0.14  0.62                                            0.01 
+AGAL336.544-00.191_S HII Region   10.37 3.69  0.64  0.43  0.13  0.75                                                 
+AGAL336.689+00.102_S PDR                3.30                                                                         
+AGAL336.694-00.092_S Compact HII   2.87 2.50                                                                         
+AGAL336.888+00.046_A HII Region    7.82 3.81  0.69  0.57  0.10  0.79                                                 
+AGAL336.888+00.046_B HII Region   10.83 3.81                                                                         
+AGAL336.984-00.184_S HII Region   10.83 3.53  0.62  0.35  0.07  0.67                                                 
+AGAL336.994-00.027_S Protostellar  7.82 3.78                                                                         
+AGAL337.004+00.322_S HII Region    4.30 2.92  0.15  0.06 -0.16  0.28                                                 
+AGAL337.121-00.174_S HII Region   10.81 4.28  0.82  0.58  0.23  0.83  0.08                                      0.19 
+AGAL337.152-00.394_S Protostellar 12.44 2.52                                                                         
+AGAL337.406-00.402_S Protostellar 12.48 4.03  0.53  0.79  0.66  0.68  0.13       -0.15       -0.36 -0.07 -0.02  0.27 
+AGAL337.612-00.059_S Protostellar 11.99 3.61        0.72  0.34                                                  0.43 
+AGAL337.704-00.054_S HII Region   12.10 3.56  0.90  0.70  0.55       -0.09                         -0.41 -0.20  0.39 
+AGAL337.996+00.077_S HII Region    7.88 3.43  0.38  0.07 -0.21  0.47                                                 
+AGAL338.064-00.067_S HII Region   12.65 3.32        0.23 -0.05                                                       
+AGAL338.126+00.171_S Compact HII   2.65 2.56  0.43  0.20  0.16  0.18                                                 
+AGAL338.226-00.509_S HII Region         2.60                                                                         
+AGAL338.281+00.542_S Protostellar 11.49 2.72  0.64  0.29  0.18  0.51                                                 
+AGAL338.394-00.406_S Protostellar 12.72 2.65        0.46                                                             
+AGAL338.406-00.204_S HII Region         3.59                                                                         
+AGAL338.436+00.057_S HII Region   13.00 3.89        0.80  0.53  0.72                                     -0.22  0.43 
+AGAL338.472+00.289_S Protostellar 13.14 2.83        0.01 -0.29                                                       
+AGAL338.534+00.212_S HII Region         2.69                                                                         
+AGAL338.569-00.144_S HII Region    6.63 3.55        0.11  0.05  0.57                                            0.15 
+AGAL338.596-00.002_S HII Region   13.74 3.30              0.11  0.56                                                 
+AGAL338.682-00.084_S HII Region   14.11 2.81                    0.22                                                 
+AGAL338.851+00.409_S HII Region    4.14 3.31  0.51  0.11 -0.19  0.58                                                 
+AGAL339.054-00.316_S HII Region    6.59 2.79                                                                         
+AGAL339.106+00.147_S HII Region    5.09 3.22  0.36  0.24 -0.02  0.36                                                 
+AGAL339.176-00.391_S Uncertain     3.13 3.14  0.67       -0.02  0.33                                                 
+AGAL339.221+00.259_S HII Region   10.82 2.77              0.07                                                       
+AGAL339.488+00.091_S HII Region    6.30 3.22                    0.53                                                 
+AGAL339.623-00.122_S Protostellar 12.96 3.39  0.33  0.52  0.49  0.46                                     -0.22       
+AGAL339.943-00.092_S HII Region   11.99 3.08  0.58  0.32  0.32  0.67                                                 
+AGAL339.956+00.059_S HII Region         2.88                                                                         
+AGAL340.073+00.927_S HII Region   11.05 3.50  0.42  0.25 -0.01  0.48                                            0.10 
+AGAL340.103-00.312_S Compact HII   4.04 2.66  0.60  0.30 -0.00  0.51                                                 
+AGAL340.248-00.374_S HII Region    3.92 3.54  0.88  0.80  0.84  0.84  0.03                          0.09 -0.04  0.38 
+AGAL340.431-00.371_S Compact HII  12.29 2.44                                                                         
+AGAL340.784-01.016_S HII Region    2.59 4.31  1.43  1.08                                                  0.32  0.77 
+AGAL341.126-00.347_S HII Region    3.50 3.17  0.74  0.62  0.27  0.68                                                 
+AGAL341.237+00.332_S HII Region    5.20 2.79  0.39       -0.10                                                       
+AGAL341.312+00.192_S HII Region    2.30 2.18                                                                         
+AGAL341.702+00.051_S HII Region   14.32 2.98  0.17              0.13                                                 
+AGAL342.058+00.421_S HII Region    5.06 3.60                                                                         
+AGAL342.248+00.307_S HII Region    6.63 3.26  0.50  0.30  0.21  0.57                                                 
+AGAL342.414+00.412_S Compact HII   9.68 2.62  0.31  0.11        0.51                                                 
+AGAL342.821-00.027_S HII Region    6.77 2.63                                                                         
+AGAL343.128-00.062_S Protostellar  3.08 3.89  0.76  0.55  0.60  0.63  0.21 -0.06                   -0.16 -0.06 -0.13 
+AGAL343.191-00.082_S Protostellar  2.92 3.88              0.19                                                       
+AGAL343.238-00.069_S Compact HII  16.32 3.21                                                                         
+AGAL343.689-00.017_S HII Region    3.36 2.62 -0.26 -0.13 -0.43  0.04                                                 
+AGAL343.721-00.224_S HII Region   13.53 3.06        0.43  0.07                                                       
+AGAL343.756-00.164_S Protostellar  2.89 3.07  0.82  0.53  0.73                                     -0.27 -0.27       
+AGAL343.779-00.236_S Protostellar  2.82 3.02  0.66  0.46  0.47  0.45                                                 
+AGAL343.812+00.229_S HII Region         2.53                                                                         
+AGAL343.861-00.104_S HII Region    2.52 3.44                                                                         
+AGAL344.221-00.594_S HII Region    2.70 3.83                                                                    0.35 
+AGAL344.424+00.046_S HII Region    5.02 4.02  0.75  0.61  0.70  0.63                                     -0.02  0.16 
+AGAL344.582-00.024_S HII Region    0.24 3.23  0.07 -0.26 -0.22  0.13                                                 
+AGAL344.661+00.339_S HII Region   12.61 2.26  0.13        0.13  0.08                                                 
+AGAL344.914-00.227_S Protostellar 10.68 3.60  0.02  0.24 -0.37  0.30                                                 
+AGAL344.990-00.274_S HII Region    3.08 3.98  0.89  0.70  0.56  0.44        0.16                                     
+AGAL345.003-00.224_S Protostellar  3.12 4.00  0.68  0.67  0.79  0.61  0.07                   -0.35  0.18  0.05  0.09 
+AGAL345.196-00.744_S Uncertain     2.67 3.02  1.01  0.51  0.30                                                       
+AGAL345.263-00.417_S HII Region   13.55 2.52  0.15  0.35  0.01  0.41                                                 
+AGAL345.488+00.314_S HII Region   14.30 4.31  1.13  0.98  1.07  1.21                                      0.27  0.57 
+AGAL345.526-00.052_S HII Region   15.96 3.46  0.57        0.25  0.73                                                 
+AGAL345.584-00.049_S PDR          16.53 3.68                                                                         
+AGAL345.718+00.817_S Protostellar  1.57 2.77  0.59  0.48  0.54  0.44                                                 
+AGAL345.804+00.049_S HII Region         3.01                                                                         
+AGAL345.986-00.021_S Protostellar       2.53                                                                         
+AGAL346.232-00.321_S HII Region         2.68                                                                         
+AGAL346.418+00.279_S HII Region    0.06 2.49             -0.06                                                       
+AGAL346.522+00.084_S HII Region   17.05 3.33  0.39  0.17        0.24                                                 
+AGAL347.079-00.396_S HII Region    1.67 2.54  0.02              0.28                                                 
+AGAL347.124+00.274_S PDR          10.68 2.47                                                                         
+AGAL347.296+00.132_S Protostellar 10.46 3.02        0.31  0.03                                                       
+AGAL347.586+00.216_S PDR           6.28 4.08  0.81  0.56  0.50  0.92                                            0.31 
+AGAL347.967-00.432_S HII Region    6.33 3.56  0.63  0.50  0.42  0.71                                                 
+AGAL348.144+00.257_S HII Region   11.07 2.99  0.60              0.25                                                 
+AGAL348.234-00.980_S HII Region    1.99 4.29  1.17  0.90        1.32                                            0.60 
+AGAL348.296+00.431_S PDR           1.17 3.37                                                                         
+AGAL348.531-00.972_S HII Region    2.12 3.72  1.23  0.99  1.01  1.27                                            0.61 
+AGAL348.614-00.909_S HII Region    2.20 3.44  1.18  0.91  0.76  1.06                                                 
+AGAL349.068-00.017_S HII Region   20.89 3.61                                                                         
+AGAL349.111+00.102_S Quiescent     5.88 3.86              0.67                                                       
+AGAL349.721+00.122_S HII Region   23.80 3.13  0.07             -0.19                                                 
+AGAL349.728+00.174_S HII Region   23.29 2.97                                                                         
+AGAL349.976-00.507_S Protostellar  3.61 2.40                                                                         
+AGAL350.016+00.432_S HII Region         3.47  0.23  0.12 -0.07  0.31                                                 
+AGAL350.102+00.082_S HII Region         4.12  1.27  1.09  1.00  1.06  0.27                          0.23  0.26  0.62 
+AGAL350.507+00.959_S HII Region         4.51  1.10  0.64  0.23  1.16                                            0.62 
+AGAL350.687-00.491_S Protostellar       2.89  0.69  0.08  0.32  0.40                                                 
+AGAL350.782-00.026_S HII Region         3.54  0.12             -0.31                                                 
+AGAL351.041-00.336_S Protostellar       3.23  0.24  0.51  0.44  0.53                                            0.26 
+AGAL351.161+00.697_S Protostellar       4.46  1.37  1.08  1.04  1.42  0.28  0.14 -0.10       -0.10 -0.16  0.38  0.78 
+AGAL351.383-00.181_S HII Region         2.49                                                                         
+AGAL351.529-00.556_S Protostellar       2.63        0.37  0.43                                                       
+AGAL351.556+00.206_S HII Region         4.29        0.69        1.01                                            0.53 
+AGAL351.581-00.352_S Protostellar       3.74  0.89  0.54  0.67  0.63                    0.23 -0.31       -0.05  0.23 
+AGAL351.586+00.592_S Protostellar       2.65                                                                         
+AGAL351.613+00.164_S HII Region         4.32  0.53  0.47  0.11  0.71                                            0.26 
+AGAL351.923+00.114_S HII Region         2.82  0.17              0.10                                                 
+AGAL352.046-00.256_S HII Region         2.35                                                                         
+AGAL352.098+00.162_S HII Region         2.94        0.38  0.20                                                       
+AGAL352.158+00.402_S Protostellar       2.70                                                                         
+AGAL352.161+00.199_S Protostellar       2.76  0.32        0.21                                                       
+AGAL352.238-00.161_S Protostellar       2.97  0.37  0.33 -0.02  0.46                                                 
+AGAL352.316-00.442_S HII Region         3.56        0.32  0.20  0.68  0.04                                      0.08 
+AGAL352.391-00.067_S HII Region         3.62  0.61  0.37        0.64                                                 
+AGAL352.518-00.156_S HII Region         3.51  0.39 -0.04 -0.06  0.47                                                 
+AGAL352.856-00.202_S HII Region         3.54  0.49  0.39  0.19  0.52                                            0.02 
+AGAL352.941+00.961_S Compact HII        3.28  1.08  0.67  0.63                                                       
+AGAL353.114+00.369_S Protostellar       3.28  0.82  0.53  0.27  0.96                                                 
+AGAL353.142-00.612_S Protostellar       2.35                                                                         
+AGAL353.341-00.289_S Protostellar       2.55                                                                         
+AGAL353.362-00.167_S HII Region         3.64  0.86  0.47        0.77                                                 
+AGAL353.579+00.659_S Protostellar       2.64  0.59  0.38 -0.05  0.68                                                 
+AGAL354.189-00.061_S HII Region         3.67  0.28                                                                   
+AGAL354.308-00.111_S HII Region         2.54 -0.17                                                                   
+AGAL354.419+00.032_S HII Region         3.14                                                                         
+AGAL354.671+00.241_S HII Region         3.15                                                                         
+AGAL354.724+00.301_S HII Region         3.40              0.82                                                       
+AGAL355.129-00.301_S HII Region         2.59                    0.11                                                 
+AGAL355.182-00.419_S Protostellar       2.25  0.73  0.43  0.48  0.58                               -0.35             
+AGAL355.244+00.367_S Compact HII        2.19  0.11 -0.18 -0.06                                                       
+AGAL355.739+00.131_S HII Region         2.73                                                                         
+AGAL356.226+00.681_S HII Region         3.53  0.58  0.32        0.47                                                 
+AGAL356.349+00.231_S HII Region         3.36              0.27  0.59                                                 
+AGAL356.369+00.567_S Protostellar       2.64        0.39 -0.12  0.49                                                 
+AGAL356.429+00.104_S Protostellar       2.57                                                                         
+AGAL356.662-00.264_S Protostellar       3.11  0.55  0.10  0.10  0.30                                                 
+AGAL357.558-00.321_S HII Region         3.24  0.19  0.46  0.23                                                       
+AGAL357.609-00.617_S Protostellar       2.59  0.53  0.34  0.36  0.64                                                 
+AGAL357.968-00.162_S HII Region         3.49              0.21                                                       
+AGAL359.137+00.031_S Protostellar       3.39                                                                         
+AGAL359.946-00.046_A HII Region         4.81                                                                         
+AGAL359.946-00.046_B HII Region         4.81                                                                         
+AGAL359.971-00.457_S HII Region         3.74  0.91  0.56  0.61  0.94                                                 

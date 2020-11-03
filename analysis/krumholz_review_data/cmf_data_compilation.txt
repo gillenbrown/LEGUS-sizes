@@ -1,0 +1,144 @@
+# Compilation of measurements of cluster mass functions; columns are
+# 1) Galaxy name
+# 2) Best-fit alphaM, where dN/dM ~ M^alphaM
+# 3) Error on alphaM
+# 4) log_10 break mass if fit was to a Schechter or truncated powerlaw
+#    function, most massive bin / cluster present if not
+# 5) Error in log_10 break mass if fit to Schechter / truncated PL
+#    function; blank if fit was to pure powerlaw
+# 6) Lower limit in log_10 M for sample
+# 7) Method used (phot = unresolved photometry, cmd = color-magnitude
+#    diagram, mix = combination of both)
+# 8) Exclusive: is catalog construction "exclusive" about what is called a
+#    cluster? 0 or 1 for no or yes
+# 9) Reference; reference codes are as follows:
+#    MG07 = McCrady & Graham, 2007, ApJ, 663, 844
+#    FC12 = Fall & Chandar, 2012, ApJ, 752, 96
+#    B13 = Baumgardt et al., 2013, MNRAS, 430, 676
+#    R14 = Ryon et al., 2014, ApJ, 143, 33
+#    C15 = Chandar, Fall, & Whitmore, 2015, ApJ, 810, 1
+#    A15 = Adamo et al., 2015, MNRAS, 452, 246
+#    M16 = Mulia, Chandar, & Whitmore, 2016, ApJ, 826, 32
+#    C16 = Chandar et al., 2016, ApJ, 824, 71
+#    H16 = Hollyhead et al. 2016, MNRAS, 460, 2087
+#    J17 = Johnson et al., 2017, ApJ, 839, 78
+#    A17 = Adamo et al., 2017, ApJ, 841, 131
+#    L17 = Linden et al., 2017, ApJ, 843, 91L
+#    M18 = Messa et al., 2018, MNRAS, 473, 996
+#    M18b = Messa et al., 2018, MNRAS, 477, 1683
+# 10) Additional notes; see bottom
+#
+
+Galaxy_Name		alphaM	alphaM_err	M_b	M_b_err	M_lo		Method	Exclusive	Source		Notes
+
+M82			-1.91	0.06		6.6	--	5.3		phot	0		MG07		1
+MW			-1.82	0.01		3.0	--	1.3		cmd	0		FC12		2
+LMC			-2.34	0.11		5.4	--	3.7		mix	0		B13		3
+LMC_age1		-2.43	0.17		5.4	--	3.7		mix	0		B13		3
+LMC_age2		-1.70	0.08		5.4	--	3.7		mix	0		B13		3
+NGC2997			-3.2	0.20		4.9	--	3.7		phot	1		R14		--
+SMC			-1.69	0.15		4.1	--	2.6		phot	0		C15		--
+NGC4214			-2.28	0.17		4.8	--	2.5		phot	0		C15		--
+NGC4449			-1.68	0.21		5.5	--	3.6		phot	0		C15		--
+M83			-1.95	0.12		5.1	--	3.3		phot	0		C15		--
+Antennae		-2.18	0.04		6.2	--	4.0		phot	0		C15		--
+M83			-2.18	0.07		5.2	0.08	3.7		phot	1		A15		4
+M83_reg1		-1.90	0.11		5.6	0.09	3.7		phot	1		A15		4
+M83_reg2		-2.20	0.11		5.0	0.09	3.7		phot	1		A15		4
+M83_reg3		-2.20	0.12		4.7	0.09	3.7		phot	1		A15		4
+M83_reg4		-2.70	0.14		4.4	0.09	3.7		phot	1		A15		4
+M51			-2.10	0.20		5.5	--	3.5		phot	0		C16		5
+M51_age1		-2.06	0.05		5.2	--	3.5		phot	0		C16		5
+M51_age2		-1.97	0.09		5.4	--	3.9		phot	0		C16		5
+M51_age3		-2.19	0.06		5.5	--	4.0		phot	0		C16		5
+NGC3256			-1.86	0.34		6.5	--	4.7		phot	0		M16		--
+NGC1566			-1.91	0.06		5.4	--	3.7		phot	1		H16		6
+NGC1566_reg1		-1.79	0.10		5.3	--	3.7		phot	1		H16		6
+NGC1566_reg2		-1.96	0.11		5.5	--	3.7		phot	1		H16		6
+NGC1566_reg3		-2.00	0.11		5.3	--	3.7		phot	1		H16		6
+M31			-1.99	0.12		3.9	0.12	3.0		cmd	0		J17		--
+NGC0628			-2.03	0.07		5.3	0.04	3.7		phot	1		A17		7
+NGC0628_reg1		-1.84	0.13		5.7	0.19	3.7		phot	1		A17		7
+NGC0628_reg2		-2.15	0.12		5.0	0.20	3.7		phot	1		A17		7
+NGC0628_reg3		-2.00	0.13		5.0	0.28	3.7		phot	1		A17		7
+GOALS			-1.95	0.11		8.0	--	5.3		phot	0		L17		8
+GOALS_age1		-1.67	0.33		8.0	--	6.0		phot	0		L17		8
+NGC1614			-1.35	0.23		8.0	--	6.0		phot	0		L17		8
+NGC7674			-2.15	0.12		8.0	--	6.0		phot	0		L17		8
+NGC3690E		-1.44	0.14		8.0	--	6.0		phot	0		L17		8
+NGC3690W		-1.92	0.24		8.0	--	6.0		phot	0		L17		8
+Arp148			-1.44	0.17		8.0	--	6.0		phot	0		L17		8
+IRAS20351+2521		-1.60	0.52		8.0	--	6.0		phot	0		L17		8
+NGC6786			-1.40	0.12		8.0	--	6.0		phot	0		L17		8
+UGC09618NED02		-2.13	0.47		8.0	--	6.0		phot	0		L17		8
+M51			-2.01	0.02		5.0	0.05	3.7		phot	1		M18		9
+M51_age1		-2.12	0.22		4.7	0.06	3.7		phot	1		M18		9
+M51_age2		-1.97	0.06		5.0	0.08	3.7		phot	1		M18		9
+M51_age3		-2.01	0.05		5.1	0.10	3.7		phot	1		M18		9
+M51_reg1		-1.77	0.08		5.2	0.04	3.7		phot	1		M18b		9
+M51_reg2		-1.86	0.06		5.0	0.04	3.7		phot	1		M18b		9
+M51_reg3		-1.85	0.04		4.9	0.08	3.7		phot	1		M18b		9
+M51_reg4		-1.92	0.06		5.1	0.13	3.7		phot	1		M18b		9
+M51_reg5		-1.56	0.09		5.4	0.11	3.7		phot	1		M18b		9	
+
+# General notes
+#
+# -- In many cases authors divide their cluster samples into bins of
+#    age, location, or in some other way, and report separate fits to
+#    the sub-populations. In these cases, the entry without an
+#    underscore in the galaxy name indicates the best fit to the
+#    entire sample, and galaxy names of the form name_XYZ indicate a
+#    sub-sample, with the nature of the sub-sample indicated in the
+#    notes.
+# -- This compilation includes only the most recent mreasurements for
+#    each galaxy, EXCEPT where two sets of results have been published
+#    for the same galaxy using different catalog construction
+#    methods. In those cases we include both of the data sets in the
+#    list.
+#
+# Notes on individual entries
+#
+# 1) The sample only includes the nuclear region of M82
+# 2) The fit quoted is from FC12, but the underlying data are from the
+#    catalog of Lada & Lada (2003, ARA&A, 41, 57); the
+#    sample consists only of embedded clusters within ~2 kpc of the Sun
+# 3) B13 do not report fits to the entire population, only to
+#    sub-samples of different age ranges; for our "whole galaxy" value
+#    we use the best fit for their < 200 Myr age range, which
+#    dominates the sample by number; the other age ranges in their
+#    data are 200 Myr - 1 Gyr (age1) and 1 - 4 Gyr (age2).
+# 4) A15 report fits for separately for annuli from 0.45 - 2.3 kpc
+#    (reg1), 2.3 - 3.2 kpc (reg2), 3.2 - 3.9 kpc (reg3), and 3.9 - 4.5
+#    kpc (reg4); they also present a radial decomposition with equal
+#    number of clusters per annulus (rather than equal area), but we
+#    do not include that separately in this table
+# 5) C16 report fits in age bins of log t/yr < 7 (age1), log t/yr = 7
+#    - 8 (age2), and log t/yr = 8 - 8.6 (age3)
+# 6) H16 give fits in 3 radial bins: 0 - 3.3 kpc (reg1), 3.3 - 4.7 kpc
+#    (reg2), and > 4.7 kpc (reg3); also note that H16 report a
+#    truncation mass in their fits, but do not list an error bar for
+#    it, and state in the text that the improvement in the fit
+#    compared to a pure powerlaw model is not statistically
+#    significant. For this reason we have treated this data set as not
+#    detecting a truncation.
+# 7) A17 report fits for galactocentric radii from 0.46 - 3.19 kpc
+#    (reg 1), 3.22 - 4.53 kpc (reg 2), and 4.56 - 10.15 kpc (reg 3)
+# 8) The sample in L17 is a combination of clusters from 22 LIRGs
+#    studied as part of the GOALS sample. They report fits in two
+#    different ranges of mass and age. Our "whole galaxy" value is
+#    for their younger age bin (t < 10^7 yr), which contains the
+#    largest portion of the data; the subsample we denote age1
+#    is ages of 10^7.5 - 10^8.7 yr. In addition to the overall fit,
+#    L17 also report fits to individual galaxies that contain
+#    enough clusters to make a fit possible. We list these in
+#    the table under the name of the individual galaxy.
+# 9) M18 carry out most of their fits using minimum masses of 5000
+#    Msun, and they divide the sample into age ranges of 1-10 Myr
+#    (age1), 10-100 Myr (age2), 100-200 Myr (age3); M18b futher
+#    divide the results into 4 equal number bins (reg1 - reg4). Both
+#    papers also report separately the results of a fit only with
+#    cluster masses above 10^4 Msun included, and in radial bins
+#    chosen to contain equal equal area rather than equal number of
+#    clusters. We report only one indpendent set of fits from each paper
+#    in this table. Finally, the bin we have labelled M51_reg5 is
+#    the molecular ring (MR) regions listed in M18b's tables.

@@ -1,0 +1,77 @@
+# Compilation of Milky Way young massive cluster properties. Clusters
+# included are mostly the same as those in the compilation of
+# Portegies-Zwart et al., 2010, ARA&A, 48, 431, but the data have been
+# updated where possible using the references listed. We have also
+# added a few new clusters discovered since 2010, and removed Trumpler
+# 14 and h and chi Persei, since the most recent mass estimates
+# (Sana et al., 2010, A&A, 515, A26 for Trumpler 14 and Currie et al.,
+# 2010, ApJS, 186, 191) reduces their mass to well below our
+# cutoff at 10^4 Msun.
+#
+# Columns are:
+# 1) Name
+# 2) log_10 (Mass / Msun)
+# 3) Error on log mass, if available
+# 4) Half-mass radius [pc]
+# 5) Error on half-mass radius, if available
+# 6) Reference; references are as follows:
+#    C12 = Clarkson et al., 2012, ApJ, 751, 33
+#    B08 = Borissova et al., 2008, A&A, 488, 151
+#    B12 = Borissova et al., 2012, A&A, 546, A110
+#    HEM08 = Harayama, Eisenahuer, & Martins, 2008, ApJ, 675, 1319
+#    R10 = Rochau et al., 2010, ApJ, 716, L90
+#    FMM99 = Figer, McLean, & Morris, 1999, ApJ, 514, 202
+#    F06 = Figer et al., 2006, ApJ, 643, 1166
+#    PZ10 = Portegies-Zwart et al., 2010, ARA&A, 48, 431
+#    D07 = Davies et al., 2007, ApJ, 671, 781
+#    C09 = Clark et al., 2009, A&A, 498, 109
+#    N10 = Negueruela et al., 2010, A&A, 513, A74
+#    N11 = Negueruela et al., 2011, A&A, 528, A59
+#    GFN12 = Gonzalez-Fernandez & Negueruela, 2012, A&A, 539, A100
+#    G11 = Gennaro et al., 2011, MNRAS, 412, 2469
+#    Z17 = Zeidler et al., 2017, AJ, 153, 22
+# 7) Additional notes; see bottom
+
+Name                   log_M	log_Merr	rh	rh_err	Source		Notes
+Arches		       4.38	0.17		1.1	0.61	C12		1
+Quintuplet	       4.0	--		1.0	--	FMM99		2
+DBS2003_179	       4.39	--		0.2	--	B08,B12		3
+NGC3603		       4.1	0.10		1.1	0.40	HEM08,R10	4
+RSGC01		       4.5	--		1.5	--	F06,PZ10	5
+RSGC02_(Stephenson_2)  4.6	--		2.7	--	D07		6
+RSGC03		       4.45	0.15		5.0	--	C09,PZ10	5
+RSGC04_(Alicante_8)    4.15	0.15		3.8	--	N10		7
+RSGC05_(Alicante_7)    4.24	0.24		3.5	--	N11		7
+Alicante_10	       4.15	0.15		4.0	--	GFN2		7
+Westerlund_1	       4.69	0.045		1.5	--	G11		--
+Westerlund_2	       4.56	0.035		1.1	--	Z17		8
+
+# Notes on individual entries
+#
+# 1) C12 estimate the mass and radius of the Arches several ways. Our
+#    reported measurements are taken from their table 12, which fits
+#    the cluster to a King (1962) model using a combination of kinematic
+#    data and surface density data. To derive the half-mass radius and
+#    its uncertainty, we compute the use the 1 sigma-low and 1 sigma-high
+#    values of their reported core and tidal radii to compute the
+#    corresponding half-mass radius for a King model, and take that to
+#    be our 1 sigma uncertainty interval on r_h. Our central value of
+#    r_h is the center of that +- 1 sigma interval.
+# 2) Portegies-Zwart et al. cite Figer et al. (2006, ApJ, 643, 1166)
+#    on this source, but this paper appears merely to quote the earlier,
+#    1999 paper that we have listed.
+# 3) Mass is from B12, radius from B08; the authors do not quote
+#    uncertainties
+# 4) The estimates listed are from photometry in HEM08, but are
+#    consistent with a kinematic upper limit derived by R10
+# 5) Mass estimate is from the stated source; the radius estimate is
+#    from Portegies-Zwart et al. (2010), who appear to have measured an
+#    effective radius directly from the published images. No radius
+#    estimate is listed in F06.
+# 6) Half-light radius used for r_h because half-mass radius is unknown.
+# 7) Mass is as stated in the source listed; radius is our rough
+#    estimate based on the published images, and should not be treated
+#    as accurate to better than the factor of ~2 level.
+# 8) Z17 fit the density distribution in Westerlund 2, which is not
+#    relaxed, with two Gaussians separated in space. The characteristic
+#    radius we list here is the separation between the two components.
