@@ -41,12 +41,11 @@ print(f"Total Clusters: {len(big_catalog)}")
 mask = big_catalog["good"]
 print(f"Clusters with good fits: {np.sum(mask)}")
 
-mask = np.logical_and(mask, big_catalog["age_yr"] > 1)
-print(f"Clusters with good ages: {np.sum(mask)}")
+mask = np.logical_and(mask, big_catalog["age_yr"] > 0)
+mask = np.logical_and(mask, big_catalog["age_yr_min"] > 0)
+mask = np.logical_and(mask, big_catalog["age_yr_max"] > 0)
 
-mask = np.logical_and(mask, big_catalog["age_yr_max"] > 1)
-mask = np.logical_and(mask, big_catalog["age_yr_min"] > 1)
-print(f"Clusters with good age errors: {np.sum(mask)}")
+print(f"Clusters with good ages: {np.sum(mask)}")
 
 age_plot = big_catalog["age_yr"][mask]
 # age errors are reported as min and max values
@@ -350,7 +349,6 @@ while not all(converged):
 
     # then check if we're converged
     if iteration % check_spacing == 0:
-        print(iteration)
         for param_idx in range(n_variables):
             # calculate the new standard deviation
             this_std = np.std(param_history[param_idx])
