@@ -47,6 +47,7 @@ mask = np.logical_and(mask, big_catalog["mass_msun_max"] > 0)
 mask = np.logical_and(mask, big_catalog["mass_msun_min"] > 0)
 print(f"Clusters with good masses: {np.sum(mask)}")
 
+age_legus = big_catalog["age_yr"][mask]
 mass_legus = big_catalog["mass_msun"][mask]
 # mass errors are reported as min and max values
 mass_err_hi_legus = big_catalog["mass_msun_max"][mask] - mass_legus
@@ -442,9 +443,9 @@ def fit_mass_size_relation(
     param_history = [[] for _ in range(n_variables)]
     param_std_last = [np.inf for _ in range(n_variables)]
 
-    converge_criteria = 0.01  # fractional change in std required for convergence
+    converge_criteria = 0.1  # fractional change in std required for convergence
     converged = [False for _ in range(n_variables)]
-    check_spacing = 20  # how many iterations between checking the std
+    check_spacing = 10  # how many iterations between checking the std
     iteration = 0
     while not all(converged):
         iteration += 1
@@ -481,7 +482,6 @@ def fit_mass_size_relation(
 
         # then check if we're converged
         if iteration % check_spacing == 0:
-            print(f"Bootstrap Iteration {iteration}")
             for param_idx in range(n_variables):
                 # calculate the new standard deviation
                 this_std = np.std(param_history[param_idx])
@@ -518,7 +518,6 @@ def get_r_percentiles(radii, masses, percentile, d_log_M):
         mask_good = np.logical_and(mask_above, mask_below)
 
         good_radii = radii[mask_good]
-        print(lower, upper, len(good_radii))
         if len(good_radii) > 20:
             radii_percentiles.append(np.percentile(good_radii, percentile))
             # the bin centers will be the mean in log space
@@ -593,12 +592,26 @@ def measure_psf_reff(psf):
 
 
 def plot_best_fit_line(
-    ax, best_fit_params, fit_mass_lower_limit=1, fit_mass_upper_limit=1e6
+    ax,
+    best_fit_params,
+    fit_mass_lower_limit=1,
+    fit_mass_upper_limit=1e6,
+    color=bpl.color_cycle[1],
+    fill=True,
+    label=None,
 ):
     # first convert the pivot point value into the intercept
     pivot_point_x = 4
     # so params[1] is really y(pivot_point_x) = m (pivot_point_x) + intercept
     intercept = best_fit_params[1] - best_fit_params[0] * pivot_point_x
+
+    # Make the string that will be used for the label
+    if label is None:
+        label = "$R_{eff} = "
+        label += f"{10**best_fit_params[1]:.2f}"
+        label += "\left( \\frac{M}{10^4 M_\odot} \\right)^{"
+        label += f"{best_fit_params[0]:.2f}"
+        label += "}$"
 
     plot_log_masses = np.arange(
         np.log10(fit_mass_lower_limit), np.log10(fit_mass_upper_limit), 0.01
@@ -607,19 +620,20 @@ def plot_best_fit_line(
     ax.plot(
         10 ** plot_log_masses,
         10 ** plot_log_radii,
-        c=bpl.color_cycle[1],
+        c=color,
         lw=4,
         zorder=10,
-        label="$R_{eff} \propto M^{" + f"{best_fit_params[0]:.2f}" + "}$",
+        label=label,
     )
-    ax.fill_between(
-        x=10 ** plot_log_masses,
-        y1=10 ** (plot_log_radii - best_fit_params[2]),
-        y2=10 ** (plot_log_radii + best_fit_params[2]),
-        color="0.9",
-        zorder=0,
-        label="$\sigma_{int}$" + f" = {best_fit_params[2]:.2f} dex",
-    )
+    if fill:
+        ax.fill_between(
+            x=10 ** plot_log_masses,
+            y1=10 ** (plot_log_radii - best_fit_params[2]),
+            y2=10 ** (plot_log_radii + best_fit_params[2]),
+            color="0.9",
+            zorder=0,
+            label="$\sigma_{int}$" + f" = {best_fit_params[2]:.2f} dex",
+        )
 
     # Filled in bootstrap interval is currently turned off because the itnerval is smaller
     # than the width of the line
@@ -685,7 +699,15 @@ def format_mass_size_plot(ax, xmin=1e2, xmax=1e6):
 
 
 def plot_mass_size_dataset(
-    mass, mass_err_lo, mass_err_hi, r_eff, r_eff_err_lo, r_eff_err_hi, color, label=None
+    ax,
+    mass,
+    mass_err_lo,
+    mass_err_hi,
+    r_eff,
+    r_eff_err_lo,
+    r_eff_err_hi,
+    color,
+    label=None,
 ):
     ax.scatter(mass, r_eff, alpha=1.0, s=3, c=color, zorder=4, label=label)
     # Have errorbars separately so they can easily be turned off
@@ -736,11 +758,22 @@ def add_percentile_lines(ax, mass, r_eff, style="moving"):
         )
 
 
+def print_fit_results(name, best_fit_params, fit_history):
+    print_str = ""
+    for idx in range(len(best_fit_params)):
+        mean = best_fit_params[idx]
+        std = np.std(fit_history[idx])
+        print_str += f"{mean:.2f} +- {std:.2f} "
+    print_str += name
+    print(print_str)
+
+
 # ======================================================================================
 #
 # Then actually make different versions of this plot
 #
 # ======================================================================================
+# First make the plot with all of my clusters
 fit_legus, fit_legus_history = fit_mass_size_relation(
     log_mass_legus,
     log_mass_err_lo_legus,
@@ -754,6 +787,7 @@ fit_legus, fit_legus_history = fit_mass_size_relation(
 
 fig, ax = bpl.subplots()
 plot_mass_size_dataset(
+    ax,
     mass_legus,
     mass_err_lo_legus,
     mass_err_hi_legus,
@@ -764,11 +798,55 @@ plot_mass_size_dataset(
 )
 add_percentile_lines(ax, mass_legus, r_eff_legus)
 plot_best_fit_line(ax, fit_legus, 1e2, 1e5)
-# add_psfs_to_plot(ax)
 format_mass_size_plot(ax)
 fig.savefig(plot_name)
+print_fit_results("Full Sample", fit_legus, fit_legus_history)
 
-# Then have another plot with many datasets
+# --------------------------------------------------------------------------------------
+# Then various age split - young clusters
+# --------------------------------------------------------------------------------------
+mask_young = age_legus < 1e7
+mask_med = age_legus >= 1e7
+mask_med = np.logical_and(mask_med, age_legus <= 1e8)
+mask_old = age_legus > 1e8
+
+fig, ax = bpl.subplots()
+for mask, lower, name, color in zip(
+    [mask_young, mask_med, mask_old],
+    [1e2, 1e3, 1e3],
+    ["Age < 10 Myr", "10 Myr < Age < 100 Myr", "100 Myr < Age"],
+    [bpl.color_cycle[0], bpl.color_cycle[3], bpl.color_cycle[4]],
+):
+    fit_this, fit_this_history = fit_mass_size_relation(
+        log_mass_legus[mask],
+        log_mass_err_lo_legus[mask],
+        log_mass_err_hi_legus[mask],
+        log_r_eff_legus[mask],
+        log_r_eff_err_lo_legus[mask],
+        log_r_eff_err_hi_legus[mask],
+        fit_mass_lower_limit=lower,
+        fit_mass_upper_limit=1e5,
+    )
+
+    plot_mass_size_dataset(
+        ax,
+        mass_legus[mask],
+        mass_err_lo_legus[mask],
+        mass_err_hi_legus[mask],
+        r_eff_legus[mask],
+        r_eff_err_lo_legus[mask],
+        r_eff_err_hi_legus[mask],
+        color,
+    )
+    # add_percentile_lines(ax, mass_legus[mask], r_eff_legus[mask])
+    plot_best_fit_line(ax, fit_this, lower, 1e5, color, fill=False, label=name)
+    print_fit_results(name, fit_this, fit_this_history)
+format_mass_size_plot(ax)
+fig.savefig(plot_name.parent / "mass_size_relation_agesplit.png")
+
+# --------------------------------------------------------------------------------------
+# Then all the datasets
+# --------------------------------------------------------------------------------------
 fit_combo, fit_legus_combo = fit_mass_size_relation(
     np.concatenate([log_mass_legus, log_mass_m31, log_mass_mw_ocs]),
     np.concatenate(
@@ -805,6 +883,7 @@ fit_combo, fit_legus_combo = fit_mass_size_relation(
 )
 fig, ax = bpl.subplots()
 plot_mass_size_dataset(
+    ax,
     mass_legus,
     mass_err_lo_legus,
     mass_err_hi_legus,
@@ -815,6 +894,7 @@ plot_mass_size_dataset(
     "LEGUS",
 )
 plot_mass_size_dataset(
+    ax,
     mass_m31,
     mass_err_lo_m31,
     mass_err_hi_m31,
@@ -825,6 +905,7 @@ plot_mass_size_dataset(
     "M31",
 )
 plot_mass_size_dataset(
+    ax,
     mass_mw_ocs,
     mass_err_mw_ocs,
     mass_err_mw_ocs,
