@@ -7,11 +7,14 @@ from pathlib import Path
 import numpy as np
 from astropy import table
 from astropy.io import fits
+from astropy import units as u
+from astropy import constants as c
 from scipy import optimize
 import betterplotlib as bpl
 
 # need to add the correct path to import utils
-sys.path.append(str(Path(__file__).resolve().parent.parent / "pipeline"))
+code_home_dir = Path(__file__).resolve().parent.parent
+sys.path.append(str(code_home_dir / "pipeline"))
 import utils
 
 bpl.set_style()
@@ -29,17 +32,6 @@ catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[5:]
 # then stack them together in one master catalog
 big_catalog = table.vstack(catalogs, join_type="inner")
 
-# Calculate the fractional error
-big_catalog["fractional_err-"] = (
-    big_catalog["r_eff_pc_rmax_15pix_e-"] / big_catalog["r_eff_pc_rmax_15pix_best"]
-)
-big_catalog["fractional_err+"] = (
-    big_catalog["r_eff_pc_rmax_15pix_e+"] / big_catalog["r_eff_pc_rmax_15pix_best"]
-)
-big_catalog["fractional_err_max"] = np.maximum(
-    big_catalog["fractional_err-"], big_catalog["fractional_err+"]
-)
-
 # then filter out some clusters
 print(f"Total Clusters: {len(big_catalog)}")
 mask = big_catalog["age_yr"] <= 200e6
@@ -48,45 +40,229 @@ print(f"Clusters with age < 200 Myr: {np.sum(mask)}")
 mask = np.logical_and(mask, big_catalog["good"])
 print(f"Clusters with good fits: {np.sum(mask)}")
 
-mask = np.logical_and(mask, big_catalog["mass_msun_max"] > 1)
-print(f"Clusters with nonzero mass error: {np.sum(mask)}")
+mask = np.logical_and(mask, big_catalog["mass_msun"] > 0)
+mask = np.logical_and(mask, big_catalog["mass_msun_max"] > 0)
+mask = np.logical_and(mask, big_catalog["mass_msun_min"] > 0)
+print(f"Clusters with good masses: {np.sum(mask)}")
 
-mass_plot = big_catalog["mass_msun"][mask]
+mass_legus = big_catalog["mass_msun"][mask]
 # mass errors are reported as min and max values
-mass_err_hi_plot = big_catalog["mass_msun_max"][mask] - mass_plot
-mass_err_lo_plot = mass_plot - big_catalog["mass_msun_min"][mask]
+mass_err_hi_legus = big_catalog["mass_msun_max"][mask] - mass_legus
+mass_err_lo_legus = mass_legus - big_catalog["mass_msun_min"][mask]
 
-r_eff_plot = big_catalog["r_eff_pc_rmax_15pix_best"][mask]
-r_eff_err_hi_plot = big_catalog["r_eff_pc_rmax_15pix_e+"][mask]
-r_eff_err_lo_plot = big_catalog["r_eff_pc_rmax_15pix_e-"][mask]
+r_eff_legus = big_catalog["r_eff_pc_rmax_15pix_best"][mask]
+r_eff_err_hi_legus = big_catalog["r_eff_pc_rmax_15pix_e+"][mask]
+r_eff_err_lo_legus = big_catalog["r_eff_pc_rmax_15pix_e-"][mask]
 
+# Then transform them into log
+log_mass_legus = np.log10(mass_legus)
+log_mass_err_hi_legus = np.log10(mass_legus + mass_err_hi_legus) - log_mass_legus
+log_mass_err_lo_legus = log_mass_legus - np.log10(mass_legus - mass_err_lo_legus)
+
+log_r_eff_legus = np.log10(r_eff_legus)
+log_r_eff_err_hi_legus = np.log10(r_eff_legus + r_eff_err_hi_legus) - log_r_eff_legus
+log_r_eff_err_lo_legus = log_r_eff_legus - np.log10(r_eff_legus - r_eff_err_lo_legus)
+
+
+# ======================================================================================
+#
+# Load data from external sources - first is M31
+#
+# ======================================================================================
+# M31 data. Masses and radii are in separate files.
+data_path = code_home_dir / "analysis" / "krumholz_review_data"
+johnson_12_table = fits.open(data_path / "johnson2012_m31.fits")
+fouesneau_14_table = fits.open(data_path / "fouesneau2014_m31.fits")
+# get the ids in both catalogs
+johnson_12_id = johnson_12_table[1].data["PCID"]
+fouesneau_14_id = fouesneau_14_table[1].data["PCID"]
+m31_ids = np.intersect1d(johnson_12_id, fouesneau_14_id)
+
+# get the relevant data
+johnson_12_r_eff_arcsec = johnson_12_table[1].data["Reff"]
+fouesneau_14_log_mass = fouesneau_14_table[1].data["logM-bset"]
+fouesneau_14_log_mass_min = fouesneau_14_table[1].data["logM-p16"]
+fouesneau_14_log_mass_max = fouesneau_14_table[1].data["logM-p84"]
+
+# then restrict to ones that have ids that work
+log_mass_m31 = []
+log_mass_min_m31 = []
+log_mass_max_m31 = []
+r_eff_arcsec_m31 = []
+for this_id in m31_ids:
+    johnson_12_idx = np.where(johnson_12_id == this_id)[0]
+    fouesneau_14_idx = np.where(fouesneau_14_id == this_id)[0]
+    # numpy where gives arrays, we should only have one value here, make sure
+    assert johnson_12_idx.size == 1
+    assert fouesneau_14_idx.size == 1
+    johnson_12_idx = johnson_12_idx[0]
+    fouesneau_14_idx = fouesneau_14_idx[0]
+
+    # check that there are no nans
+    if np.isnan(fouesneau_14_log_mass[fouesneau_14_idx]) or np.isnan(
+        johnson_12_r_eff_arcsec[fouesneau_14_idx]
+    ):
+        continue
+
+    log_mass_m31.append(fouesneau_14_log_mass[fouesneau_14_idx])
+    log_mass_min_m31.append(fouesneau_14_log_mass_min[fouesneau_14_idx])
+    log_mass_max_m31.append(fouesneau_14_log_mass_max[fouesneau_14_idx])
+    r_eff_arcsec_m31.append(johnson_12_r_eff_arcsec[fouesneau_14_idx])
+
+log_mass_m31 = np.array(log_mass_m31)
+log_mass_min_m31 = np.array(log_mass_min_m31)
+log_mass_max_m31 = np.array(log_mass_max_m31)
+r_eff_arcsec_m31 = np.array(r_eff_arcsec_m31)
+
+# Johnson does not report errors on R_eff, so our only errors will be the distance
+# errors
+r_eff_full_m31 = utils.arcsec_to_pc_with_errors(Path("m31"), r_eff_arcsec_m31, 0, 0)
+r_eff_m31, r_eff_err_lo_m31, r_eff_err_hi_m31 = r_eff_full_m31
+
+# Then make both values have log and linear values for use in fitting and plotting
+mass_m31 = 10 ** log_mass_m31
+mass_err_lo_m31 = mass_m31 - 10 ** log_mass_min_m31
+mass_err_hi_m31 = 10 ** log_mass_max_m31 - mass_m31
+
+log_mass_err_lo_m31 = log_mass_m31 - log_mass_min_m31
+log_mass_err_hi_m31 = log_mass_max_m31 - log_mass_m31
+
+log_r_eff_m31 = np.log10(r_eff_m31)
+log_r_eff_err_hi_m31 = np.log10(r_eff_m31 + r_eff_err_hi_m31) - log_r_eff_m31
+log_r_eff_err_lo_m31 = log_r_eff_m31 - np.log10(r_eff_m31 - r_eff_err_lo_m31)
+
+print(f"{len(mass_m31)} Clusters in M31")
+
+# ======================================================================================
+# Then the MW Open Clusters
+# ======================================================================================
+kharchenko_13_table = fits.open(data_path / "kharchenko2013_mw.fits")
+kharchenko_13_mw_obj_type = kharchenko_13_table[1].data["Type"]
+kharchenko_mw_dist = kharchenko_13_table[1].data["d"]
+# restrict to solar neighborhood, not sure what the type does, but Krumholz uses it
+kharchenko_good_idx = np.logical_and(
+    [str(o_type) != "g" for o_type in kharchenko_13_mw_obj_type],
+    kharchenko_mw_dist <= 2e3,
+)
+kharchenko_mw_Sigma = kharchenko_13_table[1].data["k"][kharchenko_good_idx]
+kharchenko_mw_rt = kharchenko_13_table[1].data["rt"][kharchenko_good_idx]
+kharchenko_mw_rc = kharchenko_13_table[1].data["rc"][kharchenko_good_idx]
+kharchenko_mw_k = kharchenko_13_table[1].data["k"][kharchenko_good_idx]
+kharchenko_mw_glat = kharchenko_13_table[1].data["GLAT"][kharchenko_good_idx]
+kharchenko_mw_glon = kharchenko_13_table[1].data["GLON"][kharchenko_good_idx]
+kharchenko_mw_dist = kharchenko_mw_dist[kharchenko_good_idx]
+
+# Following code copied from Krumholz:
+# Convert Kharchenko's King profile r_t and r_c measurements into
+# projected half-mass / half-number radii and mass; mass is
+# derived following equation (3) of Piskunov+ 2007, A&A, 468, 151,
+# using updated values of the Oort constants from Bovy+ 2017, MNRAS,
+# 468, L63, and the Sun's distance from the Galactic Center from
+# Bland-Hawthorn & Gerhard, 2016, ARA&A, 54, 529; note that this
+# calculation implicitly assumes that the Sun lies in the galactic
+# plane, which is not exactly true (z0 ~= 25 pc), but the error
+# associated with this approximation is small compared to the
+# uncertainty in the distance to the Galctic Centre
+kingtab = table.Table.read(data_path / "kingtab.txt", format="ascii")
+kharchenko_logc = np.log10(kharchenko_mw_rt / kharchenko_mw_rc)
+r_eff_mw_ocs = kharchenko_mw_rc * np.interp(
+    kharchenko_logc, kingtab.columns["logc"], kingtab.columns["xh2d"]
+)
+oort_A0 = 15.3 * u.km / (u.s * u.kpc)
+oort_B0 = -11.9 * u.km / (u.s * u.kpc)
+R0 = 8.2 * u.kpc
+mw_rgc = np.sqrt(
+    R0 ** 2
+    + (kharchenko_mw_dist * u.pc) ** 2
+    - 2.0 * R0 * kharchenko_mw_dist * u.pc * np.cos(kharchenko_mw_glon * np.pi / 180)
+)
+drg = (mw_rgc - R0) / R0
+oort_A = oort_A0 * (1.0 - drg)
+oort_A_minus_B = oort_A0 - oort_B0 - 2.0 * oort_A0 * drg
+mass_mw_ocs = (
+    (4.0 * oort_A * oort_A_minus_B * (kharchenko_mw_rt * u.pc) ** 3 / c.G)
+    .to("Msun")
+    .value
+)
+
+# Errors are not present.
+r_eff_err_mw_ocs = np.zeros(r_eff_mw_ocs.shape)
+log_r_eff_err_mw_ocs = np.zeros(r_eff_mw_ocs.shape)
+mass_err_mw_ocs = np.zeros(r_eff_mw_ocs.shape)
+log_mass_err_mw_ocs = np.zeros(r_eff_mw_ocs.shape)
+
+# then convert this to linear space for plotting
+log_r_eff_mw_ocs = np.log10(r_eff_mw_ocs)
+log_mass_mw_ocs = np.log10(mass_mw_ocs)
+
+print(f"{len(mass_mw_ocs)} Open Clusters in MW")
+
+# ======================================================================================
+# Then the MW Globular Clusters
+# ======================================================================================
+# Read Baumgardt & Hilker 2018 table for MW globulars
+mw_gc_table = table.Table.read(
+    data_path / "baumgardt2018.txt",
+    format="ascii.fixed_width",
+    col_starts=[
+        0,
+        9,
+        20,
+        31,
+        38,
+        46,
+        52,
+        61,
+        70,
+        81,
+        92,
+        100,
+        107,
+        114,
+        121,
+        128,
+        136,
+        145,
+        153,
+        161,
+        169,
+        176,
+        183,
+        190,
+        198,
+    ],
+    header_start=0,
+    data_start=2,
+)
+mass_mw_gcs = mw_gc_table["Mass"]
+mass_err_mw_gcs = mw_gc_table["DM"]
+r_eff_mw_gcs = mw_gc_table["rh,l"]
+# no r_eff errors
+r_eff_err_mw_gcs = np.zeros(r_eff_mw_gcs.shape)
+log_r_eff_err_mw_gcs = np.zeros(r_eff_mw_gcs.shape)
+
+# convert to log
+log_mass_mw_gcs = np.log10(mass_mw_gcs)
+log_r_eff_mw_gcs = np.log10(r_eff_mw_gcs)
+log_mass_err_lo_mw_gcs = log_mass_mw_gcs - np.log10(mass_mw_gcs - mass_err_mw_gcs)
+log_mass_err_hi_mw_gcs = np.log10(mass_mw_gcs + mass_err_mw_gcs) - log_mass_mw_gcs
+
+print(f"{len(mass_mw_gcs)} Globular Clusters in MW")
+
+# ======================================================================================
+# Then the M31 Globular Clusters
+# ======================================================================================
+# Read Barmby+ 2007 table for M31 globulars
+# m31_gc_tab = table.Table.read(data_path / "barmby2007_m31.txt", format="ascii.fixed_width")
+# m31_gc_m = 10.**m31_gc_tab.columns['logM']
+# m31_gc_Sigmah = 10.**m31_gc_tab.columns['logSh']
+# m31_gc_rh = np.sqrt(m31_gc_m/m31_gc_Sigmah)
 
 # ======================================================================================
 #
 # Fit the mass-size model
 #
 # ======================================================================================
-fit_mass_lower_limit = 1e1
-fit_mass_upper_limit = 1e6
-fit_mask = np.logical_and(mask, big_catalog["mass_msun"] > fit_mass_lower_limit)
-fit_mask = np.logical_and(fit_mask, big_catalog["mass_msun"] < fit_mass_upper_limit)
-
-# First get the parameters to be used, and transform them into log
-log_mass_fit = np.log10(big_catalog["mass_msun"][fit_mask])
-# mass errors are reported as min and max values
-log_mass_err_hi_fit = np.log10(big_catalog["mass_msun_max"][fit_mask]) - log_mass_fit
-log_mass_err_lo_fit = log_mass_fit - np.log10(big_catalog["mass_msun_min"][fit_mask])
-
-# do the same thing with the radii, although it's a bit uglier since we don't report
-# min and max, just the errors
-r_eff_fit = big_catalog["r_eff_pc_rmax_15pix_best"][fit_mask]
-r_eff_err_hi_fit = big_catalog["r_eff_pc_rmax_15pix_e+"][fit_mask]
-r_eff_err_lo_fit = big_catalog["r_eff_pc_rmax_15pix_e-"][fit_mask]
-
-log_r_eff_fit = np.log10(r_eff_fit)
-log_r_eff_err_hi_fit = np.log10(r_eff_fit + r_eff_err_hi_fit) - log_r_eff_fit
-log_r_eff_err_lo_fit = log_r_eff_fit - np.log10(r_eff_fit - r_eff_err_lo_fit)
-
 # This fitting is based off the prescriptions in Hogg, Bovy, Lang 2010 (arxiv:1008.4686)
 # sections 7 and 8. We incorporate the uncertainties in x and y by calculating the
 # difference and sigma along the line orthogonal to the best fit line.
@@ -210,7 +386,18 @@ def fit_mass_size_relation(
     log_r_eff,
     log_r_eff_err_lo,
     log_r_eff_err_hi,
+    fit_mass_lower_limit=1e-5,
+    fit_mass_upper_limit=1e10,
 ):
+    fit_mask = log_mass > np.log10(fit_mass_lower_limit)
+    fit_mask = np.logical_and(fit_mask, log_mass < np.log10(fit_mass_upper_limit))
+
+    log_mass = log_mass[fit_mask]
+    log_mass_err_lo = log_mass_err_lo[fit_mask]
+    log_mass_err_hi = log_mass_err_hi[fit_mask]
+    log_r_eff = log_r_eff[fit_mask]
+    log_r_eff_err_lo = log_r_eff_err_lo[fit_mask]
+    log_r_eff_err_hi = log_r_eff_err_hi[fit_mask]
 
     # set some of the convergence criteria parameters for the Powell fitting routine.
     xtol = 1e-10
@@ -255,18 +442,18 @@ def fit_mass_size_relation(
         iteration += 1
 
         # create a new sample of x and y coordinates
-        sample_idxs = np.random.randint(0, len(log_mass_fit), len(log_mass_fit))
+        sample_idxs = np.random.randint(0, len(log_mass), len(log_mass))
 
         # fit to this set of data
         this_result = optimize.minimize(
             negative_log_likelihood,
             args=(
-                log_mass_fit[sample_idxs],
-                log_mass_err_lo_fit[sample_idxs],
-                log_mass_err_hi_fit[sample_idxs],
-                log_r_eff_fit[sample_idxs],
-                log_r_eff_err_lo_fit[sample_idxs],
-                log_r_eff_err_hi_fit[sample_idxs],
+                log_mass[sample_idxs],
+                log_mass_err_lo[sample_idxs],
+                log_mass_err_hi[sample_idxs],
+                log_r_eff[sample_idxs],
+                log_r_eff_err_lo[sample_idxs],
+                log_r_eff_err_hi[sample_idxs],
             ),
             bounds=([-1, 1], [None, None], [0, 0.5]),
             x0=best_fit_result.x,
@@ -286,6 +473,7 @@ def fit_mass_size_relation(
 
         # then check if we're converged
         if iteration % check_spacing == 0:
+            print(f"Bootstrap Iteration {iteration}")
             for param_idx in range(n_variables):
                 # calculate the new standard deviation
                 this_std = np.std(param_history[param_idx])
@@ -352,6 +540,18 @@ def get_r_percentiles_moving(radii, masses, percentile, n, dn):
     return masses_median, radii_percentiles
 
 
+def get_r_percentiles_unique_values(radii, ages, percentile):
+    # get the unique ages
+    unique_ages = np.unique(ages)
+    # cut off values above 1e9
+    unique_ages = unique_ages[unique_ages <= 1e9]
+    radii_percentiles = []
+    for age in unique_ages:
+        mask = ages == age
+        radii_percentiles.append(np.percentile(radii[mask], percentile))
+    return unique_ages, radii_percentiles
+
+
 def distance(x1, y1, x2, y2):
     return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
@@ -383,53 +583,9 @@ def measure_psf_reff(psf):
             return sorted_radii[idx]
 
 
-def make_mass_size_plot(
-    mass,
-    mass_err_lo,
-    mass_err_hi,
-    r_eff,
-    r_eff_err_lo,
-    r_eff_err_hi,
-    best_fit_params,
-    save_name,
+def plot_best_fit_line(
+    ax, best_fit_params, fit_mass_lower_limit=1, fit_mass_upper_limit=1e6
 ):
-
-    fig, ax = bpl.subplots()
-
-    ax.scatter(mass_plot, r_eff_plot, alpha=1.0, s=3, c=bpl.color_cycle[0], zorder=4)
-    # Have errorbars separately so they can easily be turned off
-    ax.errorbar(
-        x=mass,
-        y=r_eff,
-        alpha=1.0,
-        markersize=0,
-        yerr=[r_eff_err_lo, r_eff_err_hi],
-        xerr=[mass_err_lo, mass_err_hi],
-        lw=0.1,
-        zorder=3,
-        c=bpl.color_cycle[0],
-    )
-    # plot the median and the IQR
-    for percentile in [2.5, 16, 50, 84, 97.5]:
-        mass_bins, radii_percentile = get_r_percentiles_moving(
-            r_eff_plot, mass_plot, percentile, 100, 50
-        )
-        ax.plot(
-            mass_bins,
-            radii_percentile,
-            c=bpl.almost_black,
-            lw=2 * (1 - (abs(percentile - 50) / 50)) + 0.5,
-            zorder=9,
-        )
-        ax.text(
-            x=mass_bins[0],
-            y=radii_percentile[0],
-            ha="center",
-            va="bottom",
-            s=percentile,
-            fontsize=16,
-        )
-    # and plot the best fit line
     plot_log_masses = np.arange(
         np.log10(fit_mass_lower_limit), np.log10(fit_mass_upper_limit), 0.01
     )
@@ -437,7 +593,7 @@ def make_mass_size_plot(
     ax.plot(
         10 ** plot_log_masses,
         10 ** plot_log_radii,
-        c=bpl.color_cycle[3],
+        c=bpl.color_cycle[1],
         lw=4,
         zorder=10,
         label="$R_{eff} \propto M^{" + f"{best_fit_params[0]:.2f}" + "}$",
@@ -446,9 +602,9 @@ def make_mass_size_plot(
         x=10 ** plot_log_masses,
         y1=10 ** (plot_log_radii - best_fit_params[2]),
         y2=10 ** (plot_log_radii + best_fit_params[2]),
-        color="0.8",
+        color="0.9",
         zorder=0,
-        label=f"Intrinsic Scatter = {best_fit_params[2]:.2f} dex",
+        label="$\sigma_{int}$" + f" = {best_fit_params[2]:.2f} dex",
     )
 
     # Filled in bootstrap interval is currently turned off because the itnerval is smaller
@@ -474,6 +630,8 @@ def make_mass_size_plot(
     #     alpha=0.5,
     # )
 
+
+def add_psfs_to_plot(ax, x_max=1e6):
     # then add all the PSF widths. Here we load the PSF and directly measure it's R_eff,
     # so we can have a fair comparison to the clusters
     for cat_loc in sys.argv[5:]:
@@ -494,18 +652,70 @@ def make_mass_size_plot(
             home_dir, psf_size_arcsec, 0, 0, False
         )[0]
         ax.plot(
-            [7e5, 1e6], [psf_size_pc, psf_size_pc], lw=1, c=bpl.almost_black, zorder=3
+            [0.7 * x_max, x_max],
+            [psf_size_pc, psf_size_pc],
+            lw=1,
+            c=bpl.almost_black,
+            zorder=3,
         )
 
+
+def format_mass_size_plot(ax, xmin=1e2, xmax=1e6):
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_limits(1e2, 1e6, 0.1, 40)
+    ax.set_limits(xmin, xmax, 0.1, 40)
     ax.add_labels("Cluster Mass [M$_\odot$]", "Cluster Effective Radius [pc]")
     ax.xaxis.set_ticks_position("both")
     ax.yaxis.set_ticks_position("both")
-    ax.legend(loc=2)
+    ax.legend(loc=2, frameon=False)
 
-    fig.savefig(save_name)
+
+def plot_mass_size_dataset(
+    mass, mass_err_lo, mass_err_hi, r_eff, r_eff_err_lo, r_eff_err_hi, color, label=None
+):
+    ax.scatter(mass, r_eff, alpha=1.0, s=3, c=color, zorder=4, label=label)
+    # Have errorbars separately so they can easily be turned off
+    ax.errorbar(
+        x=mass,
+        y=r_eff,
+        alpha=1.0,
+        markersize=0,
+        yerr=[r_eff_err_lo, r_eff_err_hi],
+        xerr=[mass_err_lo, mass_err_hi],
+        lw=0.1,
+        zorder=3,
+        c=color,
+    )
+
+
+def add_percentile_lines(ax, mass, r_eff, style="moving"):
+    # plot the median and the IQR
+    for percentile in [2.5, 16, 50, 84, 97.5]:
+        if style == "moving":
+            mass_bins, radii_percentile = get_r_percentiles_moving(
+                r_eff, mass, percentile, 100, 50
+            )
+        elif style == "unique":
+            mass_bins, radii_percentile = get_r_percentiles_unique_values(
+                r_eff, mass, percentile
+            )
+        else:
+            raise ValueError("Style not recognized")
+        ax.plot(
+            mass_bins,
+            radii_percentile,
+            c=bpl.almost_black,
+            lw=2 * (1 - (abs(percentile - 50) / 50)) + 0.5,
+            zorder=9,
+        )
+        ax.text(
+            x=mass_bins[0],
+            y=radii_percentile[0],
+            ha="center",
+            va="bottom",
+            s=percentile,
+            fontsize=16,
+        )
 
 
 # ======================================================================================
@@ -514,23 +724,106 @@ def make_mass_size_plot(
 #
 # ======================================================================================
 fit_legus, fit_legus_history = fit_mass_size_relation(
-    log_mass_fit,
-    log_mass_err_lo_fit,
-    log_mass_err_hi_fit,
-    log_r_eff_fit,
-    log_r_eff_err_lo_fit,
-    log_r_eff_err_hi_fit,
+    log_mass_legus,
+    log_mass_err_lo_legus,
+    log_mass_err_hi_legus,
+    log_r_eff_legus,
+    log_r_eff_err_lo_legus,
+    log_r_eff_err_hi_legus,
 )
-make_mass_size_plot(
-    mass_plot,
-    mass_err_lo_plot,
-    mass_err_hi_plot,
-    r_eff_plot,
-    r_eff_err_lo_plot,
-    r_eff_err_hi_plot,
-    fit_legus,
-    plot_name,
+
+fig, ax = bpl.subplots()
+plot_mass_size_dataset(
+    mass_legus,
+    mass_err_lo_legus,
+    mass_err_hi_legus,
+    r_eff_legus,
+    r_eff_err_lo_legus,
+    r_eff_err_hi_legus,
+    bpl.color_cycle[0],
 )
+add_percentile_lines(ax, mass_legus, r_eff_legus)
+plot_best_fit_line(ax, fit_legus)
+add_psfs_to_plot(ax)
+format_mass_size_plot(ax)
+fig.savefig(plot_name)
+
+# Then have another plot with many datasets
+fit_combo, fit_legus_combo = fit_mass_size_relation(
+    np.concatenate([log_mass_legus, log_mass_m31, log_mass_mw_ocs]),
+    np.concatenate(
+        [
+            log_mass_err_lo_legus,
+            log_mass_err_lo_m31,
+            log_mass_err_mw_ocs,
+        ]
+    ),
+    np.concatenate(
+        [
+            log_mass_err_hi_legus,
+            log_mass_err_hi_m31,
+            log_mass_err_mw_ocs,
+        ]
+    ),
+    np.concatenate([log_r_eff_legus, log_r_eff_m31, log_r_eff_mw_ocs]),
+    np.concatenate(
+        [
+            log_r_eff_err_lo_legus,
+            log_r_eff_err_lo_m31,
+            log_r_eff_err_mw_ocs,
+        ]
+    ),
+    np.concatenate(
+        [
+            log_r_eff_err_hi_legus,
+            log_r_eff_err_hi_m31,
+            log_r_eff_err_mw_ocs,
+        ]
+    ),
+)
+fig, ax = bpl.subplots()
+plot_mass_size_dataset(
+    mass_legus,
+    mass_err_lo_legus,
+    mass_err_hi_legus,
+    r_eff_legus,
+    r_eff_err_lo_legus,
+    r_eff_err_hi_legus,
+    bpl.color_cycle[0],
+    "LEGUS",
+)
+plot_mass_size_dataset(
+    mass_m31,
+    mass_err_lo_m31,
+    mass_err_hi_m31,
+    r_eff_m31,
+    r_eff_err_lo_m31,
+    r_eff_err_hi_m31,
+    bpl.color_cycle[3],
+    "M31",
+)
+plot_mass_size_dataset(
+    mass_mw_ocs,
+    mass_err_mw_ocs,
+    mass_err_mw_ocs,
+    r_eff_mw_ocs,
+    r_eff_err_mw_ocs,
+    r_eff_err_mw_ocs,
+    bpl.color_cycle[4],
+    "MW Open Clusters",
+)
+
+add_percentile_lines(
+    ax,
+    np.concatenate([mass_legus, mass_m31, mass_mw_ocs]),
+    np.concatenate([r_eff_legus, r_eff_m31, r_eff_mw_ocs]),
+    style="moving",
+)
+# add_percentile_lines(ax, mass_m31, r_eff_m31, style="unique")
+plot_best_fit_line(ax, fit_combo, 1, 1e7)
+add_psfs_to_plot(ax, x_max=1e7)
+format_mass_size_plot(ax, xmin=1, xmax=1e7)
+fig.savefig(plot_name.parent / "mass_size_combo.png")
 
 # ======================================================================================
 #
