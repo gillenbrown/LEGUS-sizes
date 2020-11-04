@@ -124,6 +124,7 @@ for idx, (field, cat) in enumerate(matches.items()):
     ryon_mask = ryon_eta > 1.3
     my_mask = my_eta > 1.3
     mask = np.logical_and(ryon_mask, my_mask)
+    mask = np.logical_and(mask, cat["r_eff_pc_rmax_15pix_best"] < 20)
 
     c = bpl.color_cycle[idx]
 
@@ -139,7 +140,7 @@ for idx, (field, cat) in enumerate(matches.items()):
         markeredgecolor=c,
         markersize=5,
         ecolor=c,
-        label=field.upper(),
+        label=field.replace("ngc", "NGC "),
         elinewidth=0.5,
         zorder=2,
     )
@@ -152,5 +153,7 @@ ax.plot(limits, limits, c=bpl.almost_black, lw=1, zorder=0)
 ax.equal_scale()
 ax.legend(loc=4)
 ax.easy_add_text(f"RMS = {normalized_rms:.3f}", "upper left")
-ax.add_labels("Cluster $R_{eff}$ [pc] - Ryon+ 2017", "Cluster $R_{eff}$ [pc] - Me")
+ax.add_labels(
+    "Cluster $R_{eff}$ [pc] - Ryon+ 2017", "Cluster $R_{eff}$ [pc] - This Work"
+)
 fig.savefig(plot_name)
