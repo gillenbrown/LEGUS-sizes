@@ -29,12 +29,6 @@ catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[5:]
 # then stack them together in one master catalog
 big_catalog = table.vstack(catalogs, join_type="inner")
 
-# some errors are zero. Adjust these so we can use these datapoints
-mask_max_bad = big_catalog["age_yr"] == big_catalog["age_yr_max"]
-mask_min_bad = big_catalog["age_yr"] == big_catalog["age_yr_min"]
-big_catalog["age_yr_max"][mask_max_bad] = 1.01 * big_catalog["age_yr"][mask_max_bad]
-big_catalog["age_yr_min"][mask_min_bad] = 0.99 * big_catalog["age_yr"][mask_min_bad]
-
 # then filter out some clusters
 print(f"Total Clusters: {len(big_catalog)}")
 
