@@ -8,6 +8,9 @@ data/
 *.png
 *.pdf
 
+# output plots
+plots*/*
+
 # other
 __pycache__
 *.ipynb_checkpoints*

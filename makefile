@@ -50,6 +50,7 @@ mass_size_script = ./analysis/mass_size.py
 age_size_script = ./analysis/age_size.py
 example_plot_script = ./analysis/example_fit.py
 fit_quality_script = ./analysis/fit_quality.py
+galaxy_table_script = ./analysis/galaxy_table.py
 experiment_script = ./testing/experiments.py
 
 # ------------------------------------------------------------------------------
@@ -128,6 +129,7 @@ fit_quality_plot = $(local_plots_dir)fit_quality.png
 plots = $(psf_demo_image) $(psf_comp_plots) $(comparison_plot) \
         $(param_dist_plot) $(all_fields_hist_plot) $(mass_size_plot) \
         $(age_size_plot) $(fit_quality_plot)
+galaxy_table = $(local_plots_dir)galaxy_table.txt
 experiments_sentinel = ./testing/experiments_done.txt
 
 # ------------------------------------------------------------------------------
@@ -137,7 +139,7 @@ experiments_sentinel = ./testing/experiments_done.txt
 # ------------------------------------------------------------------------------
 # https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
 
-all: $(all_my_dirs) $(plots) $(experiments_sentinel)
+all: $(all_my_dirs) $(plots) $(galaxy_table) $(experiments_sentinel)
 
 # When we clean we will only clean the things after the fitting, since that
 # takes so long. The "or true" thing there stops make from throwing an error
@@ -255,6 +257,9 @@ $(example_fit_plot): $(final_cats) $(example_plot_script)
 
 $(fit_quality_plot): $(final_cats) $(fit_quality_script)
 	python $(fit_quality_script) $@ $(run_name) $(final_cats)
+
+$(galaxy_table): $(final_cats) $(galaxy_table_script)
+	python $(galaxy_table_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) $(psf_type) $(final_cats)
 
 $(experiments_sentinel): $(final_cats) $(experiment_script)
 	python $(experiment_script) $@ $(final_cats)
