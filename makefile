@@ -119,13 +119,13 @@ endif
 #
 # ------------------------------------------------------------------------------
 psf_demo_image = $(local_plots_dir)psf_demo_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.pdf
-comparison_plot = $(local_plots_dir)comparison_plot_size_$(fit_region_size).png
-param_dist_plot = $(local_plots_dir)parameter_distribution_size_$(fit_region_size).png
-all_fields_hist_plot = $(local_plots_dir)all_fields_$(fit_region_size).png
-mass_size_plot = $(local_plots_dir)mass_size_relation_$(fit_region_size).png
-age_size_plot = $(local_plots_dir)age_size_relation_$(fit_region_size).png
-example_fit_plot = $(local_plots_dir)example_fit.png
-fit_quality_plot = $(local_plots_dir)fit_quality.png
+comparison_plot = $(local_plots_dir)comparison_plot_size_$(fit_region_size).pdf
+param_dist_plot = $(local_plots_dir)parameter_distribution_size_$(fit_region_size).pdf
+all_fields_hist_plot = $(local_plots_dir)all_fields_$(fit_region_size).pdf
+mass_size_plot = $(local_plots_dir)mass_size_relation_$(fit_region_size).pdf
+age_size_plot = $(local_plots_dir)age_size_relation_$(fit_region_size).pdf
+example_fit_plot = $(local_plots_dir)example_fit.pdf
+fit_quality_plot = $(local_plots_dir)fit_quality.pdf
 plots = $(psf_demo_image) $(psf_comp_plots) $(comparison_plot) \
         $(param_dist_plot) $(all_fields_hist_plot) $(mass_size_plot) \
         $(age_size_plot) $(fit_quality_plot)
