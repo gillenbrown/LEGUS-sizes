@@ -32,6 +32,45 @@ catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[5:]
 # then stack them together in one master catalog
 big_catalog = table.vstack(catalogs, join_type="inner")
 
+# ======================================================================================
+#
+# open the file to write fitting results to
+#
+# ======================================================================================
+fit_out_file = open(plot_name.parent / "fits_table.txt", "w")
+fit_out_file.write("\t\\begin{tabular}{lllll}\n")
+fit_out_file.write("\t\t\\toprule\n")
+fit_out_file.write(
+    "\t\tSelection & "
+    "$N$ & "
+    "Slope & "
+    "$\\reff(10^4  M_\odot)$ & "
+    "Intrinsic Scatter \\\\ \n"
+)
+fit_out_file.write("\t\t\midrule\n")
+
+
+def write_fit_results(name, number, best_fit_params, fit_history):
+    print_str = f"\t\t{name} & {number}"
+    # the second parameter is the log of clusters at 10^4. Put it back to linear space
+    best_fit_params[1] = 10 ** best_fit_params[1]
+    fit_history[1] = [10 ** f for f in fit_history[1]]
+    for idx in range(len(best_fit_params)):
+        std = np.std(fit_history[idx])
+        print_str += f" & {best_fit_params[idx]:.3f} $\pm$ {std:.3f}"
+    print_str += "\\\\ \n"
+    fit_out_file.write(print_str)
+
+
+def out_file_spacer():
+    fit_out_file.write("\t\t\midrule\n")
+
+
+# ======================================================================================
+#
+# start parsing my catalogs
+#
+# ======================================================================================
 # then filter out some clusters
 print(f"Total Clusters: {len(big_catalog)}")
 mask = big_catalog["good"]
@@ -758,16 +797,6 @@ def add_percentile_lines(ax, mass, r_eff, style="moving"):
         )
 
 
-def print_fit_results(name, best_fit_params, fit_history):
-    print_str = ""
-    for idx in range(len(best_fit_params)):
-        mean = best_fit_params[idx]
-        std = np.std(fit_history[idx])
-        print_str += f"{mean:.2f} +- {std:.2f} "
-    print_str += name
-    print(print_str)
-
-
 # ======================================================================================
 #
 # Then actually make different versions of this plot
@@ -800,21 +829,22 @@ add_percentile_lines(ax, mass_legus, r_eff_legus)
 plot_best_fit_line(ax, fit_legus, 1e2, 1e5)
 format_mass_size_plot(ax)
 fig.savefig(plot_name)
-print_fit_results("Full Sample", fit_legus, fit_legus_history)
+write_fit_results("Full LEGUS Sample", len(r_eff_legus), fit_legus, fit_legus_history)
+out_file_spacer()
 
 # --------------------------------------------------------------------------------------
 # Then various age split - young clusters
 # --------------------------------------------------------------------------------------
 mask_young = age_legus < 1e7
 mask_med = age_legus >= 1e7
-mask_med = np.logical_and(mask_med, age_legus <= 1e8)
-mask_old = age_legus > 1e8
+mask_med = np.logical_and(mask_med, age_legus < 1e8)
+mask_old = age_legus >= 1e8
 
 fig, ax = bpl.subplots()
 for mask, lower, name, color in zip(
     [mask_young, mask_med, mask_old],
     [1e2, 1e3, 1e3],
-    ["Age < 10 Myr", "10 Myr < Age < 100 Myr", "100 Myr < Age"],
+    ["Age $<$ 10 Myr", "10 Myr $\leq$ Age $<$ 100 Myr", "100 Myr $\leq$ Age"],
     [bpl.color_cycle[0], bpl.color_cycle[3], bpl.color_cycle[4]],
 ):
     fit_this, fit_this_history = fit_mass_size_relation(
@@ -840,14 +870,52 @@ for mask, lower, name, color in zip(
     )
     # add_percentile_lines(ax, mass_legus[mask], r_eff_legus[mask])
     plot_best_fit_line(ax, fit_this, lower, 1e5, color, fill=False, label=name)
-    print_fit_results(name, fit_this, fit_this_history)
+    write_fit_results(name, np.sum(mask), fit_this, fit_this_history)
 format_mass_size_plot(ax)
 fig.savefig(plot_name.parent / "mass_size_relation_agesplit.png")
+out_file_spacer()
 
 # --------------------------------------------------------------------------------------
-# Then all the datasets
+# Then adding different datasets
 # --------------------------------------------------------------------------------------
-fit_combo, fit_legus_combo = fit_mass_size_relation(
+fit_legus_m31, fit_legus_m31_history = fit_mass_size_relation(
+    np.concatenate([log_mass_legus, log_mass_m31]),
+    np.concatenate([log_mass_err_lo_legus, log_mass_err_lo_m31]),
+    np.concatenate([log_mass_err_hi_legus, log_mass_err_hi_m31]),
+    np.concatenate([log_r_eff_legus, log_r_eff_m31]),
+    np.concatenate([log_r_eff_err_lo_legus, log_r_eff_err_lo_m31]),
+    np.concatenate([log_r_eff_err_hi_legus, log_r_eff_err_hi_m31]),
+    fit_mass_lower_limit=1,
+    fit_mass_upper_limit=1e5,
+)
+write_fit_results(
+    "LEGUS + M31",
+    len(log_mass_legus) + len(log_mass_m31),
+    fit_legus_m31,
+    fit_legus_m31_history,
+)
+
+fit_legus_mw, fit_legus_mw_history = fit_mass_size_relation(
+    np.concatenate([log_mass_legus, log_mass_mw_ocs]),
+    np.concatenate([log_mass_err_lo_legus, log_mass_err_mw_ocs]),
+    np.concatenate([log_mass_err_hi_legus, log_mass_err_mw_ocs]),
+    np.concatenate([log_r_eff_legus, log_r_eff_mw_ocs]),
+    np.concatenate([log_r_eff_err_lo_legus, log_r_eff_err_mw_ocs]),
+    np.concatenate([log_r_eff_err_hi_legus, log_r_eff_err_mw_ocs]),
+    fit_mass_lower_limit=1,
+    fit_mass_upper_limit=1e5,
+)
+write_fit_results(
+    "LEGUS + MW",
+    len(log_mass_legus) + len(log_mass_mw_ocs),
+    fit_legus_mw,
+    fit_legus_mw_history,
+)
+
+# --------------------------------------------------------------------------------------
+# Then all datasets, with a plot
+# --------------------------------------------------------------------------------------
+fit_legus_mw_m31, fit_legus_mw_m31_history = fit_mass_size_relation(
     np.concatenate([log_mass_legus, log_mass_m31, log_mass_mw_ocs]),
     np.concatenate(
         [
@@ -922,10 +990,16 @@ add_percentile_lines(
     np.concatenate([r_eff_legus, r_eff_m31, r_eff_mw_ocs]),
 )
 # add_percentile_lines(ax, mass_m31, r_eff_m31, style="unique")
-plot_best_fit_line(ax, fit_combo, 1, 1e5)
+plot_best_fit_line(ax, fit_legus_mw_m31, 1, 1e5)
 # add_psfs_to_plot(ax, x_max=1e7)
 format_mass_size_plot(ax, xmin=1, xmax=1e7)
-fig.savefig(plot_name.parent / "mass_size_combo.png")
+write_fit_results(
+    "LEGUS + M31 + MW",
+    len(mass_m31) + len(mass_legus) + len(mass_mw_ocs),
+    fit_legus_mw_m31,
+    fit_legus_mw_m31_history,
+)
+fig.savefig(plot_name.parent / "mass_size_legus_m31_mw.png")
 
 # ======================================================================================
 #
@@ -972,3 +1046,12 @@ ax.add_labels("Cluster Effective Radius / PSF Effective Radius", "Number of Clus
 ax.xaxis.set_ticks_position("both")
 ax.yaxis.set_ticks_position("both")
 fig.savefig(plot_name.parent / "r_eff_over_psf.png", bbox_inches="tight")
+
+# ======================================================================================
+#
+# finalize output file
+#
+# ======================================================================================
+fit_out_file.write("\t\t\\bottomrule\n")
+fit_out_file.write("\t\end{tabular}\n")
+fit_out_file.close()
