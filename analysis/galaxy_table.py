@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+from scipy import interpolate, optimize
 from astropy.io import fits
 from astropy import table
 
@@ -56,31 +57,40 @@ def measure_psf_reff(home_dir):
     )
 
     psf = fits.open(home_dir / "size" / psf_name)["PRIMARY"].data
-    # the center is the central pixel of the image
-    x_cen = int((psf.shape[1] - 1.0) / 2.0)
-    y_cen = int((psf.shape[0] - 1.0) / 2.0)
+    # the center is the brightest pixel of the image
+    x_cen, y_cen = np.unravel_index(np.argmax(psf), psf.shape)
     total = np.sum(psf)
     half_light = total / 2.0
     # then go through all the pixel values to determine the distance from the center.
-    # Then we can go through them in order to determine the half mass radius
-    radii = []
-    values = []
+    # Since we're using the center pixel (on an integer value), different pixels
+    # will have identical distances. Add all the pixels at the same distance together
+    unique_values = dict()
     for x in range(psf.shape[1]):
-        for y in range(psf.shape[1]):
+        for y in range(psf.shape[0]):
             # need to include the oversampling factor in the distance
-            radii.append(distance(x, y, x_cen, y_cen) / oversampling_factor)
-            values.append(psf[y][x])
+            radius = distance(x, y, x_cen, y_cen) / oversampling_factor
+            if radius not in unique_values:
+                unique_values[radius] = 0
+            unique_values[radius] += psf[y][x]
 
+    # Then sort the radii
+    radii, values = [], []
+    for r, v in unique_values.items():
+        radii.append(r)
+        values.append(v)
     idxs_sort = np.argsort(radii)
     sorted_radii = np.array(radii)[idxs_sort]
     sorted_values = np.array(values)[idxs_sort]
 
-    cumulative_light = 0
-    for idx in range(len(sorted_radii)):
-        cumulative_light += sorted_values[idx]
-        if cumulative_light >= half_light:
-            psf_size_pixels = sorted_radii[idx]
-            break
+    # then turn this into cumulative light
+    cumulative_light = np.cumsum(sorted_values)
+    # then to find where we cross 1/2, create an interpolation object
+    cum_interp = interpolate.interp1d(x=sorted_radii, y=cumulative_light, kind="linear")
+    # find where it reaches half
+    def to_minimize(r_half):
+        return abs(cum_interp(r_half) - half_light)
+
+    psf_size_pixels = optimize.minimize(to_minimize, x0=1.5, bounds=[[0, 5]]).x[0]
 
     # then convert to pc
     psf_size_arcsec = utils.pixels_to_arcsec(psf_size_pixels, home_dir)
