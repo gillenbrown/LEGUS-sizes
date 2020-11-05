@@ -306,7 +306,7 @@ param_std_last = [np.inf for _ in range(n_variables)]
 
 converge_criteria = 0.2  # fractional change in std required for convergence
 converged = [False for _ in range(n_variables)]
-check_spacing = 20  # how many iterations between checking the std
+check_spacing = 2  # how many iterations between checking the std
 iteration = 0
 while not all(converged):
     iteration += 1

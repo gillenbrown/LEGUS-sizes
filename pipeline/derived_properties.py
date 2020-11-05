@@ -799,6 +799,8 @@ del fits_catalog["fractional_err+"]
 
 # Then we determine which clusters are good. First we do simple checks based on the
 # parameter values
+fits_catalog["not_failure"] = True
+fits_catalog["good"] = True
 masks = []
 masks.append(fits_catalog["axis_ratio_best"] > 0.3)
 masks.append(fits_catalog["scale_radius_pixels_best"] > 0.1)
@@ -809,12 +811,14 @@ masks.append(fits_catalog["x_pix_snapshot_oversampled_best"] > 26.1)
 masks.append(fits_catalog["x_pix_snapshot_oversampled_best"] < 33.9)
 masks.append(fits_catalog["y_pix_snapshot_oversampled_best"] > 26.10)
 masks.append(fits_catalog["y_pix_snapshot_oversampled_best"] < 33.9)
-# Then we use the boundaries for the quality measure of the cumulative distribution
-masks.append(fits_catalog["profile_diff_reff"] < 0.09455432398891235)
-# then combine them all together
-fits_catalog["good"] = True
+# then combine them all together before the quality cut
 for mask in masks:
-    fits_catalog["good"] = np.logical_and(fits_catalog["good"], mask)
+    fits_catalog["not_failure"] = np.logical_and(fits_catalog["not_failure"], mask)
+
+# Then we use the boundaries for the quality measure of the cumulative distribution
+mask_pass_cut = fits_catalog["profile_diff_reff"] < 0.06452328484307997
+# then combine them all together
+fits_catalog["good"] = np.logical_and(fits_catalog["not_failure"], mask_pass_cut)
 
 # Then add one back to the output catalog to be comparable to LEGUS results. This is
 # because of Python being zero indexed
