@@ -44,7 +44,7 @@ fit_out_file.write(
     "\t\tSelection & "
     "$N$ & "
     "Slope & "
-    "$\\reff(10^4  M_\odot)$ & "
+    "$\\reff$(pc) at $10^4\Msun$ & "
     "Intrinsic Scatter \\\\ \n"
 )
 fit_out_file.write("\t\t\midrule\n")
@@ -661,7 +661,7 @@ def plot_best_fit_line(
         10 ** plot_log_radii,
         c=color,
         lw=4,
-        zorder=10,
+        zorder=8,
         label=label,
     )
     if fill:
@@ -763,7 +763,7 @@ def plot_mass_size_dataset(
     )
 
 
-def add_percentile_lines(ax, mass, r_eff, style="moving"):
+def add_percentile_lines(ax, mass, r_eff, style="moving", color=bpl.almost_black):
     # plot the median and the IQR
     for percentile in [5, 25, 75, 95]:
         if style == "moving":
@@ -783,17 +783,18 @@ def add_percentile_lines(ax, mass, r_eff, style="moving"):
         ax.plot(
             mass_bins,
             radii_percentile,
-            c=bpl.almost_black,
+            c=color,
             lw=3 * (1 - (abs(percentile - 50) / 50)) + 0.5,
             zorder=9,
         )
         ax.text(
             x=mass_bins[0],
             y=radii_percentile[0],
-            ha="center",
-            va="bottom",
+            ha="right",
+            va="center",
             s=percentile,
             fontsize=16,
+            zorder=100,
         )
 
 
@@ -868,7 +869,7 @@ for mask, lower, name, color in zip(
         r_eff_err_hi_legus[mask],
         color,
     )
-    # add_percentile_lines(ax, mass_legus[mask], r_eff_legus[mask])
+    add_percentile_lines(ax, mass_legus[mask], r_eff_legus[mask], color=color)
     plot_best_fit_line(ax, fit_this, lower, 1e5, color, fill=False, label=name)
     write_fit_results(name, np.sum(mask), fit_this, fit_this_history)
 format_mass_size_plot(ax)
