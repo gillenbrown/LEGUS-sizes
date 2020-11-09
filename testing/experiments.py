@@ -40,6 +40,20 @@ big_catalog = table.vstack(catalogs, join_type="inner")
 # Experiments start here
 #
 # ======================================================================================
+
+
+def get_r_percentiles_unique_values(radii, ages, percentile):
+    # get the unique ages
+    unique_ages = np.unique(ages)
+    # cut off values above 1e9
+    unique_ages = unique_ages[unique_ages <= 1e9]
+    radii_percentiles = []
+    for age in unique_ages:
+        mask = ages == age
+        radii_percentiles.append(np.percentile(radii[mask], percentile))
+    return unique_ages, radii_percentiles
+
+
 mask = big_catalog["good"]
 
 print(f"Clusters with good fits: {np.sum(mask)}")
@@ -68,16 +82,42 @@ r_eff_err_lo_legus = big_catalog["r_eff_pc_rmax_15pix_e-"][mask]
 age_err_hi_legus = big_catalog["age_yr_max"][mask] - age_legus
 age_err_lo_legus = age_legus - big_catalog["age_yr_min"][mask]
 
-fig, ax = bpl.subplots(figsize=[8, 8])
-ax.scatter(mass_legus, age_legus, alpha=1.0, s=3, zorder=4, c=bpl.color_cycle[0])
+fig, ax = bpl.subplots(figsize=[8, 7])
+ax.scatter(
+    age_legus * np.random.normal(1, 0.07, len(age_legus)),
+    mass_legus,
+    alpha=1.0,
+    s=3,
+    zorder=4,
+    c=bpl.color_cycle[0],
+)
 
+for p in [10, 50, 90]:
+    age_bins, mass_percentiles = get_r_percentiles_unique_values(
+        mass_legus, age_legus, p
+    )
+    ax.plot(
+        age_bins,
+        mass_percentiles,
+        c=bpl.almost_black,
+        lw=2 * (1 - (abs(p - 50) / 50)) + 2,
+        zorder=9,
+    )
+    ax.text(
+        x=0.8 * age_bins[0],
+        y=mass_percentiles[0],
+        ha="right",
+        va="center",
+        s=p,
+        fontsize=16,
+        zorder=100,
+    )
 ax.set_xscale("log")
 ax.set_yscale("log")
-ax.set_limits(10, 1e7, 5e5, 20e9)
-ax.add_labels("Cluster Mass [M$_\odot$]", "Cluster Age [yr]")
+ax.set_limits(5e5, 20e9, 10, 1e7)
+ax.add_labels("Cluster Age [yr]", "Cluster Mass [M$_\odot$]")
 ax.xaxis.set_ticks_position("both")
 ax.yaxis.set_ticks_position("both")
-ax.equal_scale()
 fig.savefig(Path.home() / "Desktop" / "age_mass.png", bbox_inches="tight")
 
 # # ======================================================================================
