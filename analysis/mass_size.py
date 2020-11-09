@@ -837,9 +837,8 @@ out_file_spacer()
 # Then various age split - young clusters
 # --------------------------------------------------------------------------------------
 mask_young = age_legus < 1e7
-mask_med = age_legus >= 1e7
-mask_med = np.logical_and(mask_med, age_legus < 1e8)
-mask_old = age_legus >= 1e8
+mask_med = np.logical_and(age_legus >= 1e7, age_legus < 1e8)
+mask_old = np.logical_and(age_legus >= 1e8, age_legus < 1e9)
 
 fig, ax = bpl.subplots()
 for mask, name, color in zip(
