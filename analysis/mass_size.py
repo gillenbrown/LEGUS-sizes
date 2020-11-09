@@ -669,7 +669,8 @@ def plot_best_fit_line(
             x=10 ** plot_log_masses,
             y1=10 ** (plot_log_radii - best_fit_params[2]),
             y2=10 ** (plot_log_radii + best_fit_params[2]),
-            color="0.9",
+            color=color,
+            alpha=0.5,
             zorder=0,
             label="$\sigma_{int}$" + f" = {best_fit_params[2]:.2f} dex",
         )
