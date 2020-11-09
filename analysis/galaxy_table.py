@@ -130,11 +130,12 @@ def get_iqr_string(cat):
 
 
 with open(output_name, "w") as out_file:
-    out_file.write("\t\\begin{tabular}{lrcc}\n")
+    out_file.write("\t\\begin{tabular}{lrccc}\n")
     out_file.write("\t\t\\toprule\n")
     out_file.write(
         "\t\tLEGUS Field & "
         "Number of Clusters & "
+        "Distance (Mpc) & "
         "PSF size (pc) & "
         "Cluster $\\reff$: 25---50---75th percentiles \\\\ \n"
     )
@@ -142,16 +143,26 @@ with open(output_name, "w") as out_file:
     for home_dir, cat in catalogs.items():
         galaxy = format_galaxy_name(home_dir)
         n = len(cat)
+        dist = utils.distance(home_dir).to("Mpc").value
+        dist_err = utils.distance_error(home_dir).to("Mpc").value
+        dist_str = f"{dist:.2f} $\pm$ {dist_err:.2f}"
         this_psf_size = psf_sizes[home_dir]
         iqr_str = get_iqr_string(cat)
 
-        out_file.write(f"\t\t{galaxy} & {n} & {this_psf_size:.2f} & {iqr_str} \\\\ \n")
+        out_file.write(
+            f"\t\t{galaxy} & "
+            f"{n} & "
+            f"{dist_str} & "
+            f"{this_psf_size:.2f} "
+            f"& {iqr_str} "
+            f"\\\\ \n"
+        )
 
     out_file.write("\t\t\midrule\n")
     # get the total values
     total_n = len(big_catalog)
     total_iqr = get_iqr_string(big_catalog)
-    out_file.write(f"\t\tTotal & {total_n} & --- & {total_iqr} \\\\ \n")
+    out_file.write(f"\t\tTotal & {total_n} & --- & --- & {total_iqr} \\\\ \n")
 
     out_file.write("\t\t\\bottomrule\n")
     out_file.write("\t\end{tabular}\n")
