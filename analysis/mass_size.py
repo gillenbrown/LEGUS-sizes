@@ -842,10 +842,9 @@ mask_med = np.logical_and(mask_med, age_legus < 1e8)
 mask_old = age_legus >= 1e8
 
 fig, ax = bpl.subplots()
-for mask, lower, name, color in zip(
+for mask, name, color in zip(
     [mask_young, mask_med, mask_old],
-    [1e2, 1e3, 1e3],
-    ["Age $<$ 10 Myr", "10 Myr $\leq$ Age $<$ 100 Myr", "100 Myr $\leq$ Age"],
+    ["Age: 1-10 Myr", "Age: 10-100 Myr", "Age: 100 Myr - 1 Gyr"],
     [bpl.color_cycle[0], bpl.color_cycle[3], bpl.color_cycle[4]],
 ):
     fit_this, fit_this_history = fit_mass_size_relation(
@@ -855,7 +854,7 @@ for mask, lower, name, color in zip(
         log_r_eff_legus[mask],
         log_r_eff_err_lo_legus[mask],
         log_r_eff_err_hi_legus[mask],
-        fit_mass_lower_limit=lower,
+        fit_mass_lower_limit=1,
         fit_mass_upper_limit=1e5,
     )
 
@@ -870,7 +869,7 @@ for mask, lower, name, color in zip(
         color,
     )
     add_percentile_lines(ax, mass_legus[mask], r_eff_legus[mask], color=color)
-    plot_best_fit_line(ax, fit_this, lower, 1e5, color, fill=False, label=name)
+    plot_best_fit_line(ax, fit_this, 1, 1e5, color, fill=False, label=name)
     write_fit_results(name, np.sum(mask), fit_this, fit_this_history)
 format_mass_size_plot(ax)
 fig.savefig(plot_name.parent / "mass_size_relation_agesplit.png")
