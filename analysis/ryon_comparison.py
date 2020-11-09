@@ -92,8 +92,13 @@ total_rms = 0
 num_clusters = 0
 
 for field, cat in matches.items():
+    ryon_mask_good = cat["Eta"] > 1.3
+    my_mask_good = np.logical_and(cat["power_law_slope_best"] > 1.3, cat["good"])
+    cat["good_for_plot"] = np.logical_and(ryon_mask_good, my_mask_good)
+
+for field, cat in matches.items():
     for row in cat:
-        if row["Eta"] > 1.3 and row["power_law_slope_best"] > 1.3:
+        if row["good_for_plot"]:
             my_r_eff = row["r_eff_pc_rmax_15pix_best"]
             ryon_r_eff = row["r_eff_Galfit"]
             if my_r_eff > ryon_r_eff:
@@ -102,11 +107,10 @@ for field, cat in matches.items():
             else:
                 ryon_err = row["e_r_eff-_Galfit"]
                 my_err = row["r_eff_pc_rmax_15pix_e+"]
-            used_err = max(ryon_err, my_err)
+            used_err = np.sqrt(ryon_err ** 2 + my_err ** 2)
             diff = (my_r_eff - ryon_r_eff) / used_err
-            if diff < 10:
-                total_rms += ((my_r_eff - ryon_r_eff) / used_err) ** 2
-                num_clusters += 1
+            total_rms += ((my_r_eff - ryon_r_eff) / used_err) ** 2
+            num_clusters += 1
 
 normalized_rms = np.sqrt(total_rms / num_clusters)
 
@@ -119,12 +123,7 @@ limits = 0.3, 20
 # First we'll make a straight comparison
 fig, ax = bpl.subplots(figsize=[7, 7])
 for idx, (field, cat) in enumerate(matches.items()):
-    ryon_eta = cat["Eta"]
-    my_eta = cat["power_law_slope_best"]
-    ryon_mask = ryon_eta > 1.3
-    my_mask = my_eta > 1.3
-    mask = np.logical_and(ryon_mask, my_mask)
-    mask = np.logical_and(mask, cat["r_eff_pc_rmax_15pix_best"] < 20)
+    mask = cat["good_for_plot"]
 
     c = bpl.color_cycle[idx]
 
