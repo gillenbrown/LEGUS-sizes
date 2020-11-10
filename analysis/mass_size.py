@@ -10,6 +10,7 @@ from astropy.io import fits
 from astropy import units as u
 from astropy import constants as c
 from scipy import optimize
+from matplotlib import colors
 import betterplotlib as bpl
 
 # need to add the correct path to import utils
@@ -599,6 +600,41 @@ def get_r_percentiles_unique_values(radii, ages, percentile):
     return unique_ages, radii_percentiles
 
 
+def add_percentile_lines(ax, mass, r_eff, style="moving", color=bpl.almost_black):
+    # plot the median and the IQR
+    for percentile in [5, 25, 75, 95]:
+        if style == "moving":
+            mass_bins, radii_percentile = get_r_percentiles_moving(
+                r_eff, mass, percentile, 200, 200
+            )
+        elif style == "unique":
+            mass_bins, radii_percentile = get_r_percentiles_unique_values(
+                r_eff, mass, percentile
+            )
+        elif style == "fixed_width":
+            mass_bins, radii_percentile = get_r_percentiles(
+                r_eff, mass, percentile, 0.1
+            )
+        else:
+            raise ValueError("Style not recognized")
+        ax.plot(
+            mass_bins,
+            radii_percentile,
+            c=color,
+            lw=3 * (1 - (abs(percentile - 50) / 50)) + 0.5,
+            zorder=9,
+        )
+        ax.text(
+            x=mass_bins[0],
+            y=radii_percentile[0],
+            ha="right",
+            va="center",
+            s=percentile,
+            fontsize=16,
+            zorder=100,
+        )
+
+
 def distance(x1, y1, x2, y2):
     return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
@@ -628,6 +664,35 @@ def measure_psf_reff(psf):
         cumulative_light += sorted_values[idx]
         if cumulative_light >= half_light:
             return sorted_radii[idx]
+
+
+def add_psfs_to_plot(ax, x_max=1e6):
+    # then add all the PSF widths. Here we load the PSF and directly measure it's R_eff,
+    # so we can have a fair comparison to the clusters
+    for cat_loc in sys.argv[5:]:
+        size_home_dir = Path(cat_loc).parent
+        home_dir = size_home_dir.parent
+
+        psf_name = (
+            f"psf_"
+            f"{psf_source}_stars_"
+            f"{psf_width}_pixels_"
+            f"{oversampling_factor}x_oversampled.fits"
+        )
+
+        psf = fits.open(size_home_dir / psf_name)["PRIMARY"].data
+        psf_size_pixels = measure_psf_reff(psf)
+        psf_size_arcsec = utils.pixels_to_arcsec(psf_size_pixels, home_dir)
+        psf_size_pc = utils.arcsec_to_pc_with_errors(
+            home_dir, psf_size_arcsec, 0, 0, False
+        )[0]
+        ax.plot(
+            [0.7 * x_max, x_max],
+            [psf_size_pc, psf_size_pc],
+            lw=1,
+            c=bpl.almost_black,
+            zorder=3,
+        )
 
 
 def plot_best_fit_line(
@@ -699,46 +764,7 @@ def plot_best_fit_line(
     # )
 
 
-def add_psfs_to_plot(ax, x_max=1e6):
-    # then add all the PSF widths. Here we load the PSF and directly measure it's R_eff,
-    # so we can have a fair comparison to the clusters
-    for cat_loc in sys.argv[5:]:
-        size_home_dir = Path(cat_loc).parent
-        home_dir = size_home_dir.parent
-
-        psf_name = (
-            f"psf_"
-            f"{psf_source}_stars_"
-            f"{psf_width}_pixels_"
-            f"{oversampling_factor}x_oversampled.fits"
-        )
-
-        psf = fits.open(size_home_dir / psf_name)["PRIMARY"].data
-        psf_size_pixels = measure_psf_reff(psf)
-        psf_size_arcsec = utils.pixels_to_arcsec(psf_size_pixels, home_dir)
-        psf_size_pc = utils.arcsec_to_pc_with_errors(
-            home_dir, psf_size_arcsec, 0, 0, False
-        )[0]
-        ax.plot(
-            [0.7 * x_max, x_max],
-            [psf_size_pc, psf_size_pc],
-            lw=1,
-            c=bpl.almost_black,
-            zorder=3,
-        )
-
-
-def format_mass_size_plot(ax, xmin=1e2, xmax=1e6):
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_limits(xmin, xmax, 0.1, 40)
-    ax.add_labels("Cluster Mass [M$_\odot$]", "Cluster Effective Radius [pc]")
-    ax.xaxis.set_ticks_position("both")
-    ax.yaxis.set_ticks_position("both")
-    ax.legend(loc=2, frameon=False)
-
-
-def plot_mass_size_dataset(
+def plot_mass_size_dataset_scatter(
     ax,
     mass,
     mass_err_lo,
@@ -764,39 +790,81 @@ def plot_mass_size_dataset(
     )
 
 
-def add_percentile_lines(ax, mass, r_eff, style="moving", color=bpl.almost_black):
-    # plot the median and the IQR
-    for percentile in [5, 25, 75, 95]:
-        if style == "moving":
-            mass_bins, radii_percentile = get_r_percentiles_moving(
-                r_eff, mass, percentile, 200, 200
-            )
-        elif style == "unique":
-            mass_bins, radii_percentile = get_r_percentiles_unique_values(
-                r_eff, mass, percentile
-            )
-        elif style == "fixed_width":
-            mass_bins, radii_percentile = get_r_percentiles(
-                r_eff, mass, percentile, 0.1
-            )
-        else:
-            raise ValueError("Style not recognized")
-        ax.plot(
-            mass_bins,
-            radii_percentile,
-            c=color,
-            lw=3 * (1 - (abs(percentile - 50) / 50)) + 0.5,
-            zorder=9,
-        )
-        ax.text(
-            x=mass_bins[0],
-            y=radii_percentile[0],
-            ha="right",
-            va="center",
-            s=percentile,
-            fontsize=16,
-            zorder=100,
-        )
+def create_color_cmap(hex_color, min_saturation=0.1, max_value=0.8):
+    """
+    Create a colormap that fades from one color to nearly white.
+
+    This is done by converting the color to HSV, then decreasing the saturation while
+    increasing the value (which makes it closer to white)
+
+    :param hex_color: Original starting color, must be in hex format
+    :param min_saturation: The saturation of the point farthest from the original color
+    :param max_value: The value of the point farthest from the original color
+    :return: A matplotilb colormap. Calling it with 0 returns the color specififed
+             by `min_saturation` and `max_value` while keeping the same hue, while
+             1 will return the original color.
+    """
+    # convert to HSV (rgb required as an intermediate)
+    base_color_rgb = colors.hex2color(hex_color)
+    h, s, v = colors.rgb_to_hsv(base_color_rgb)
+    N = 256  # number of points in final colormap
+    # reduce the saturation and up the brightness. Start from the outer values, as these
+    # will correspond to 0, while the original color will be 1
+    saturations = np.linspace(min_saturation, s, N)
+    values = np.linspace(max_value, v, N)
+    out_xs = np.linspace(0, 1, N)
+
+    # set up the weird format required by LinearSegmentedColormap
+    cmap_dict = {"red": [], "blue": [], "green": []}
+    for idx in range(N):
+        r, g, b = colors.hsv_to_rgb((h, saturations[idx], values[idx]))
+        out_x = out_xs[idx]
+        # LinearSegmentedColormap requires a weird format. I don't think the difference
+        # in the last two values matters, it seems to work fine without it.
+        cmap_dict["red"].append((out_x, r, r))
+        cmap_dict["green"].append((out_x, g, g))
+        cmap_dict["blue"].append((out_x, b, b))
+    return colors.LinearSegmentedColormap(hex_color, cmap_dict, N=256)
+
+
+def plot_mass_size_dataset_contour(
+    ax,
+    mass,
+    log_mass_err_lo,
+    log_mass_err_hi,
+    r_eff,
+    log_r_eff_err_lo,
+    log_r_eff_err_hi,
+    color,
+):
+    cmap = create_color_cmap(color)
+    # use median errors as the smoothing. First get mean min and max of all clusters,
+    # then take the median of that
+    # k = 1.25
+    # x_smoothing = k * np.median(np.mean([log_r_eff_err_lo, log_r_eff_err_hi], axis=0))
+    # y_smoothing = k * np.median(np.mean([log_mass_err_lo, log_mass_err_hi], axis=0))
+    x_smoothing = 0.06
+    y_smoothing = 0.06
+
+    common = {
+        "percent_levels": [0.5, 0.9],
+        "smoothing": [x_smoothing, y_smoothing],  # dex
+        "bin_size": 0.01,  # dex
+        "log": True,
+        "cmap": cmap,
+    }
+    ax.density_contourf(mass, r_eff, alpha=0.6, **common)
+    ax.density_contour(mass, r_eff, zorder=20, **common)
+
+
+def format_mass_size_plot(ax, xmin=1e2, xmax=1e6):
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_limits(xmin, xmax, 0.1, 40)
+    ax.add_labels("Cluster Mass [M$_\odot$]", "Cluster Effective Radius [pc]")
+    ax.xaxis.set_ticks_position("both")
+    ax.yaxis.set_ticks_position("both")
+    ax.legend(loc=2, frameon=False)
 
 
 # ======================================================================================
@@ -817,7 +885,7 @@ fit_legus, fit_legus_history = fit_mass_size_relation(
 )
 
 fig, ax = bpl.subplots()
-plot_mass_size_dataset(
+plot_mass_size_dataset_scatter(
     ax,
     mass_legus,
     mass_err_lo_legus,
@@ -845,7 +913,7 @@ fig, ax = bpl.subplots()
 for mask, name, color in zip(
     [mask_young, mask_med, mask_old],
     ["Age: 1-10 Myr", "Age: 10-100 Myr", "Age: 100 Myr - 1 Gyr"],
-    [bpl.color_cycle[0], bpl.color_cycle[3], bpl.color_cycle[4]],
+    [bpl.color_cycle[0], bpl.color_cycle[5], bpl.color_cycle[3]],
 ):
     fit_this, fit_this_history = fit_mass_size_relation(
         log_mass_legus[mask],
@@ -858,17 +926,17 @@ for mask, name, color in zip(
         fit_mass_upper_limit=1e5,
     )
 
-    plot_mass_size_dataset(
+    plot_mass_size_dataset_contour(
         ax,
         mass_legus[mask],
-        mass_err_lo_legus[mask],
-        mass_err_hi_legus[mask],
+        log_mass_err_lo_legus[mask],
+        log_mass_err_hi_legus[mask],
         r_eff_legus[mask],
-        r_eff_err_lo_legus[mask],
-        r_eff_err_hi_legus[mask],
+        log_r_eff_err_lo_legus[mask],
+        log_r_eff_err_hi_legus[mask],
         color,
     )
-    add_percentile_lines(ax, mass_legus[mask], r_eff_legus[mask], color=color)
+    # add_percentile_lines(ax, mass_legus[mask], r_eff_legus[mask], color=color)
     plot_best_fit_line(ax, fit_this, 1, 1e5, color, fill=False, label=name)
     write_fit_results(name, np.sum(mask), fit_this, fit_this_history)
 format_mass_size_plot(ax)
@@ -950,7 +1018,7 @@ fit_legus_mw_m31, fit_legus_mw_m31_history = fit_mass_size_relation(
     fit_mass_upper_limit=1e5,
 )
 fig, ax = bpl.subplots()
-plot_mass_size_dataset(
+plot_mass_size_dataset_scatter(
     ax,
     mass_legus,
     mass_err_lo_legus,
@@ -961,7 +1029,7 @@ plot_mass_size_dataset(
     bpl.color_cycle[0],
     "LEGUS",
 )
-plot_mass_size_dataset(
+plot_mass_size_dataset_scatter(
     ax,
     mass_m31,
     mass_err_lo_m31,
@@ -972,7 +1040,7 @@ plot_mass_size_dataset(
     bpl.color_cycle[3],
     "M31",
 )
-plot_mass_size_dataset(
+plot_mass_size_dataset_scatter(
     ax,
     mass_mw_ocs,
     mass_err_mw_ocs,
@@ -999,7 +1067,7 @@ write_fit_results(
     fit_legus_mw_m31,
     fit_legus_mw_m31_history,
 )
-fig.savefig(plot_name.parent / "mass_size_legus_m31_mw.png")
+fig.savefig(plot_name.parent / "mass_size_legus_m31_mw.pdf")
 
 # ======================================================================================
 #
@@ -1045,7 +1113,7 @@ ax.set_limits(0.1, 10)
 ax.add_labels("Cluster Effective Radius / PSF Effective Radius", "Number of Clusters")
 ax.xaxis.set_ticks_position("both")
 ax.yaxis.set_ticks_position("both")
-fig.savefig(plot_name.parent / "r_eff_over_psf.png", bbox_inches="tight")
+fig.savefig(plot_name.parent / "r_eff_over_psf.pdf", bbox_inches="tight")
 
 # ======================================================================================
 #
