@@ -1071,52 +1071,6 @@ fig.savefig(plot_name.parent / "mass_size_legus_m31_mw.pdf")
 
 # ======================================================================================
 #
-# similar plot
-#
-# ======================================================================================
-fig, ax = bpl.subplots()
-
-# then add all the PSF widths. Here we load the PSF and directly measure it's R_eff,
-# so we can have a fair comparison to the clusters
-all_ratios = np.array([])
-for cat_loc in sys.argv[5:]:
-    cat = table.Table.read(cat_loc, format="ascii.ecsv")
-
-    size_home_dir = Path(cat_loc).parent
-    home_dir = size_home_dir.parent
-
-    psf_name = (
-        f"psf_"
-        f"{psf_source}_stars_"
-        f"{psf_width}_pixels_"
-        f"{oversampling_factor}x_oversampled.fits"
-    )
-
-    psf = fits.open(size_home_dir / psf_name)["PRIMARY"].data
-    psf_size = measure_psf_reff(psf)
-
-    this_ratio = cat[f"r_eff_pixels_rmax_15pix_best"].data / psf_size
-    all_ratios = np.concatenate([all_ratios, this_ratio])
-
-ax.hist(
-    all_ratios,
-    alpha=1.0,
-    lw=1,
-    color=bpl.color_cycle[3],
-    bins=np.logspace(-1, 1, 21),
-)
-
-ax.axvline(1.0)
-ax.set_xscale("log")
-# ax.set_yscale("log")
-ax.set_limits(0.1, 10)
-ax.add_labels("Cluster Effective Radius / PSF Effective Radius", "Number of Clusters")
-ax.xaxis.set_ticks_position("both")
-ax.yaxis.set_ticks_position("both")
-fig.savefig(plot_name.parent / "r_eff_over_psf.pdf", bbox_inches="tight")
-
-# ======================================================================================
-#
 # finalize output file
 #
 # ======================================================================================
