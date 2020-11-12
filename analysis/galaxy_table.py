@@ -39,6 +39,25 @@ for item in sys.argv[5:]:
     catalogs[home_dir] = cat
 
 big_catalog = table.vstack(list(catalogs.values()), join_type="inner")
+
+# ======================================================================================
+#
+# Load galaxy data
+#
+# ======================================================================================
+calzetti_path = output_name.parent.parent / "analysis" / "calzetti_etal_15_table_1.txt"
+galaxy_table = table.Table.read(
+    calzetti_path, format="ascii.commented_header", header_start=3
+)
+# Add the data to my cluster tables
+ssfr = dict()
+for home_dir in catalogs:
+    # throw away east-west-north-south field splits
+    galaxy = home_dir.name.split("-")[0].upper()
+    for row in galaxy_table:
+        if row["name"] == galaxy:
+            ssfr[home_dir] = row["sfr_uv_msun_per_year"] / row["m_star"]
+            break
 # ======================================================================================
 #
 # Functions to calculate the psf effective radius
@@ -130,11 +149,12 @@ def get_iqr_string(cat):
 
 
 with open(output_name, "w") as out_file:
-    out_file.write("\t\\begin{tabular}{lrccc}\n")
+    out_file.write("\t\\begin{tabular}{lrcccc}\n")
     out_file.write("\t\t\\toprule\n")
     out_file.write(
         "\t\tLEGUS Field & "
-        "Number of Clusters & "
+        "N & "
+        "sSFR [yr$^{-1}$] & "
         "Distance (Mpc) & "
         "PSF size (pc) & "
         "Cluster $\\reff$: 25---50---75th percentiles \\\\ \n"
@@ -143,6 +163,7 @@ with open(output_name, "w") as out_file:
     for home_dir, cat in catalogs.items():
         galaxy = format_galaxy_name(home_dir)
         n = len(cat)
+        ssfr_str = f"{ssfr[home_dir]:.2e}"
         dist = utils.distance(home_dir).to("Mpc").value
         dist_err = utils.distance_error(home_dir).to("Mpc").value
         dist_str = f"{dist:.2f} $\pm$ {dist_err:.2f}"
@@ -152,6 +173,7 @@ with open(output_name, "w") as out_file:
         out_file.write(
             f"\t\t{galaxy} & "
             f"{n} & "
+            f"{ssfr_str} & "
             f"{dist_str} & "
             f"{this_psf_size:.2f} "
             f"& {iqr_str} "
@@ -162,7 +184,7 @@ with open(output_name, "w") as out_file:
     # get the total values
     total_n = len(big_catalog)
     total_iqr = get_iqr_string(big_catalog)
-    out_file.write(f"\t\tTotal & {total_n} & --- & --- & {total_iqr} \\\\ \n")
+    out_file.write(f"\t\tTotal & {total_n} & --- & --- & --- & {total_iqr} \\\\ \n")
 
     out_file.write("\t\t\\bottomrule\n")
     out_file.write("\t\end{tabular}\n")
