@@ -29,7 +29,35 @@ plot_name = Path(sys.argv[1])
 oversampling_factor = int(sys.argv[2])
 psf_width = int(sys.argv[3])
 psf_source = sys.argv[4]
-catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[5:]]
+catalogs = []
+for item in sys.argv[5:]:
+    this_cat = table.Table.read(item, format="ascii.ecsv")
+    gal_dir = Path(item).parent.parent
+    this_cat["galaxy"] = gal_dir.name
+    this_cat["distance"] = utils.distance(gal_dir).to("Mpc").value
+    catalogs.append(this_cat)
+
+# ======================================================================================
+#
+# Load galaxy data
+#
+# ======================================================================================
+calzetti_path = plot_name.parent.parent / "analysis" / "calzetti_etal_15_table_1.txt"
+galaxy_table = table.Table.read(
+    calzetti_path, format="ascii.commented_header", header_start=3
+)
+# Add the data to my cluster tables
+for cat in catalogs:
+    # throw away east-west-north-south field splits
+    this_gal = cat["galaxy"][0].split("-")[0].upper()
+    for row in galaxy_table:
+        if row["name"] == this_gal:
+            cat["sfr"] = row["sfr_uv_msun_per_year"]
+            cat["m_star"] = row["m_star"]
+            cat["t_type"] = row["morphology_t_type"]
+            cat["ssfr"] = row["sfr_uv_msun_per_year"] / row["m_star"]
+            break
+
 # then stack them together in one master catalog
 big_catalog = table.vstack(catalogs, join_type="inner")
 
@@ -87,6 +115,9 @@ mask = np.logical_and(mask, big_catalog["mass_msun_max"] > 0)
 mask = np.logical_and(mask, big_catalog["mass_msun_min"] > 0)
 print(f"Clusters with good masses: {np.sum(mask)}")
 
+ssfr_legus = big_catalog["ssfr"][mask]
+distance_legus = big_catalog["distance"][mask]
+
 age_legus = big_catalog["age_yr"][mask]
 mass_legus = big_catalog["mass_msun"][mask]
 # mass errors are reported as min and max values
@@ -109,7 +140,7 @@ log_r_eff_err_lo_legus = log_r_eff_legus - np.log10(r_eff_legus - r_eff_err_lo_l
 
 # ======================================================================================
 #
-# Load data from external sources - first is M31
+# Load cluster data from external sources - first is M31
 #
 # ======================================================================================
 # M31 data. Masses and radii are in separate files.
@@ -827,24 +858,15 @@ def create_color_cmap(hex_color, min_saturation=0.1, max_value=0.8):
     return colors.LinearSegmentedColormap(hex_color, cmap_dict, N=256)
 
 
-def plot_mass_size_dataset_contour(
-    ax,
-    mass,
-    log_mass_err_lo,
-    log_mass_err_hi,
-    r_eff,
-    log_r_eff_err_lo,
-    log_r_eff_err_hi,
-    color,
-):
+def plot_mass_size_dataset_contour(ax, mass, r_eff, color, zorder=5):
     cmap = create_color_cmap(color)
     # use median errors as the smoothing. First get mean min and max of all clusters,
     # then take the median of that
     # k = 1.25
     # x_smoothing = k * np.median(np.mean([log_r_eff_err_lo, log_r_eff_err_hi], axis=0))
     # y_smoothing = k * np.median(np.mean([log_mass_err_lo, log_mass_err_hi], axis=0))
-    x_smoothing = 0.06
-    y_smoothing = 0.06
+    x_smoothing = 0.08
+    y_smoothing = 0.08
 
     common = {
         "percent_levels": [0.5, 0.9],
@@ -853,8 +875,8 @@ def plot_mass_size_dataset_contour(
         "log": True,
         "cmap": cmap,
     }
-    ax.density_contourf(mass, r_eff, alpha=0.6, **common)
-    ax.density_contour(mass, r_eff, zorder=20, **common)
+    ax.density_contourf(mass, r_eff, alpha=0.6, zorder=zorder, **common)
+    ax.density_contour(mass, r_eff, zorder=zorder + 20, **common)
 
 
 def format_mass_size_plot(ax, xmin=1e2, xmax=1e6):
@@ -880,7 +902,6 @@ fit_legus, fit_legus_history = fit_mass_size_relation(
     log_r_eff_legus,
     log_r_eff_err_lo_legus,
     log_r_eff_err_hi_legus,
-    fit_mass_lower_limit=1e2,
     fit_mass_upper_limit=1e5,
 )
 
@@ -900,20 +921,35 @@ plot_best_fit_line(ax, fit_legus, 1e2, 1e5)
 format_mass_size_plot(ax)
 fig.savefig(plot_name)
 write_fit_results("Full LEGUS Sample", len(r_eff_legus), fit_legus, fit_legus_history)
+# do another fit without old clusters
+mask_not_old = age_legus < 1e9
+fit_legus_young, fit_legus_young_history = fit_mass_size_relation(
+    log_mass_legus[mask_not_old],
+    log_mass_err_lo_legus[mask_not_old],
+    log_mass_err_hi_legus[mask_not_old],
+    log_r_eff_legus[mask_not_old],
+    log_r_eff_err_lo_legus[mask_not_old],
+    log_r_eff_err_hi_legus[mask_not_old],
+    fit_mass_upper_limit=1e5,
+)
+write_fit_results(
+    "Age: 1 Myr - 1 Gyr", np.sum(mask_not_old), fit_legus_young, fit_legus_young_history
+)
 out_file_spacer()
 
 # --------------------------------------------------------------------------------------
-# Then various age split - young clusters
+# Then age split
 # --------------------------------------------------------------------------------------
 mask_young = age_legus < 1e7
 mask_med = np.logical_and(age_legus >= 1e7, age_legus < 1e8)
 mask_old = np.logical_and(age_legus >= 1e8, age_legus < 1e9)
 
 fig, ax = bpl.subplots()
-for mask, name, color in zip(
+for mask, name, color, zorder in zip(
     [mask_young, mask_med, mask_old],
     ["Age: 1-10 Myr", "Age: 10-100 Myr", "Age: 100 Myr - 1 Gyr"],
     [bpl.color_cycle[0], bpl.color_cycle[5], bpl.color_cycle[3]],
+    [1, 3, 2],
 ):
     fit_this, fit_this_history = fit_mass_size_relation(
         log_mass_legus[mask],
@@ -922,25 +958,102 @@ for mask, name, color in zip(
         log_r_eff_legus[mask],
         log_r_eff_err_lo_legus[mask],
         log_r_eff_err_hi_legus[mask],
-        fit_mass_lower_limit=1,
+        fit_mass_upper_limit=1e5,
+    )
+
+    plot_mass_size_dataset_contour(
+        ax, mass_legus[mask], r_eff_legus[mask], color, zorder=zorder
+    )
+    # add_percentile_lines(ax, mass_legus[mask], r_eff_legus[mask], color=color)
+    plot_best_fit_line(
+        ax, fit_this, 1, 1e5, color, fill=False, label=f"{name}, N={np.sum(mask)}"
+    )
+    write_fit_results(name, np.sum(mask), fit_this, fit_this_history)
+format_mass_size_plot(ax)
+fig.savefig(plot_name.parent / "mass_size_relation_agesplit.pdf")
+out_file_spacer()
+
+# --------------------------------------------------------------------------------------
+# Then SFH split
+# --------------------------------------------------------------------------------------
+cut_ssfr = 3e-10
+mask_hi_ssfr = np.logical_and(ssfr_legus >= cut_ssfr, age_legus < 1e9)
+mask_lo_ssfr = np.logical_and(ssfr_legus < cut_ssfr, age_legus < 1e9)
+
+fig, ax = bpl.subplots()
+for mask, name, color in zip(
+    [mask_lo_ssfr, mask_hi_ssfr],
+    [
+        "sSFR $< 3 \\times 10^{-10} {\\rm yr}^{-1}$",
+        "sSFR $\geq 3 \\times 10^{-10} {\\rm yr}^{-1}$",
+    ],
+    [bpl.color_cycle[3], bpl.color_cycle[0]],
+):
+    fit_this, fit_this_history = fit_mass_size_relation(
+        log_mass_legus[mask],
+        log_mass_err_lo_legus[mask],
+        log_mass_err_hi_legus[mask],
+        log_r_eff_legus[mask],
+        log_r_eff_err_lo_legus[mask],
+        log_r_eff_err_hi_legus[mask],
         fit_mass_upper_limit=1e5,
     )
 
     plot_mass_size_dataset_contour(
         ax,
         mass_legus[mask],
-        log_mass_err_lo_legus[mask],
-        log_mass_err_hi_legus[mask],
         r_eff_legus[mask],
-        log_r_eff_err_lo_legus[mask],
-        log_r_eff_err_hi_legus[mask],
         color,
     )
     # add_percentile_lines(ax, mass_legus[mask], r_eff_legus[mask], color=color)
-    plot_best_fit_line(ax, fit_this, 1, 1e5, color, fill=False, label=name)
+    plot_best_fit_line(
+        ax, fit_this, 1, 1e5, color, fill=False, label=f"{name}, N={np.sum(mask)}"
+    )
     write_fit_results(name, np.sum(mask), fit_this, fit_this_history)
 format_mass_size_plot(ax)
-fig.savefig(plot_name.parent / "mass_size_relation_agesplit.png")
+fig.savefig(plot_name.parent / "mass_size_relation_ssfrsplit.pdf")
+out_file_spacer()
+
+# --------------------------------------------------------------------------------------
+# Then distance split
+# --------------------------------------------------------------------------------------
+mask_dist_1 = np.logical_and(
+    np.logical_and(distance_legus >= 3, distance_legus < 5), age_legus < 1e9
+)
+mask_dist_2 = np.logical_and(
+    np.logical_and(distance_legus >= 7, distance_legus < 9), age_legus < 1e9
+)
+
+
+fig, ax = bpl.subplots()
+for mask, name, color in zip(
+    [mask_dist_1, mask_dist_2],
+    ["Distance: 3-5 Mpc", "Distance: 7-9 Mpc"],
+    [bpl.color_cycle[2], bpl.color_cycle[7]],
+):
+    fit_this, fit_this_history = fit_mass_size_relation(
+        log_mass_legus[mask],
+        log_mass_err_lo_legus[mask],
+        log_mass_err_hi_legus[mask],
+        log_r_eff_legus[mask],
+        log_r_eff_err_lo_legus[mask],
+        log_r_eff_err_hi_legus[mask],
+        fit_mass_upper_limit=1e5,
+    )
+
+    plot_mass_size_dataset_contour(
+        ax,
+        mass_legus[mask],
+        r_eff_legus[mask],
+        color,
+    )
+    # add_percentile_lines(ax, mass_legus[mask], r_eff_legus[mask], color=color)
+    plot_best_fit_line(
+        ax, fit_this, 1, 1e5, color, fill=False, label=f"{name}, N={np.sum(mask)}"
+    )
+    write_fit_results(name, np.sum(mask), fit_this, fit_this_history)
+format_mass_size_plot(ax, xmax=3e5)
+fig.savefig(plot_name.parent / "mass_size_relation_distancesplit.pdf")
 out_file_spacer()
 
 # --------------------------------------------------------------------------------------
@@ -953,7 +1066,6 @@ fit_legus_m31, fit_legus_m31_history = fit_mass_size_relation(
     np.concatenate([log_r_eff_legus, log_r_eff_m31]),
     np.concatenate([log_r_eff_err_lo_legus, log_r_eff_err_lo_m31]),
     np.concatenate([log_r_eff_err_hi_legus, log_r_eff_err_hi_m31]),
-    fit_mass_lower_limit=1,
     fit_mass_upper_limit=1e5,
 )
 write_fit_results(
@@ -970,7 +1082,6 @@ fit_legus_mw, fit_legus_mw_history = fit_mass_size_relation(
     np.concatenate([log_r_eff_legus, log_r_eff_mw_ocs]),
     np.concatenate([log_r_eff_err_lo_legus, log_r_eff_err_mw_ocs]),
     np.concatenate([log_r_eff_err_hi_legus, log_r_eff_err_mw_ocs]),
-    fit_mass_lower_limit=1,
     fit_mass_upper_limit=1e5,
 )
 write_fit_results(
@@ -1014,7 +1125,6 @@ fit_legus_mw_m31, fit_legus_mw_m31_history = fit_mass_size_relation(
             log_r_eff_err_mw_ocs,
         ]
     ),
-    fit_mass_lower_limit=1,
     fit_mass_upper_limit=1e5,
 )
 fig, ax = bpl.subplots()
