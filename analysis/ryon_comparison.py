@@ -8,8 +8,14 @@ from sinistra.astropy_helpers import symmetric_match
 
 bpl.set_style()
 
+# need to add the correct path to import utils
+code_home_dir = Path(__file__).resolve().parent.parent
+sys.path.append(str(code_home_dir / "pipeline"))
+import utils
 
 plot_name = Path(sys.argv[1])
+full_ryon = sys.argv[2].lower() == "ryon"
+
 # ======================================================================================
 #
 # Load the various catalogs
@@ -37,11 +43,25 @@ for cat in [ryon_628, ryon_1313]:
 
 # Go through all the cluster catalogs that are passed in, and get the ones we need
 catalogs = {"ngc1313-e": None, "ngc1313-w": None, "ngc628-c": None, "ngc628-e": None}
-for item in sys.argv[2:]:
+for item in sys.argv[3:]:
     path = Path(item)
-    galaxy_name = path.parent.parent.name
+    data_dir = path.parent.parent
+    galaxy_name = data_dir.name
     if galaxy_name in catalogs:
-        catalogs[galaxy_name] = table.Table.read(item, format="ascii.ecsv")
+        this_cat = table.Table.read(item, format="ascii.ecsv")
+
+        # If we need to, modify the radii so they use the same distances as ryon
+        if not full_ryon:
+            # scale the radii by the ratio of the distances as used in Ryon and as
+            # used in my work
+            distance_ryon = utils.distance(data_dir, True).to("Mpc").value
+            distance_me = utils.distance(data_dir, False).to("Mpc").value
+            dist_factor = distance_ryon / distance_me
+            this_cat["r_eff_pc_rmax_15pix_best"] *= dist_factor
+            this_cat["r_eff_pc_rmax_15pix_e-"] *= dist_factor
+            this_cat["r_eff_pc_rmax_15pix_e+"] *= dist_factor
+
+        catalogs[galaxy_name] = this_cat
 
 # check that none of these are empty
 for key in catalogs:
@@ -92,8 +112,18 @@ total_rms = 0
 num_clusters = 0
 
 for field, cat in matches.items():
-    ryon_mask_good = cat["Eta"] > 1.3
-    my_mask_good = np.logical_and(cat["power_law_slope_best"] > 1.3, cat["good"])
+    ryon_mask_good = cat["Eta"] >= 1.3
+    # section 4.1 of Ryon+17 lists the number of clusters that pass the eta cut:
+    # NGC1313-e: 14
+    # NGC1313-w: 45
+    # NGC628-c: 107
+    # NGC628-e: 27
+    # using print statements here I get the same thing
+    # if we're using my full method, I don't need to do my restriction on slope
+    my_mask_good = cat["good"]
+    if full_ryon:
+        my_mask_good = np.logical_and(cat["power_law_slope_best"] >= 1.3, my_mask_good)
+
     cat["good_for_plot"] = np.logical_and(ryon_mask_good, my_mask_good)
 
 for field, cat in matches.items():

@@ -119,16 +119,17 @@ endif
 #
 # ------------------------------------------------------------------------------
 psf_demo_image = $(local_plots_dir)psf_demo_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.pdf
-comparison_plot = $(local_plots_dir)comparison_plot_size_$(fit_region_size).pdf
+comparison_plot_ryon = $(local_plots_dir)comparison_plot_ryon_size_$(fit_region_size).pdf
+comparison_plot_full = $(local_plots_dir)comparison_plot_full_size_$(fit_region_size).pdf
 param_dist_plot = $(local_plots_dir)parameter_distribution_size_$(fit_region_size).pdf
 all_fields_hist_plot = $(local_plots_dir)all_fields_$(fit_region_size).pdf
 mass_size_plot = $(local_plots_dir)mass_size_relation_$(fit_region_size).pdf
 age_size_plot = $(local_plots_dir)age_size_relation_$(fit_region_size).pdf
 example_fit_plot = $(local_plots_dir)example_fit.pdf
 fit_quality_plot = $(local_plots_dir)fit_quality.pdf
-plots = $(psf_demo_image) $(psf_comp_plots) $(comparison_plot) \
-        $(param_dist_plot) $(all_fields_hist_plot) $(mass_size_plot) \
-        $(age_size_plot) $(fit_quality_plot)
+plots = $(psf_demo_image) $(psf_comp_plots) $(comparison_plot_ryon) \
+        $(comparison_plot_full) $(param_dist_plot) $(all_fields_hist_plot) \
+        $(mass_size_plot) $(age_size_plot) $(fit_quality_plot)
 galaxy_table = $(local_plots_dir)galaxy_table.txt
 experiments_sentinel = ./testing/experiments_done.txt
 
@@ -236,9 +237,12 @@ $(final_cats): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit) $$(dir %
 $(final_cats_ryon): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit_ryon) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask)
 	python $(final_catalog_script) $@ $(dir $@)$(fit_ryon) $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(fit_region_size) ryon_like
 
-# Make the comparison to Ryon+17's results
-$(comparison_plot): $(comparison_script) $(final_cats_ryon)
-	python $(comparison_script) $@ $(final_cats_ryon)
+# Make the comparisons to Ryon+17's results
+$(comparison_plot_ryon): $(comparison_script) $(final_cats_ryon)
+	python $(comparison_script) $@ ryon $(final_cats_ryon)
+
+$(comparison_plot_full): $(comparison_script) $(final_cats)
+	python $(comparison_script) $@ new $(final_cats)
 
 $(param_dist_plot): $(parameters_dist_script) $(final_cats)
 	python $(parameters_dist_script) $@ $(final_cats)
