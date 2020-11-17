@@ -633,7 +633,7 @@ def get_r_percentiles_unique_values(radii, ages, percentile):
 
 def add_percentile_lines(ax, mass, r_eff, style="moving", color=bpl.almost_black):
     # plot the median and the IQR
-    for percentile in [5, 25, 75, 95]:
+    for percentile in [5, 25, 50, 75, 95]:
         if style == "moving":
             mass_bins, radii_percentile = get_r_percentiles_moving(
                 r_eff, mass, percentile, 200, 200
