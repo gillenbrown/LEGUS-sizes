@@ -35,6 +35,10 @@ for item in sys.argv[2:]:
 # then stack them together in one master catalog
 big_catalog = table.vstack(catalogs, join_type="inner")
 
+for row in big_catalog:
+    if row["mass_msun"] > 1e5 and row["r_eff_pc_rmax_15pix_best"] < 0.5:
+        print(row["galaxy"], row["ID"], row["from_ml"])
+
 # ======================================================================================
 #
 # Experiments start here
@@ -118,7 +122,7 @@ ax.set_limits(5e5, 20e9, 10, 1e7)
 ax.add_labels("Cluster Age [yr]", "Cluster Mass [M$_\odot$]")
 ax.xaxis.set_ticks_position("both")
 ax.yaxis.set_ticks_position("both")
-fig.savefig(Path.home() / "Desktop" / "age_mass.png", bbox_inches="tight")
+fig.savefig(Path(__file__).parent / "age_mass.png", bbox_inches="tight")
 
 # # ======================================================================================
 #
