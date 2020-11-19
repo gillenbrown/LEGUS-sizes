@@ -33,7 +33,6 @@ catalogs = []
 for item in sys.argv[5:]:
     this_cat = table.Table.read(item, format="ascii.ecsv")
     gal_dir = Path(item).parent.parent
-    this_cat["galaxy"] = gal_dir.name
     this_cat["distance"] = utils.distance(gal_dir).to("Mpc").value
     catalogs.append(this_cat)
 

@@ -28,11 +28,7 @@ plot_name = Path(sys.argv[1]).resolve()
 run_name = sys.argv[2]
 run_name = run_name.replace("_", " ").title()
 
-catalogs = []
-for item in sys.argv[3:]:
-    cat = table.Table.read(item, format="ascii.ecsv")
-    cat["galaxy"] = Path(item).parent.parent.name
-    catalogs.append(cat)
+catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[3:]]
 # then stack them together in one master catalog
 big_catalog = table.vstack(catalogs, join_type="inner")
 # multiply the MAD by 100 to get it to percent
