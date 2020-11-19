@@ -16,33 +16,72 @@ import betterplotlib as bpl
 bpl.set_style()
 
 plot_name = Path(sys.argv[1])
-catalogs = dict()
+long_catalogs = dict()
+short_catalogs = []
+all_catalogs = []
 for item in sys.argv[2:]:
     path = Path(item)
-    galaxy_name = path.parent.parent.name
-    catalogs[galaxy_name] = table.Table.read(item, format="ascii.ecsv")
-
-# add the min and max allowed radii
-for cat in catalogs.values():
+    galaxy_name = path.parent.parent.name.replace("-mosaic", "")
+    cat = table.Table.read(item, format="ascii.ecsv")
+    # add the min and max allowed radii
     cat["r_eff_min"] = cat["r_eff_pc_rmax_15pix_best"] - cat["r_eff_pc_rmax_15pix_e-"]
     cat["r_eff_max"] = cat["r_eff_pc_rmax_15pix_best"] + cat["r_eff_pc_rmax_15pix_e+"]
 
-fig, ax = bpl.subplots()
-xs = np.logspace(-1, 2, 1000)
-for galaxy in catalogs:
-    cat = catalogs[galaxy]
+    if np.sum(cat["good"]) > 200:
+        long_catalogs[galaxy_name] = cat
+    else:
+        short_catalogs.append(cat)
+    all_catalogs.append(cat)
+
+big_catalog = table.vstack(all_catalogs, join_type="inner")
+all_short_catalog = table.vstack(short_catalogs, join_type="inner")
+
+
+def error_hist(x_min, x_max):
+    xs = np.logspace(-2, 2, 1000)
     ys = []
     for x in xs:
-        x_above = x > cat["r_eff_min"]
-        x_below = x < cat["r_eff_max"]
+        x_above = x > x_min
+        x_below = x < x_max
         x_good = np.logical_and(x_above, x_below)
         ys.append(np.sum(x_good))
 
     # # normalize the y value
     ys = np.array(ys)
-    ys = ys / np.sum(ys)
+    # ys = ys / np.sum(ys)
+    return xs, ys
 
-    ax.plot(xs, ys, c="0.8", lw=1)
+
+fig, ax = bpl.subplots()
+
+for galaxy in long_catalogs:
+    cat = long_catalogs[galaxy]
+    ax.plot(
+        *error_hist(cat["r_eff_min"][cat["good"]], cat["r_eff_max"][cat["good"]]),
+        lw=2,
+        label=f"{galaxy.upper()}, N={np.sum(cat['good'])}",
+    )
+ax.plot(
+    *error_hist(
+        all_short_catalog["r_eff_min"][all_short_catalog["good"]],
+        all_short_catalog["r_eff_max"][all_short_catalog["good"]],
+    ),
+    lw=2,
+    c=bpl.color_cycle[6],
+    label=f"All Other Fields, N={np.sum(all_short_catalog['good'])}",
+)
+# ax.plot(
+#     *error_hist(
+#         big_catalog["r_eff_min"][big_catalog["good"]],
+#         big_catalog["r_eff_max"][big_catalog["good"]],
+#     ),
+#     lw=2,
+#     c=bpl.almost_black,
+#     label=f"Total, N={np.sum(big_catalog['good'])}",
+# )
 
 ax.set_xscale("log")
+ax.set_limits(0.05, 30, 0)
+ax.add_labels("$R_{eff}$ [pc]", "Clusters")
+ax.legend(frameon=False, fontsize=14)
 fig.savefig(plot_name)
