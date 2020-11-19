@@ -72,6 +72,26 @@ else:
 
 # ======================================================================================
 #
+# Note whether each cluster comes from the human of ML selection
+#
+# ======================================================================================
+# I would have done this in pre-processing, but I didn't think to do this until after
+# the fits were already done, so I'm doing it here
+if galaxy_name == "ngc4449":
+    fits_catalog["from_ml"] = fits_catalog["class_whitmore"] == 5
+    fits_catalog["from_human"] = ~fits_catalog["from_ml"]
+elif galaxy_name == "ngc5194-ngc5195-mosaic":
+    fits_catalog["from_ml"] = fits_catalog["class_mode_human"] == 0
+    fits_catalog["from_human"] = ~fits_catalog["from_ml"]
+elif galaxy_name == "ngc1566":
+    fits_catalog["from_ml"] = fits_catalog["class_hybrid_method"] == 0
+    fits_catalog["from_human"] = ~fits_catalog["from_ml"]
+else:
+    fits_catalog["from_ml"] = False
+    fits_catalog["from_human"] = True
+
+# ======================================================================================
+#
 # Handle the final output arrays
 #
 # ======================================================================================
