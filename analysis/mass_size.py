@@ -47,15 +47,20 @@ galaxy_table = table.Table.read(
 )
 # Add the data to my cluster tables
 for cat in catalogs:
-    # throw away east-west-north-south field splits
-    this_gal = cat["galaxy"][0].split("-")[0].upper()
-    for row in galaxy_table:
-        if row["name"] == this_gal:
-            cat["sfr"] = row["sfr_uv_msun_per_year"]
-            cat["m_star"] = row["m_star"]
-            cat["t_type"] = row["morphology_t_type"]
-            cat["ssfr"] = row["sfr_uv_msun_per_year"] / row["m_star"]
-            break
+    cat["sfr"] = np.nan
+    cat["m_star"] = np.nan
+    cat["t_type"] = np.nan
+    cat["ssfr"] = np.nan
+    for row in cat:  # need to account for NGC 5194/NGC5195 in same catalog
+        # throw away east-west-north-south field splits
+        this_gal = row["galaxy"].split("-")[0].upper()
+        for row_g in galaxy_table:
+            if row_g["name"] == this_gal:
+                row["sfr"] = row_g["sfr_uv_msun_per_year"]
+                row["m_star"] = row_g["m_star"]
+                row["t_type"] = row_g["morphology_t_type"]
+                row["ssfr"] = row_g["sfr_uv_msun_per_year"] / row_g["m_star"]
+                break
 
 # then stack them together in one master catalog
 big_catalog = table.vstack(catalogs, join_type="inner")
@@ -277,33 +282,12 @@ print(f"{len(mass_mw_ocs)} Open Clusters in MW")
 mw_gc_table = table.Table.read(
     data_path / "baumgardt2018.txt",
     format="ascii.fixed_width",
+    # fmt: off
     col_starts=[
-        0,
-        9,
-        20,
-        31,
-        38,
-        46,
-        52,
-        61,
-        70,
-        81,
-        92,
-        100,
-        107,
-        114,
-        121,
-        128,
-        136,
-        145,
-        153,
-        161,
-        169,
-        176,
-        183,
-        190,
-        198,
+        0, 9, 20, 31, 38, 46, 52, 61, 70, 81, 92, 100, 107, 114,
+        121, 128, 136, 145, 153, 161, 169, 176, 183, 190, 198
     ],
+    # fmt: on
     header_start=0,
     data_start=2,
 )
