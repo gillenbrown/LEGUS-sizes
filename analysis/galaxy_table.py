@@ -45,19 +45,35 @@ big_catalog = table.vstack(list(catalogs.values()), join_type="inner")
 # Load galaxy data
 #
 # ======================================================================================
+def format_galaxy_name(raw_name):
+    name = raw_name.lower()
+    # check one edge case
+    if name == "ngc5194-ngc5195-mosaic":
+        return "NGC 5194/NGC 5195"
+    if "ngc" in name:
+        return name.replace("ngc", "NGC ")
+    elif "ugca" in name:
+        return name.replace("ugca", "UGCA ")
+    elif "ugc" in name:
+        return name.replace("ugc", "UGC ")
+    elif "ic" in name:
+        return name.replace("ic", "IC ")
+    elif "eso" in name:
+        return name.replace("eso", "ESO ")
+    else:
+        raise ValueError(f"{name} wasn't handled properly.")
+
+
 calzetti_path = output_name.parent.parent / "analysis" / "calzetti_etal_15_table_1.txt"
 galaxy_table = table.Table.read(
     calzetti_path, format="ascii.commented_header", header_start=3
 )
-# Add the data to my cluster tables
+# get the sSFR data from the tables
 ssfr = dict()
-for home_dir in catalogs:
-    # throw away east-west-north-south field splits
-    galaxy = home_dir.name.split("-")[0].upper()
-    for row in galaxy_table:
-        if row["name"] == galaxy:
-            ssfr[home_dir] = row["sfr_uv_msun_per_year"] / row["m_star"]
-            break
+for row in galaxy_table:
+    gal_name = format_galaxy_name(row["name"])
+    ssfr[gal_name] = row["sfr_uv_msun_per_year"] / row["m_star"]
+
 # ======================================================================================
 #
 # Functions to calculate the psf effective radius
@@ -124,28 +140,81 @@ psf_sizes = {home_dir: measure_psf_reff(home_dir) for home_dir in catalogs}
 # Then we print this all as a nicely formatted latex table
 #
 # ======================================================================================
-def format_galaxy_name(home_dir):
-    name = home_dir.name
-    # check one edge case
-    if name == "ngc5194-ngc5195-mosaic":
-        return "NGC 5194/NGC 5195"
-    if "ngc" in name:
-        return name.replace("ngc", "NGC ")
-    elif "ugca" in name:
-        return name.replace("ugca", "UGCA ")
-    elif "ugc" in name:
-        return name.replace("ugc", "UGC ")
-    elif "ic" in name:
-        return name.replace("ic", "IC ")
-    else:
-        raise ValueError(f"{name} wasn't handled properly.")
-
-
 def get_iqr_string(cat):
     mask = cat["good"]
     r_eff = cat["r_eff_pc_rmax_15pix_best"][mask]
     values = np.percentile(r_eff, [25, 50, 75])
     return f"{values[0]:.2f} --- {values[1]:.2f} --- {values[2]:.2f}"
+
+
+def handle_regular_galaxy(home_dir, cat, out_file):
+    n = len(cat)
+    ssfr_str = f"{ssfr[galaxy.split('-')[0]]:.2e}"
+    dist = utils.distance(home_dir).to("Mpc").value
+    dist_err = utils.distance_error(home_dir).to("Mpc").value
+    dist_str = f"{dist:.2f} $\pm$ {dist_err:.2f}"
+    this_psf_size = psf_sizes[home_dir]
+    iqr_str = get_iqr_string(cat)
+
+    out_file.write(
+        f"\t\t{galaxy} & "
+        f"{n} & "
+        f"{ssfr_str} & "
+        f"{dist_str} & "
+        f"{this_psf_size:.2f} & "
+        f"{iqr_str} "
+        f"\\\\ \n"
+    )
+
+
+def handle_ngc5194_ngc5195(home_dir, cat, out_file):
+    dist = utils.distance(home_dir).to("Mpc").value
+    dist_err = utils.distance_error(home_dir).to("Mpc").value
+    dist_str = f"{dist:.2f} $\pm$ {dist_err:.2f}"
+    this_psf_size = psf_sizes[home_dir]
+    total_iqr_str = get_iqr_string(cat)
+
+    gal_data = {"NGC 5194": dict(), "NGC 5195": dict()}
+    gal_data["NGC 5194"]["mask"] = cat["galaxy"] == "ngc5194"
+    gal_data["NGC 5195"]["mask"] = ~gal_data["NGC 5194"]["mask"]
+
+    for gal_name in ["NGC 5194", "NGC 5195"]:
+        gal_data[gal_name]["n"] = np.sum(gal_data[gal_name]["mask"])
+        gal_data[gal_name]["ssfr_str"] = f"{ssfr[gal_name]:.2e}"
+        gal_data[gal_name]["iqr_str"] = get_iqr_string(cat[gal_data[gal_name]["mask"]])
+
+    out_file.write(
+        f"\t\tNGC 5194/NGC 5195 & "
+        f"{gal_data['NGC 5194']['n']}/{gal_data['NGC 5195']['n']} & "
+        f"{gal_data['NGC 5194']['ssfr_str']}/{gal_data['NGC 5195']['ssfr_str']}  & "
+        f"{dist_str} & "
+        f"{this_psf_size:.2f} & "
+        f"{total_iqr_str} "
+        f"\\\\ \n"
+    )
+
+    # out_file.write(
+    #     f"\t\tNGC 5194 & "
+    #     f"{gal_data['NGC 5194']['n']} & "
+    #     f"{gal_data['NGC 5194']['ssfr_str']} & "
+    #     "\multirow{2}{*}{" + dist_str + "} & "
+    #     "\multirow{2}{*}{" + f"{this_psf_size:.2f}" + "} & "
+    #     f"& {gal_data['NGC 5194']['iqr_str']} "
+    #     f"\\\\ \n"
+    # )
+    #
+    # out_file.write(
+    #     f"\t\tNGC 5195 & "
+    #     f"{gal_data['NGC 5195']['n']} & "
+    #     f"{gal_data['NGC 5195']['ssfr_str']} & "
+    #     "& "
+    #     "& "
+    #     f"& {gal_data['NGC 5195']['iqr_str']} "
+    #     f"\\\\ \n"
+    # )
+
+    # NGC 5194 & 2961 & 2.87e-10 & \multirow{2}{*}{7.40 $\pm$ 0.42}& \multirow{2}{*}{2.16} & 1.29 --- 2.18 --- 3.31 \\
+    # NGC 5195 & 2961 & 2.87e-10 & & & 1.29 --- 2.18 --- 3.31 \\
 
 
 with open(output_name, "w") as out_file:
@@ -161,24 +230,13 @@ with open(output_name, "w") as out_file:
     )
     out_file.write("\t\t\midrule\n")
     for home_dir, cat in catalogs.items():
-        galaxy = format_galaxy_name(home_dir)
-        n = len(cat)
-        ssfr_str = f"{ssfr[home_dir]:.2e}"
-        dist = utils.distance(home_dir).to("Mpc").value
-        dist_err = utils.distance_error(home_dir).to("Mpc").value
-        dist_str = f"{dist:.2f} $\pm$ {dist_err:.2f}"
-        this_psf_size = psf_sizes[home_dir]
-        iqr_str = get_iqr_string(cat)
-
-        out_file.write(
-            f"\t\t{galaxy} & "
-            f"{n} & "
-            f"{ssfr_str} & "
-            f"{dist_str} & "
-            f"{this_psf_size:.2f} "
-            f"& {iqr_str} "
-            f"\\\\ \n"
-        )
+        galaxy = format_galaxy_name(home_dir.name)
+        # NGC 5194 and 5195 are in the same field, so they need to be handled separately
+        # in the table.
+        if galaxy == "NGC 5194/NGC 5195":
+            handle_ngc5194_ngc5195(home_dir, cat, out_file)
+        else:
+            handle_regular_galaxy(home_dir, cat, out_file)
 
     out_file.write("\t\t\midrule\n")
     # get the total values
