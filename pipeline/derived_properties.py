@@ -858,10 +858,18 @@ masks.append(fits_catalog["y_pix_snapshot_oversampled_best"] < 33.9)
 for mask in masks:
     fits_catalog["not_failure"] = np.logical_and(fits_catalog["not_failure"], mask)
 
+# also throw out ones that are in NGC4449 and ML identified
+if galaxy_name == "ngc4449":
+    fits_catalog["use_for_cut_calc"] = np.logical_and(
+        fits_catalog["from_human"], fits_catalog["not_failure"]
+    )
+else:
+    fits_catalog["use_for_cut_calc"] = fits_catalog["not_failure"]
+
 # Then we use the boundaries for the quality measure of the cumulative distribution
-mask_pass_cut = fits_catalog["profile_diff_reff"] < 0.06452328484307997
+mask_pass_cut = fits_catalog["profile_diff_reff"] < 0.06421443429077568
 # then combine them all together
-fits_catalog["good"] = np.logical_and(fits_catalog["not_failure"], mask_pass_cut)
+fits_catalog["good"] = np.logical_and(fits_catalog["use_for_cut_calc"], mask_pass_cut)
 
 # Then add one back to the output catalog to be comparable to LEGUS results. This is
 # because of Python being zero indexed
