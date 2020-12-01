@@ -11,7 +11,8 @@ This takes two comand line arguments
 import sys
 from pathlib import Path
 
-from astropy import table
+from astropy import table, coordinates
+from astropy import units as u
 from astropy.io import fits
 import numpy as np
 from tqdm import tqdm
@@ -112,6 +113,67 @@ if galaxy_name == "ngc5194-ngc5195-mosaic":
             row["galaxy"] = "ngc5195"
 else:
     fits_catalog["galaxy"] = galaxy_name
+
+# ======================================================================================
+#
+# Add masses from other sources for fields that have them
+#
+# ======================================================================================
+# I'll put this data in the same column as what LEGUS uses, so I'll need to rename the
+# LEGUS columns
+old_colnames = [
+    "age_yr",
+    "age_yr_min",
+    "age_yr_max",
+    "mass_msun",
+    "mass_msun_min",
+    "mass_msun_max",
+    "E(B-V)",
+    "E(B-V)_min",
+    "E(B-V)_max",
+]
+new_colnames = [col + "_legus" for col in old_colnames]
+if galaxy_name == "ngc4449":
+    pix_scale = utils.get_pixel_scale_arcsec(home_dir)
+    # rename the LEGUS columns
+    fits_catalog.rename_columns(old_colnames, new_colnames)
+    # then create the original columns again but with nans, will be filled late
+    for colname in old_colnames:
+        fits_catalog[colname] = np.nan
+
+    # Then I can read the Whitmore 2020 table and takes the age, mass, extinction cols
+    whitmore_path = Path(__file__).parent / "whitmore_2020_data.txt"
+    whitmore_table = table.Table.read(str(whitmore_path), format="ascii.cds")
+
+    # IDs do not match, so match based on RA/Dec. I want to keep all the items in my
+    # table, just supplemented with masses/ages from Whitmore. Whitmore table already
+    # has units of degrees, my table does not
+    whitmore_coords = coordinates.SkyCoord(
+        whitmore_table["RAdeg"], whitmore_table["DEdeg"]
+    )
+    for row in fits_catalog:
+        coord = coordinates.SkyCoord(row["RA"] * u.deg, row["Dec"] * u.deg)
+        idx, sep, _ = coordinates.match_coordinates_sky(coord, whitmore_coords)
+        # consider it a match if we're within one pixel
+        if sep[0].to(u.arcsec).value < pix_scale:
+            # age uncertainties are 0.3 dex (see very end of section 4.1)
+            log_age_err = 0.3
+            log_age = whitmore_table["logAge"][idx]
+            row["age_yr"] = 10 ** log_age
+            row["age_yr_min"] = 10 ** (log_age - log_age_err)
+            row["age_yr_max"] = 10 ** (log_age + log_age_err)
+
+            # I was unable to find mass error estimates anywhere in Whitmore paper.
+            # also assume a factor of two.
+            mass_factor = 2
+            mass = whitmore_table["Mass"][idx]
+            row["mass_msun"] = mass
+            row["mass_msun_max"] = mass * mass_factor
+            row["mass_msun_min"] = mass / mass_factor
+
+            # nothing on extinction errors either. Leave them as nans
+            row["E(B-V)"] = whitmore_table["E(B-V)"][idx]
+
 
 # ======================================================================================
 #
