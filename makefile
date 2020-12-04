@@ -33,7 +33,7 @@ run_name = final
 # ------------------------------------------------------------------------------
 pipeline_dir = ./pipeline/
 analysis_dir = ./analysis/
-mass_radius_dir = $(analysis_dir)/mass_radius_relation/
+mass_radius_dir = $(analysis_dir)mass_radius_relation/
 
 catalog_script = $(pipeline_dir)format_catalogs.py
 v1_star_list_script = $(pipeline_dir)preliminary_star_list.py
@@ -150,7 +150,7 @@ mass_radius_legus_agesplit_txt = $(mass_size_tables_dir)legus_agesplit_table.txt
 mass_radius_legus_ssfrsplit_plot = $(local_plots_dir)mass_radius_legus_ssfrsplit.pdf
 mass_radius_legus_ssfrsplit_txt = $(mass_size_tables_dir)legus_ssfrsplit_table.txt
 mass_radius_legus_mw_txt = $(mass_size_tables_dir)legus_mw_table.txt
-mass_radius_legus_m31_txt = $(mass_size_tables_dir)legus_m31)_table.txt
+mass_radius_legus_m31_txt = $(mass_size_tables_dir)legus_m31_table.txt
 mass_radius_legus_mw_m31_plot = $(local_plots_dir)mass_radius_legus_mw_m31.pdf
 mass_radius_legus_mw_m31_txt = $(mass_size_tables_dir)legus_mw_m31_table.txt
 # the mass size tables get combined together into one final table
