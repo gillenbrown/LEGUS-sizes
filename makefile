@@ -31,28 +31,28 @@ run_name = final
 # Python scripts
 #
 # ------------------------------------------------------------------------------
-pipeline_dir = ./pipeline
-analysis_dir = ./analysis
+pipeline_dir = ./pipeline/
+analysis_dir = ./analysis/
 mass_radius_dir = $(analysis_dir)/mass_radius_relation/
-# TODO: refactor this
-catalog_script = ./pipeline/format_catalogs.py
-v1_star_list_script = ./pipeline/preliminary_star_list.py
-psf_star_list_script = ./pipeline/select_psf_stars.py
-psf_creation_script = ./pipeline/make_psf.py
-psf_comparison_script = ./analysis/psf_compare.py
-psf_demo_image_script = ./analysis/psf_demo_image.py
-sigma_script = ./pipeline/make_sigma_image.py
-mask_script = ./pipeline/make_mask_image.py
-fitting_script = ./pipeline/fit.py
-fit_utils = ./pipeline/fit_utils.py
-final_catalog_script = ./pipeline/derived_properties.py
-comparison_script = ./analysis/ryon_comparison.py
-radii_def_plot_script = ./analysis/radii_def_comp_plot.py
-parameters_dist_script = ./analysis/parameter_distribution.py
-all_fields_script = ./analysis/all_fields_hist.py
-example_plot_script = ./analysis/example_fit.py
-fit_quality_script = ./analysis/fit_quality.py
-galaxy_table_script = ./analysis/galaxy_table.py
+
+catalog_script = $(pipeline_dir)format_catalogs.py
+v1_star_list_script = $(pipeline_dir)preliminary_star_list.py
+psf_star_list_script = $(pipeline_dir)select_psf_stars.py
+psf_creation_script = $(pipeline_dir)make_psf.py
+psf_comparison_script = $(analysis_dir)psf_compare.py
+psf_demo_image_script = $(analysis_dir)psf_demo_image.py
+sigma_script = $(pipeline_dir)make_sigma_image.py
+mask_script = $(pipeline_dir)make_mask_image.py
+fitting_script = $(pipeline_dir)fit.py
+fit_utils = $(pipeline_dir)fit_utils.py
+final_catalog_script = $(pipeline_dir)derived_properties.py
+comparison_script = $(analysis_dir)ryon_comparison.py
+radii_def_plot_script = $(analysis_dir)radii_def_comp_plot.py
+parameters_dist_script = $(analysis_dir)parameter_distribution.py
+all_fields_script = $(analysis_dir)all_fields_hist.py
+example_plot_script = $(analysis_dir)example_fit.py
+fit_quality_script = $(analysis_dir)fit_quality.py
+galaxy_table_script = $(analysis_dir)galaxy_table.py
 experiment_script = ./testing/experiments.py
 mass_radius_utils = $(mass_radius_dir)mass_radius_utils.py
 mass_radius_utils_mle_fitting = $(mass_radius_dir)mass_radius_utils_mle_fitting.py
