@@ -135,24 +135,24 @@ endif
 # ------------------------------------------------------------------------------
 galaxy_table = $(local_plots_dir)galaxy_table.txt
 psf_demo_image = $(local_plots_dir)psf_demo_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.pdf
-comparison_plot_ryon = $(local_plots_dir)comparison_plot_ryon_size_$(fit_region_size).pdf
-comparison_plot_full = $(local_plots_dir)comparison_plot_full_size_$(fit_region_size).pdf
-param_dist_plot = $(local_plots_dir)parameter_distribution_size_$(fit_region_size).pdf
-all_fields_hist_plot = $(local_plots_dir)all_fields_$(fit_region_size).pdf
+comparison_plot_ryon = $(local_plots_dir)comparison_plot_ryon_size.pdf
+comparison_plot_full = $(local_plots_dir)comparison_plot_full_size.pdf
+param_dist_plot = $(local_plots_dir)parameter_distribution_size.pdf
+all_fields_hist_plot = $(local_plots_dir)all_fields.pdf
 example_fit_plot = $(local_plots_dir)example_fit.pdf
 fit_quality_plot = $(local_plots_dir)fit_quality.pdf
 # lots of mass size versions, all done separately
-mass_radius_legus_full_plot = $(local_plots_dir)mass_radius_legus_full_$(fit_region_size).pdf
-mass_radius_legus_full_txt = $(mass_size_tables_dir)legus_full_$(fit_region_size)_table.txt
-mass_radius_legus_young_txt = $(mass_size_tables_dir)legus_young_$(fit_region_size)_table.txt
-mass_radius_legus_agesplit_plot = $(local_plots_dir)mass_radius_legus_agesplit_$(fit_region_size).pdf
-mass_radius_legus_agesplit_txt = $(mass_size_tables_dir)legus_agesplit_$(fit_region_size)_table.txt
-mass_radius_legus_ssfrsplit_plot = $(local_plots_dir)mass_radius_legus_ssfrsplit_$(fit_region_size).pdf
-mass_radius_legus_ssfrsplit_txt = $(mass_size_tables_dir)legus_ssfrsplit_$(fit_region_size)_table.txt
-mass_radius_legus_mw_txt = $(mass_size_tables_dir)legus_mw_$(fit_region_size)_table.txt
-mass_radius_legus_m31_txt = $(mass_size_tables_dir)legus_m31_$(fit_region_size)_table.txt
-mass_radius_legus_mw_m31_plot = $(local_plots_dir)mass_radius_legus_mw_m31_$(fit_region_size).pdf
-mass_radius_legus_mw_m31_txt = $(mass_size_tables_dir)legus_mw_m31_$(fit_region_size)_table.txt
+mass_radius_legus_full_plot = $(local_plots_dir)mass_radius_legus_full.pdf
+mass_radius_legus_full_txt = $(mass_size_tables_dir)legus_full_table.txt
+mass_radius_legus_young_txt = $(mass_size_tables_dir)legus_young_table.txt
+mass_radius_legus_agesplit_plot = $(local_plots_dir)mass_radius_legus_agesplit.pdf
+mass_radius_legus_agesplit_txt = $(mass_size_tables_dir)legus_agesplit_table.txt
+mass_radius_legus_ssfrsplit_plot = $(local_plots_dir)mass_radius_legus_ssfrsplit.pdf
+mass_radius_legus_ssfrsplit_txt = $(mass_size_tables_dir)legus_ssfrsplit_table.txt
+mass_radius_legus_mw_txt = $(mass_size_tables_dir)legus_mw_table.txt
+mass_radius_legus_m31_txt = $(mass_size_tables_dir)legus_m31)_table.txt
+mass_radius_legus_mw_m31_plot = $(local_plots_dir)mass_radius_legus_mw_m31.pdf
+mass_radius_legus_mw_m31_txt = $(mass_size_tables_dir)legus_mw_m31_table.txt
 # the mass size tables get combined together into one final table
 mass_radius_table = $(local_plots_dir)mass_radius_fits_table.txt
 # then combine everything together
@@ -253,10 +253,7 @@ $(masks): %: $(mask_script) $$(dir %)$$(cat) $$(dir %)$$(sigma_image)
 	python $(mask_script) $@ $(dir $@)$(cat) $(dir $@)$(sigma_image)
 
 # Then we can actually do the fitting, which depends on
-# the sigma image, psf, mask, and cluster catalog. First we remove all the debug
-# plots associated with this run, as we don't know how many bootstrap iterations
-# will be needed, and we want to make sure all plots come from the same run.
-to_rm_debug_plots =  $(1)cluster_fit_plots/*size_$(fit_region_size)_$(2)*
+# the sigma image, psf, mask, and cluster catalog.
 .SECONDEXPANSION:
 $(fits): %: $(fitting_script) $(fit_utils) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask) $$(dir %)$$(cat)
 	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(dir $@)$(cat) $(fit_region_size)
@@ -274,7 +271,7 @@ $(final_cats): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit) $$(dir %
 $(final_cats_ryon): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit_ryon) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask)
 	python $(final_catalog_script) $@ $(dir $@)$(fit_ryon) $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(fit_region_size) ryon_like
 
-# Make the comparisons to Ryon+17's results
+# Make the comparisons to Ryon+17's results and other comparison plots
 $(comparison_plot_ryon): $(comparison_script) $(final_cats_ryon)
 	python $(comparison_script) $@ ryon $(final_cats_ryon)
 
@@ -299,7 +296,7 @@ $(galaxy_table): $(final_cats) $(galaxy_table_script)
 $(experiments_sentinel): $(final_cats) $(experiment_script)
 	python $(experiment_script) $@ $(final_cats)
 
-# Various mass-size relation plots
+# Various mass-radius relation plots
 # need make v4.3 for this to work (can be installed with conda)
 $(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) &: $(final_cats) $(mass_radius_legus_full_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_plotting)
 	python $(mass_radius_legus_full_script) $(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) $(final_cats)
