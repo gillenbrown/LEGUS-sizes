@@ -9,6 +9,7 @@ data/
 *.pdf
 
 # output plots
+outputs*/*
 plots*/*
 
 # other
