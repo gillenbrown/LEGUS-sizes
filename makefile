@@ -56,6 +56,7 @@ galaxy_table_script = $(analysis_dir)galaxy_table.py
 experiment_script = ./testing/experiments.py
 mass_radius_utils = $(mass_radius_dir)mass_radius_utils.py
 mass_radius_utils_mle_fitting = $(mass_radius_dir)mass_radius_utils_mle_fitting.py
+mass_radius_utils_mcmc_fitting = $(mass_radius_dir)mass_radius_utils_mcmc_fitting.py
 mass_radius_utils_plotting = $(mass_radius_dir)mass_radius_utils_plotting.py
 mass_radius_utils_external_data = $(mass_radius_dir)mass_radius_utils_external_data.py
 mass_radius_legus_full_script = $(mass_radius_dir)mass_radius_legus_full.py
@@ -79,7 +80,8 @@ cluster_fit_dirs = $(foreach dir,$(my_dirs),$(dir)cluster_fit_plots)
 cluster_plot_dirs = $(foreach dir,$(my_dirs),$(dir)plots)
 local_plots_dir = ./outputs_$(run_name)/
 mass_size_tables_dir = $(local_plots_dir)sub_fit_tables/
-all_my_dirs = $(my_dirs) $(cluster_fit_dirs) $(cluster_plot_dirs) $(local_plots_dir) $(mass_size_tables_dir)
+mcmc_debug_plot_dir = $(local_plots_dir)mcmc_debug/
+all_my_dirs = $(my_dirs) $(cluster_fit_dirs) $(cluster_plot_dirs) $(local_plots_dir) $(mass_size_tables_dir) $(mcmc_debug_plot_dir)
 
 # ------------------------------------------------------------------------------
 #
@@ -298,8 +300,8 @@ $(experiments_sentinel): $(final_cats) $(experiment_script)
 
 # Various mass-radius relation plots
 # need make v4.3 for this to work (can be installed with conda)
-$(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) &: $(final_cats) $(mass_radius_legus_full_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_plotting)
-	python $(mass_radius_legus_full_script) $(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) $(final_cats)
+$(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) &: $(final_cats) $(mass_radius_legus_full_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_plotting) $(mass_radius_utils_mcmc_fitting)
+	python $(mass_radius_legus_full_script) $(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) $(mcmc_debug_plot_dir) $(final_cats)
 
 $(mass_radius_legus_young_txt) &: $(final_cats) $(mass_radius_legus_young_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting)
 	python $(mass_radius_legus_young_script) $(mass_radius_legus_young_txt) $(final_cats)
