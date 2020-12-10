@@ -54,7 +54,6 @@ fit_mcmc, fit_history_mcmc = mru_mcmc.fit_mass_size_relation(
     r_eff[fit_mask],
     r_eff_err_lo[fit_mask],
     r_eff_err_hi[fit_mask],
-    param_p0=fit_mle,
 )
 # make the debug plots for the MCMC chain
 mru_mcmc.mcmc_plots(

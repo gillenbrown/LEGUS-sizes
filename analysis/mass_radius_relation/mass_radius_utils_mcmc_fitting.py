@@ -53,6 +53,45 @@ def log_likelihood(params, log_mass, log_mass_err, log_r_eff, log_r_eff_err):
     return log_likelihood
 
 
+def is_converged(sampler):
+    # This convergence code inspired by:
+    # https://emcee.readthedocs.io/en/stable/tutorials/monitor/
+    autocorr_multiples = 100
+    # check for samplers that aren't initialized yet
+    if sampler.iteration < 1:
+        return False
+    # elif sampler.iteration > 2000:
+    #     return True
+    # Compute the autocorrelation time so far
+    # This will raise an error if the chain isn't long enough to trust the
+    # autocorrelation time
+    tol = 10
+    try:
+        tau = sampler.get_autocorr_time(tol=tol)
+    except emcee.autocorr.AutocorrError:
+        est_tau = sampler.get_autocorr_time(tol=0)
+        print(np.percentile(est_tau, [0, 1, 25, 50, 75, 99, 100]))
+        print(
+            f"{sampler.iteration} iterations isn't enough to trust autocorr time,"
+            f" estimated to need {np.max(est_tau) * tol:.0f}"
+        )
+        return False
+    # if we're here the autocorrelation time is reliable
+    # check convergence. I ignore the change in autocorrelation time, as it can't
+    # be calculated when the chain is reloaded.
+    # converged &= np.all(np.abs(old_tau - tau) / tau < autocorr_change_tol)
+    converged = np.all(tau * autocorr_multiples < sampler.iteration)
+
+    if converged:
+        print(f"converged after {sampler.iteration} iterations!")
+    else:
+        print(
+            f"{sampler.iteration} iterations, "
+            f"estimated to need {autocorr_multiples * np.max(tau):.0f}"
+        )
+    return converged
+
+
 def fit_mass_size_relation(
     mass,
     mass_err_lo,
@@ -60,7 +99,6 @@ def fit_mass_size_relation(
     r_eff,
     r_eff_err_lo,
     r_eff_err_hi,
-    param_p0,
 ):
     log_mass, log_mass_err_lo, log_mass_err_hi = mru.transform_to_log(
         mass, mass_err_lo, mass_err_hi
@@ -84,76 +122,48 @@ def fit_mass_size_relation(
         n_walkers, n_dim, log_likelihood, args=args, backend=backend
     )
 
-    # make the starting points.
-    # params are based on the MLE estimates
-    p0_slope = param_p0[0] + np.random.normal(0, 0.001, n_walkers)
-    p0_pivot_y = param_p0[1] + np.random.normal(0, 0.001, n_walkers)
-    p0_scatter = param_p0[2] + np.random.normal(0, 0.001, n_walkers)
-    # masses and radii will be perturbed within the errors
-    p0_masses = np.array(
-        [
+    # make the starting points. If we have already run this sampler and are loading it
+    # back, start from the last point
+    if sampler.iteration > 0:
+        state = sampler.get_last_sample()
+    else:  # just starting out, start from reasonable estimates
+        # TODO: make more efficient, maybe by initializing array at beginning and
+        #       filling in points by index, so I don't have that big concatenate at end
+        p0_slope = np.random.uniform(0, 0.5, n_walkers)
+        p0_pivot_y = np.random.uniform(0, 1, n_walkers)
+        p0_scatter = np.random.uniform(0.01, 0.5, n_walkers)
+        # masses and radii will be perturbed within the errors
+        p0_masses = [
             log_mass[idx] + np.random.normal(0, log_mass_err[idx], n_walkers)
             for idx in range(len(log_mass))
         ]
-    )
-    p0_radii = np.array(
-        [
+        p0_radii = [
             log_r_eff[idx] + np.random.normal(0, log_r_eff_err[idx], n_walkers)
             for idx in range(len(log_mass))
         ]
-    )
-    # then combine these all together
-    state = [
-        np.concatenate(
-            [
-                [p0_slope[idx]],
-                [p0_pivot_y[idx]],
-                [p0_scatter[idx]],
-                p0_masses[:, idx],
-                p0_radii[:, idx],
-            ]
-        )
-        for idx in range(n_walkers)
-    ]
+        # then combine these all together
+        state = [
+            np.concatenate(
+                [
+                    [p0_slope[idx]],
+                    [p0_pivot_y[idx]],
+                    [p0_scatter[idx]],
+                    np.array(p0_masses)[:, idx],
+                    np.array(p0_radii)[:, idx],
+                ]
+            )
+            for idx in range(n_walkers)
+        ]
 
-    # This convergence code inspired by:
-    # https://emcee.readthedocs.io/en/stable/tutorials/monitor/
-    autocorr_multiples = 100
-
-    def is_converged(sampler):
-        # check for samplers that aren't initialized yet
-        if sampler.iteration < 1:
-            return False
-        # Compute the autocorrelation time so far
-        # This will raise an error if the chain isn't long enough to trust the
-        # autocorrelation time
-        try:
-            tau = sampler.get_autocorr_time()
-        except emcee.autocorr.AutocorrError:
-            print(f"{sampler.iteration} iterations isn't enough to trust autocorr time")
-            return False
-        # if we're here the autocorrelation time is reliable
-        print(
-            f"{sampler.iteration} iterations, "
-            f"estimated to need {autocorr_multiples * np.max(tau):.0f}"
-        )
-
-        # check convergence. I ignore the change in autocorrelation time, as it can't
-        # be calculated when the chain is reloaded.
-        # converged &= np.all(np.abs(old_tau - tau) / tau < autocorr_change_tol)
-        return np.all(tau * autocorr_multiples < sampler.iteration)
-
-    # since we've saved the state, we can check convergence at the beginning
-    # do 1000 steps at a time
-    n_each = 1000
+    # then run until we're converged!
     while not is_converged(sampler):
-        state = sampler.run_mcmc(state, n_each, progress=True)
+        state = sampler.run_mcmc(state, 1000, progress=True)
 
     # then postprocess this to get the mean values.
     # we throw away the beginning as burn-in, and also thin it
-    tau = sampler.get_autocorr_time()
+    tau = sampler.get_autocorr_time() # quiet=True if using shortcuts on length
     n_burn_in = int(2 * np.max(tau))
-    n_thin = int(0.5 * np.min(tau))
+    n_thin = int(np.max(tau))
     samples = sampler.get_chain(flat=True, discard=n_burn_in, thin=n_thin)
     best_fit_params = [np.median(samples[:, idx]) for idx in range(3)]
 
