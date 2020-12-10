@@ -12,6 +12,9 @@ data/
 outputs*/*
 plots*/*
 
+# mcmc chain storage
+mcmc_chain*.h5
+
 # other
 __pycache__
 *.ipynb_checkpoints*

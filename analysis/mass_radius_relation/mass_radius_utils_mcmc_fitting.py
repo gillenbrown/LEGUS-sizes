@@ -2,6 +2,7 @@ import numpy as np
 import emcee
 
 import mass_radius_utils as mru
+import corner
 import betterplotlib as bpl
 
 bpl.set_style()
@@ -59,8 +60,7 @@ def fit_mass_size_relation(
     r_eff,
     r_eff_err_lo,
     r_eff_err_hi,
-    n_burn_in,
-    n_production,
+    param_p0,
 ):
     log_mass, log_mass_err_lo, log_mass_err_hi = mru.transform_to_log(
         mass, mass_err_lo, mass_err_hi
@@ -79,13 +79,16 @@ def fit_mass_size_relation(
     n_dim = 3 + 2 * len(log_mass)
     n_walkers = 2 * n_dim + 1  # need at least 2x the dimensions
     args = [log_mass, log_mass_err, log_r_eff, log_r_eff_err]
-    sampler = emcee.EnsembleSampler(n_walkers, n_dim, log_likelihood, args=args)
+    backend = emcee.backends.HDFBackend(f"mcmc_chain_{n_dim}dim.h5")
+    sampler = emcee.EnsembleSampler(
+        n_walkers, n_dim, log_likelihood, args=args, backend=backend
+    )
 
     # make the starting points.
     # params are based on the MLE estimates
-    p0_slope = 0.3 + np.random.normal(0, 0.01, n_walkers)
-    p0_pivot_y = 0.38 + np.random.normal(0, 0.01, n_walkers)
-    p0_scatter = 0.3 + np.random.normal(0, 0.01, n_walkers)
+    p0_slope = param_p0[0] + np.random.normal(0, 0.001, n_walkers)
+    p0_pivot_y = param_p0[1] + np.random.normal(0, 0.001, n_walkers)
+    p0_scatter = param_p0[2] + np.random.normal(0, 0.001, n_walkers)
     # masses and radii will be perturbed within the errors
     p0_masses = np.array(
         [
@@ -100,7 +103,7 @@ def fit_mass_size_relation(
         ]
     )
     # then combine these all together
-    p0 = [
+    state = [
         np.concatenate(
             [
                 [p0_slope[idx]],
@@ -113,14 +116,45 @@ def fit_mass_size_relation(
         for idx in range(n_walkers)
     ]
 
-    # burn in the sampler:
-    state = sampler.run_mcmc(p0, n_burn_in)
-    sampler.reset()
-    # then restart it for the full run
-    sampler.run_mcmc(state, n_production)
+    # This convergence code inspired by:
+    # https://emcee.readthedocs.io/en/stable/tutorials/monitor/
+    autocorr_multiples = 100
+
+    def is_converged(sampler):
+        # check for samplers that aren't initialized yet
+        if sampler.iteration < 1:
+            return False
+        # Compute the autocorrelation time so far
+        # This will raise an error if the chain isn't long enough to trust the
+        # autocorrelation time
+        try:
+            tau = sampler.get_autocorr_time()
+        except emcee.autocorr.AutocorrError:
+            print(f"{sampler.iteration} iterations isn't enough to trust autocorr time")
+            return False
+        # if we're here the autocorrelation time is reliable
+        print(
+            f"{sampler.iteration} iterations, "
+            f"estimated to need {autocorr_multiples * np.max(tau):.0f}"
+        )
+
+        # check convergence. I ignore the change in autocorrelation time, as it can't
+        # be calculated when the chain is reloaded.
+        # converged &= np.all(np.abs(old_tau - tau) / tau < autocorr_change_tol)
+        return np.all(tau * autocorr_multiples < sampler.iteration)
+
+    # since we've saved the state, we can check convergence at the beginning
+    # do 1000 steps at a time
+    n_each = 1000
+    while not is_converged(sampler):
+        state = sampler.run_mcmc(state, n_each, progress=True)
 
     # then postprocess this to get the mean values.
-    samples = sampler.get_chain(flat=True)
+    # we throw away the beginning as burn-in, and also thin it
+    tau = sampler.get_autocorr_time()
+    n_burn_in = int(2 * np.max(tau))
+    n_thin = int(0.5 * np.min(tau))
+    samples = sampler.get_chain(flat=True, discard=n_burn_in, thin=n_thin)
     best_fit_params = [np.median(samples[:, idx]) for idx in range(3)]
 
     return best_fit_params, samples
@@ -165,10 +199,10 @@ def mcmc_plots(
     # plot the posteriors for the parameters
     plot_params(samples, plots_dir, plots_prefix)
 
-    mass_samples = 10 ** samples[:, 3 : 3 + len(mass)]
-    radius_samples = 10 ** samples[:, 3 + len(mass) :]
-
     if plot_mass_radius_posteriors:
+        mass_samples = 10 ** samples[:, 3 : 3 + len(mass)]
+        radius_samples = 10 ** samples[:, 3 + len(mass) :]
+
         for galaxy in np.unique(galaxies):
             gal_mask = np.where(galaxies == galaxy)[0]
 
@@ -199,15 +233,14 @@ def mcmc_plots(
 
 def plot_params(samples, plots_dir, plots_prefix):
     # plot the posterior for the fit parameters
-    fig, axs = bpl.subplots(ncols=3, figsize=[18, 6])
-
-    axs[0].hist(samples[:, 0], bin_size=0.01, rel_freq=True)
-    axs[1].hist(samples[:, 1], bin_size=0.01, rel_freq=True)
-    axs[2].hist(samples[:, 2], bin_size=0.01, rel_freq=True)
-
-    axs[0].add_labels("Slope", "Relative Frequency")
-    axs[1].add_labels("log($R_{eff}$) at $10^4 M_\odot$", "Relative Frequency")
-    axs[2].add_labels("Intrinsic Scatter", "Relative Frequency")
+    fig = corner.corner(
+        samples[:, :3],
+        labels=["Slope", "log($R_{eff}$) at $10^4 M_\odot$", "Intrinsic Scatter"],
+        quantiles=[0.16, 0.50, 0.84],
+        show_titles=True,
+        title_kwargs={"fontsize": 12},
+        label_kwargs={"fontsize": 14},
+    )
 
     if not plots_dir is None:
         fig.savefig(plots_dir / f"{plots_prefix}_param_posterior.png", dpi=100)
