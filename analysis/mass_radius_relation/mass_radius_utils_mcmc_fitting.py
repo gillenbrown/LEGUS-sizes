@@ -127,33 +127,21 @@ def fit_mass_size_relation(
     if sampler.iteration > 0:
         state = sampler.get_last_sample()
     else:  # just starting out, start from reasonable estimates
-        # TODO: make more efficient, maybe by initializing array at beginning and
-        #       filling in points by index, so I don't have that big concatenate at end
-        p0_slope = np.random.uniform(0, 0.5, n_walkers)
-        p0_pivot_y = np.random.uniform(0, 1, n_walkers)
-        p0_scatter = np.random.uniform(0.01, 0.5, n_walkers)
+        # create the array, which has dimensions of walkers, then dimensions
+        state = np.zeros((n_walkers, n_dim))
+        # then set the relevant portions of it.
+        # first slope, intercept, and scatter
+        state[:, 0] = np.random.uniform(0, 0.5, n_walkers)
+        state[:, 1] = np.random.uniform(0, 1, n_walkers)
+        state[:, 2] = np.random.uniform(0.01, 0.5, n_walkers)
         # masses and radii will be perturbed within the errors
-        p0_masses = [
-            log_mass[idx] + np.random.normal(0, log_mass_err[idx], n_walkers)
-            for idx in range(len(log_mass))
-        ]
-        p0_radii = [
-            log_r_eff[idx] + np.random.normal(0, log_r_eff_err[idx], n_walkers)
-            for idx in range(len(log_mass))
-        ]
-        # then combine these all together
-        state = [
-            np.concatenate(
-                [
-                    [p0_slope[idx]],
-                    [p0_pivot_y[idx]],
-                    [p0_scatter[idx]],
-                    np.array(p0_masses)[:, idx],
-                    np.array(p0_radii)[:, idx],
-                ]
-            )
-            for idx in range(n_walkers)
-        ]
+        for idx in range(len(log_mass)):
+            masses = log_mass[idx] + np.random.normal(0, log_mass_err[idx], n_walkers)
+            radii = log_r_eff[idx] + np.random.normal(0, log_r_eff_err[idx], n_walkers)
+            state[:, 3 + idx] = masses
+            state[:, 3 + idx + len(log_mass)] = radii
+        # double check that we added everything to the array
+        assert not 0 in np.array(state)
 
     # then run until we're converged!
     while not is_converged(sampler):
