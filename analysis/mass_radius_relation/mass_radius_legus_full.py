@@ -30,11 +30,11 @@ mass, mass_err_lo, mass_err_hi = mru.get_my_masses(big_catalog, mask)
 r_eff, r_eff_err_lo, r_eff_err_hi = mru.get_my_radii(big_catalog, mask)
 ids = big_catalog["ID"][mask]
 galaxies = big_catalog["galaxy"][mask]
-print(len(mass))
 
 # restrict to mass range. Can't do this at the beginning since we want to
 # plot everything
 fit_mask = mass < 1e5
+print(np.sum(fit_mask))
 
 # Then actually make the fit and plot it. Do this for both MLE and MCMC
 fit_mle, fit_history_mle = mru_mle.fit_mass_size_relation(
@@ -61,14 +61,11 @@ mru_mcmc.mcmc_plots(
     mass[fit_mask],
     mass_err_lo[fit_mask],
     mass_err_hi[fit_mask],
-    r_eff[fit_mask],
-    r_eff_err_lo[fit_mask],
-    r_eff_err_hi[fit_mask],
     ids[fit_mask],
     galaxies[fit_mask],
     mcmc_plot_dir,
     "legus_full",
-    False,
+    True,
 )
 
 

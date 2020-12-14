@@ -18,33 +18,31 @@ def log_likelihood(params, log_mass, log_mass_err, log_r_eff, log_r_eff_err):
     # so params[1] is really y(pivot_point_x) = m (pivot_point_x) + intercept
     intercept = y_at_pivot - slope * pivot_point_x
 
-    # then parse the rest of the parameters to get the intrinsic masses and radii
-    idx_split = 3 + len(log_mass)
-    intrinsic_log_mass = params[3:idx_split]
-    intrinsic_log_radii = params[idx_split:]
-    assert len(intrinsic_log_mass) == len(intrinsic_log_radii) == len(log_mass)
+    # then get the intrinsic masses
+    intrinsic_log_mass = params[3:]
+    assert len(intrinsic_log_mass) == len(log_mass)
 
-    # start by getting the likelihoods of the intrinsic masses and radii
+    # start by getting the likelihoods of the intrinsic masses
     log_likelihood = 0
     log_likelihood += -0.5 * np.sum(
         ((intrinsic_log_mass - log_mass) / log_mass_err) ** 2
     )
-    log_likelihood += -0.5 * np.sum(
-        ((intrinsic_log_radii - log_r_eff) / log_r_eff_err) ** 2
-    )
 
-    # then add the probability of the true radius from the true mass
+    # then add the probability of the observed radius from the true mass. In this
+    # equation, I'm analytically marginalizing over the true radius. This produces a
+    # Gaussian where we compare observed to predicted intrinsic, with the variances
+    # added.
     expected_true_log_radii = intercept + intrinsic_log_mass * slope
+    total_variance = log_r_eff_err ** 2 + scatter ** 2
     log_likelihood += -0.5 * np.sum(
-        ((expected_true_log_radii - intrinsic_log_radii) / scatter) ** 2
+        ((expected_true_log_radii - log_r_eff) ** 2) / total_variance
     )
 
     # then penalize large intrinsic scatter. This term really comes from the definition
     # of a Gaussian likelihood. This term is always out front of a Gaussian, but
     # normally it's just a constant. When we include intrinsic scatter it now
-    # affects the likelihood. It's there for each term, so we need to multiply by the
-    # number of data points
-    log_likelihood += len(log_mass) * (-0.5 * np.log(scatter ** 2))
+    # affects the likelihood.
+    log_likelihood += np.sum(-0.5 * np.log(total_variance))
 
     #     # priors
     if abs(slope) > 1 or scatter < 0:
@@ -61,8 +59,8 @@ def is_converged(sampler, previous_tau):
     # check for samplers that aren't initialized yet
     if sampler.iteration < 1:
         return False, previous_tau  # will be set to infinity at the beginning anyway
-    # elif sampler.iteration > 2000:
-    #     return True, 100  # dummy values
+    elif sampler.iteration > 2000:
+        return True, 100  # dummy values
     # Compute the autocorrelation time so far. Set the tolerance for trusting the
     # autocorrelation time. This is the value that our chain must be X times longer
     # than the calculated value to trust that value.
@@ -117,8 +115,8 @@ def fit_mass_size_relation(
 
     # Then set up the MCMC.
     # our dimensions for fitting include slope, intercept, scatter, plus mass
-    # and radius for each cluster
-    n_dim = 3 + 2 * len(log_mass)
+    # for each cluster
+    n_dim = 3 + len(log_mass)
     n_walkers = 2 * n_dim + 1  # need at least 2x the dimensions
     args = [log_mass, log_mass_err, log_r_eff, log_r_eff_err]
     backend = emcee.backends.HDFBackend(f"mcmc_chain_{n_dim}dim.h5")
@@ -138,12 +136,10 @@ def fit_mass_size_relation(
         state[:, 0] = np.random.uniform(0, 0.5, n_walkers)
         state[:, 1] = np.random.uniform(0, 1, n_walkers)
         state[:, 2] = np.random.uniform(0.01, 0.5, n_walkers)
-        # masses and radii will be perturbed within the errors
+        # masses will be perturbed within the errors
         for idx in range(len(log_mass)):
             masses = log_mass[idx] + np.random.normal(0, log_mass_err[idx], n_walkers)
-            radii = log_r_eff[idx] + np.random.normal(0, log_r_eff_err[idx], n_walkers)
             state[:, 3 + idx] = masses
-            state[:, 3 + idx + len(log_mass)] = radii
         # double check that we added everything to the array
         assert not 0 in np.array(state)
 
@@ -174,14 +170,11 @@ def mcmc_plots(
     mass,
     mass_err_lo,
     mass_err_hi,
-    r_eff,
-    r_eff_err_lo,
-    r_eff_err_hi,
     ids,
     galaxies,
     plots_dir,
     plots_prefix,
-    plot_mass_radius_posteriors=True,
+    plot_mass_posteriors=True,
 ):
     """
     Parent function for the debug MCMC plots - call this externally
@@ -190,22 +183,18 @@ def mcmc_plots(
     :param mass: The observed masses
     :param mass_err_lo: The observed mass lower limits
     :param mass_err_hi: The observed mass upper limits
-    :param r_eff: The observed radii
-    :param r_eff_err_lo: The observed mass lower limits
-    :param r_eff_err_hi: The observed mass upper limits
     :param ids: The cluster IDs corresponding to the above
     :param galaxies: The galaxy each cluster belongs to
     :param plots_dir: Directory to save these plots to - can be None to not save
     :param plots_prefix: Prefix to the plot savename - will be common to all plots
-    :param plot_mass_radius_posteriors: whether or not to make these plots
+    :param plot_mass_posteriors: whether or not to make these plots
     :return: None
     """
     # plot the posteriors for the parameters
     plot_params(samples, plots_dir, plots_prefix)
 
-    if plot_mass_radius_posteriors:
-        mass_samples = 10 ** samples[:, 3 : 3 + len(mass)]
-        radius_samples = 10 ** samples[:, 3 + len(mass) :]
+    if plot_mass_posteriors:
+        mass_samples = 10 ** samples[:, 3:]
 
         for galaxy in np.unique(galaxies):
             gal_mask = np.where(galaxies == galaxy)[0]
@@ -218,18 +207,6 @@ def mcmc_plots(
                 ids[gal_mask],
                 galaxy,
                 "mass",
-                plots_dir,
-                plots_prefix,
-            )
-
-            plot_cluster_samples(
-                radius_samples[:, gal_mask],
-                r_eff[gal_mask],
-                r_eff_err_lo[gal_mask],
-                r_eff_err_hi[gal_mask],
-                ids[gal_mask],
-                galaxy,
-                "radius",
                 plots_dir,
                 plots_prefix,
             )
