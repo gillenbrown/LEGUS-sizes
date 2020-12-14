@@ -53,43 +53,47 @@ def log_likelihood(params, log_mass, log_mass_err, log_r_eff, log_r_eff_err):
     return log_likelihood
 
 
-def is_converged(sampler):
+def is_converged(sampler, previous_tau):
     # This convergence code inspired by:
     # https://emcee.readthedocs.io/en/stable/tutorials/monitor/
     autocorr_multiples = 100
+    autocorr_change_tol = 0.1
     # check for samplers that aren't initialized yet
     if sampler.iteration < 1:
-        return False
+        return False, previous_tau  # will be set to infinity at the beginning anyway
     # elif sampler.iteration > 2000:
-    #     return True
-    # Compute the autocorrelation time so far
+    #     return True, 100  # dummy values
+    # Compute the autocorrelation time so far. Set the tolerance for trusting the
+    # autocorrelation time. This is the value that our chain must be X times longer
+    # than the calculated value to trust that value.
+    tol = 10
+    # set the burn in
+    if not np.any(np.isinf(previous_tau)):
+        burn_in = int(2 * np.max(previous_tau))  # 2 autocorrelation times
+    else:
+        burn_in = int(0.1 * sampler.iteration)  # 10% of the chain
     # This will raise an error if the chain isn't long enough to trust the
     # autocorrelation time
-    tol = 10
     try:
-        tau = sampler.get_autocorr_time(tol=tol)
-    except emcee.autocorr.AutocorrError:
-        est_tau = sampler.get_autocorr_time(tol=0)
-        print(np.percentile(est_tau, [0, 1, 25, 50, 75, 99, 100]))
+        tau = sampler.get_autocorr_time(tol=tol, discard=burn_in)
+    except emcee.autocorr.AutocorrError:  # too short to trust
+        est_tau = sampler.get_autocorr_time(tol=0, discard=burn_in)
         print(
             f"{sampler.iteration} iterations isn't enough to trust autocorr time,"
-            f" estimated to need {np.max(est_tau) * tol:.0f}"
+            f" estimated to need {np.max(est_tau) * tol + burn_in:.0f}"
         )
-        return False
+        return False, est_tau
     # if we're here the autocorrelation time is reliable
-    # check convergence. I ignore the change in autocorrelation time, as it can't
-    # be calculated when the chain is reloaded.
-    # converged &= np.all(np.abs(old_tau - tau) / tau < autocorr_change_tol)
-    converged = np.all(tau * autocorr_multiples < sampler.iteration)
+    # check convergence.
+    converged = np.all(np.abs(previous_tau - tau) / tau < autocorr_change_tol)
+    converged &= np.max(tau) * autocorr_multiples < sampler.iteration
 
     if converged:
         print(f"converged after {sampler.iteration} iterations!")
     else:
-        print(
-            f"{sampler.iteration} iterations, "
-            f"estimated to need {autocorr_multiples * np.max(tau):.0f}"
-        )
-    return converged
+        n_needed = autocorr_multiples * np.ceil(np.max(tau)) + burn_in
+        print(f"{sampler.iteration} iterations, estimated to need {n_needed:.0f}")
+    return converged, tau
 
 
 def fit_mass_size_relation(
@@ -144,12 +148,14 @@ def fit_mass_size_relation(
         assert not 0 in np.array(state)
 
     # then run until we're converged!
-    while not is_converged(sampler):
+    tau = np.inf * np.ones(n_dim)  # uninitialized value, will set later
+    converged, tau = is_converged(sampler, tau)
+    while not converged:
         state = sampler.run_mcmc(state, 1000, progress=True)
+        converged, tau = is_converged(sampler, tau)
 
     # then postprocess this to get the mean values.
     # we throw away the beginning as burn-in, and also thin it
-    tau = sampler.get_autocorr_time() # quiet=True if using shortcuts on length
     n_burn_in = int(2 * np.max(tau))
     n_thin = int(np.max(tau))
     samples = sampler.get_chain(flat=True, discard=n_burn_in, thin=n_thin)
