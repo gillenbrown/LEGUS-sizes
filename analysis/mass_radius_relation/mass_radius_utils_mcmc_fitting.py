@@ -66,8 +66,9 @@ def is_converged(sampler, previous_tau):
     # check for samplers that aren't initialized yet
     if sampler.iteration < 1:
         return False, previous_tau  # will be set to infinity at the beginning anyway
-    elif sampler.iteration > 2000:
-        return True, 100  # dummy values
+    # elif sampler.iteration >= 1000:
+    #     discard = int(0.1 * sampler.iteration)  # dummy value
+    #     return True, sampler.get_autocorr_time(tol=0, discard=discard)
     # Compute the autocorrelation time so far. Set the tolerance for trusting the
     # autocorrelation time. This is the value that our chain must be X times longer
     # than the calculated value to trust that value.
@@ -84,8 +85,8 @@ def is_converged(sampler, previous_tau):
     except emcee.autocorr.AutocorrError:  # too short to trust
         est_tau = sampler.get_autocorr_time(tol=0, discard=burn_in)
         print(
-            f"{sampler.iteration} iterations isn't enough to trust autocorr time,"
-            f" estimated to need {np.max(est_tau) * tol + burn_in:.0f}"
+            f"{sampler.iteration} iterations, a_cor = {np.max(est_tau):.1f}, "
+            f"N/a_cor = {sampler.iteration / np.max(est_tau):.1f}"
         )
         return False, est_tau
     # if we're here the autocorrelation time is reliable
@@ -96,8 +97,10 @@ def is_converged(sampler, previous_tau):
     if converged:
         print(f"converged after {sampler.iteration} iterations!")
     else:
-        n_needed = autocorr_multiples * np.ceil(np.max(tau)) + burn_in
-        print(f"{sampler.iteration} iterations, estimated to need {n_needed:.0f}")
+        print(
+            f"{sampler.iteration} iterations, a_cor = {np.max(tau):.1f}, "
+            f"N/a_cor = {sampler.iteration / np.max(tau):.1f}"
+        )
     return converged, tau
 
 
@@ -108,6 +111,8 @@ def fit_mass_size_relation(
     r_eff,
     r_eff_err_lo,
     r_eff_err_hi,
+    plots_dir=None,
+    plots_prefix="",
 ):
     log_mass, log_mass_err_lo, log_mass_err_hi = mru.transform_to_log(
         mass, mass_err_lo, mass_err_hi
@@ -153,9 +158,18 @@ def fit_mass_size_relation(
     # then run until we're converged!
     tau = np.inf * np.ones(n_dim)  # uninitialized value, will set later
     converged, tau = is_converged(sampler, tau)
+
     while not converged:
-        state = sampler.run_mcmc(state, 1000, progress=True)
+        state = sampler.run_mcmc(state, 10000, progress=True)
         converged, tau = is_converged(sampler, tau)
+        out_file = open("autocorrelation.txt", "a")
+        out_file.write(f"{sampler.iteration} {np.max(tau)}\n")
+        out_file.close()
+
+    # First make a plot of the chains if desired:
+    if plots_dir is not None:
+        samples = sampler.get_chain(flat=False, discard=0, thin=1)
+        plot_chains(samples, plots_dir, plots_prefix)
 
     # then postprocess this to get the mean values.
     # we throw away the beginning as burn-in, and also thin it
@@ -232,6 +246,35 @@ def plot_params(samples, plots_dir, plots_prefix):
 
     if not plots_dir is None:
         fig.savefig(plots_dir / f"{plots_prefix}_param_posterior.png", dpi=100)
+
+
+def plot_chains(samples, plots_dir, plots_prefix):
+    fig, axs = bpl.subplots(nrows=5, sharex=True)
+    # plot the 3 main parameters plus 2 mass chains, randomly selected
+    n_iterations, n_walkers, n_params = samples.shape
+    param_idxs = np.concatenate([[0, 1, 2], np.random.randint(3, n_params, 2)])
+
+    names = [
+        "$\\beta$",
+        "log($\\rho_4$)",
+        "$\sigma$",
+        "log($\mu_{" + f"{param_idxs[-2]}" + "}$)",
+        "log($\mu_{" + f"{param_idxs[-1]}" + "}$)",
+    ]
+
+    # x values are simply the position
+    xs = np.arange(1, n_iterations + 1, 1)
+
+    for ax, param_idx, name in zip(axs, param_idxs, names):
+        for chain_idx in range(n_walkers):
+            ax.plot(xs, samples[:, chain_idx, param_idx], lw=0.1, c=bpl.almost_black)
+        ax.add_labels(y_label=name)
+        ax.set_limits(x_min=0, x_max=n_iterations)
+
+    axs[-1].add_labels(x_label="Iteration")
+
+    if not plots_dir is None:
+        fig.savefig(plots_dir / f"{plots_prefix}_chains.png", dpi=100)
 
 
 def plot_cluster_samples(

@@ -54,6 +54,8 @@ fit_mcmc, fit_history_mcmc = mru_mcmc.fit_mass_size_relation(
     r_eff[fit_mask],
     r_eff_err_lo[fit_mask],
     r_eff_err_hi[fit_mask],
+    mcmc_plot_dir,
+    "legus_full",
 )
 # make the debug plots for the MCMC chain
 mru_mcmc.mcmc_plots(
@@ -82,8 +84,25 @@ mru_p.plot_mass_size_dataset_scatter(
     bpl.color_cycle[0],
 )
 # mru_p.add_percentile_lines(ax, mass, r_eff)
-mru_p.plot_best_fit_line(ax, fit_mle, 1e2, 1e5, color=bpl.color_cycle[1], label="MLE")
-mru_p.plot_best_fit_line(ax, fit_mcmc, 1e2, 1e5, color=bpl.color_cycle[2], label="MCMC")
+for fit, history, name, color in zip(
+    [fit_mle, fit_mcmc],
+    [fit_history_mle, fit_history_mcmc.T],
+    ["MLE", "MCMC"],
+    [bpl.color_cycle[1], bpl.color_cycle[2]],
+):
+    label = f"{name} - "
+    for param_idx, param_name in zip(
+        [0, 1, 2], ["$\\beta$", "log$\\rho_4$", "$\sigma$"]
+    ):
+        lo, hi = np.percentile(history[param_idx], [16, 84])
+        med = fit[param_idx]
+        label += f"{param_name} = {med:.2f}"
+        label += "$^{" + f"{hi - med:.2f}" + "}"
+        label += "_{" + f"{med - lo:.2f}" + "}$, "
+    mru_p.plot_best_fit_line(ax, fit, 1e2, 1e5, color=color, label=label, fill=False)
+
+# mru_p.plot_best_fit_line(ax, fit_mle, 1e2, 1e5, color=bpl.color_cycle[1], label="MLE")
+# mru_p.plot_best_fit_line(ax, fit_mcmc, 1e2, 1e5, color=bpl.color_cycle[2], label="MCMC")
 mru_p.format_mass_size_plot(ax)
 fig.savefig(plot_name)
 
@@ -95,7 +114,7 @@ mru.write_fit_results(
     "Full LEGUS Sample - MCMC",
     len(r_eff),
     fit_mcmc,
-    fit_history_mcmc[:, :3],
+    fit_history_mcmc[:, :3].T,
 )
 
 # finalize output file
