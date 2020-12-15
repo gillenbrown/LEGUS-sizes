@@ -61,8 +61,8 @@ def log_likelihood(params, log_mass, log_mass_err, log_r_eff, log_r_eff_err):
 def is_converged(sampler, previous_tau):
     # This convergence code inspired by:
     # https://emcee.readthedocs.io/en/stable/tutorials/monitor/
-    autocorr_multiples = 100
-    autocorr_change_tol = 0.1
+    autocorr_multiples = 50
+    autocorr_change_tol = 0.05
     # check for samplers that aren't initialized yet
     if sampler.iteration < 1:
         return False, previous_tau  # will be set to infinity at the beginning anyway
@@ -84,22 +84,26 @@ def is_converged(sampler, previous_tau):
         tau = sampler.get_autocorr_time(tol=tol, discard=burn_in)
     except emcee.autocorr.AutocorrError:  # too short to trust
         est_tau = sampler.get_autocorr_time(tol=0, discard=burn_in)
+        max_tau_change = np.max(np.abs(previous_tau - est_tau) / est_tau)
         print(
-            f"{sampler.iteration} iterations, a_cor = {np.max(est_tau):.1f}, "
-            f"N/a_cor = {sampler.iteration / np.max(est_tau):.1f}"
+            f"{sampler.iteration} iterations, max a_cor = {np.max(est_tau):.1f}, "
+            f"N/a_cor = {sampler.iteration / np.max(est_tau):.1f}, "
+            f"max a_cor change = {100*max_tau_change:.1f}%"
         )
         return False, est_tau
     # if we're here the autocorrelation time is reliable
     # check convergence.
-    converged = np.all(np.abs(previous_tau - tau) / tau < autocorr_change_tol)
+    tau_change = np.abs(previous_tau - tau) / tau
+    converged = np.all(tau_change < autocorr_change_tol)
     converged &= np.max(tau) * autocorr_multiples < sampler.iteration
 
     if converged:
         print(f"converged after {sampler.iteration} iterations!")
     else:
         print(
-            f"{sampler.iteration} iterations, a_cor = {np.max(tau):.1f}, "
-            f"N/a_cor = {sampler.iteration / np.max(tau):.1f}"
+            f"{sampler.iteration} iterations, max a_cor = {np.max(tau):.1f}, "
+            f"N/a_cor = {sampler.iteration / np.max(tau):.1f}, "
+            f"max a_cor change = {100 * np.max(tau_change):.1f}%"
         )
     return converged, tau
 
@@ -160,7 +164,7 @@ def fit_mass_size_relation(
     converged, tau = is_converged(sampler, tau)
 
     while not converged:
-        state = sampler.run_mcmc(state, 10000, progress=True)
+        state = sampler.run_mcmc(state, 2000, progress=True)
         converged, tau = is_converged(sampler, tau)
         out_file = open("autocorrelation.txt", "a")
         out_file.write(f"{sampler.iteration} {np.max(tau)}\n")
