@@ -44,8 +44,15 @@ def log_likelihood(params, log_mass, log_mass_err, log_r_eff, log_r_eff_err):
     # affects the likelihood.
     log_likelihood += np.sum(-0.5 * np.log(total_variance))
 
-    #     # priors
-    if abs(slope) > 1 or scatter < 0:
+    # priors
+    if (
+        abs(slope) > 1
+        or scatter < 0
+        or scatter > 1
+        or abs(y_at_pivot) > 2
+        or np.any(intrinsic_log_mass > 10)
+        or np.any(intrinsic_log_mass < 0)
+    ):
         log_likelihood -= np.inf
 
     return log_likelihood
