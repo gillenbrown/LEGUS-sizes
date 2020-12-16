@@ -20,9 +20,9 @@ fit_out_file.write("\t\t\\toprule\n")
 fit_out_file.write(
     "\t\tSelection & "
     "$N$ & "
-    "Slope & "
-    "$\\reff$(pc) at $10^4\Msun$ & "
-    "Intrinsic Scatter \\\\ \n"
+    "Slope ($\\beta$) & "
+    "$\\reff$(pc) at $10^4\Msun (r_4)$ & "
+    "Intrinsic Scatter ($\sigma$) \\\\ \n"
 )
 fit_out_file.write("\t\t\midrule\n")
 

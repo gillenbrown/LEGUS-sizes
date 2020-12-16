@@ -37,6 +37,19 @@ def gaussian(x, mean, variance, include_norm=False):
     return np.exp(log_gaussian(x, mean, variance, include_norm))
 
 
+def mass_size_relation_mean_log(log_mass, beta, log_r_4):
+    """
+    Return the mean value of the mass-radius relation.
+
+    :param log_mass: Log of the true intrinsic cluster mass
+    :param beta: Slope of the mass-radius relation
+    :param log_r_4: Normalization, defined as the log of the radius at 10^4 Msun
+    :return: log(radius) at the given mass
+    """
+    pivot_point_mass = 4
+    return log_r_4 + (log_mass - pivot_point_mass) * beta
+
+
 # ======================================================================================
 #
 # likelihood functions
@@ -44,15 +57,10 @@ def gaussian(x, mean, variance, include_norm=False):
 # ======================================================================================
 # define the functions to minimize
 def log_likelihood(params, log_mass, log_mass_err, log_r_eff, log_r_eff_err):
-    slope = params[0]
-    y_at_pivot = params[1]
-    scatter = params[2]
-    # first convert the pivot point value into the intercept
-    pivot_point_x = 4
-    # so params[1] is really y(pivot_point_x) = m (pivot_point_x) + intercept
-    intercept = y_at_pivot - slope * pivot_point_x
-
-    # then get the intrinsic masses
+    # parse the parameters
+    beta = params[0]
+    log_r_4 = params[1]
+    sigma = params[2]
     intrinsic_log_mass = params[3:]
     assert len(intrinsic_log_mass) == len(log_mass)
 
@@ -69,22 +77,20 @@ def log_likelihood(params, log_mass, log_mass_err, log_r_eff, log_r_eff_err):
     # equation, I'm analytically marginalizing over the true radius. This produces a
     # Gaussian where we compare observed to predicted intrinsic, with the variances
     # added.
-    expected_true_log_radii = intercept + intrinsic_log_mass * slope
-    total_variance = log_r_eff_err ** 2 + scatter ** 2
+    expected_log_radii = mass_size_relation_mean_log(intrinsic_log_mass, beta, log_r_4)
+    total_variance = log_r_eff_err ** 2 + sigma ** 2
     # note that here we do need to return the correct normalization, as the scatter is
     # a term of interest
     log_likelihood += np.sum(
-        log_gaussian(
-            expected_true_log_radii, log_r_eff, total_variance, include_norm=True
-        )
+        log_gaussian(expected_log_radii, log_r_eff, total_variance, include_norm=True)
     )
 
     # priors
     if (
-        abs(slope) > 1
-        or scatter < 0
-        or scatter > 1
-        or abs(y_at_pivot) > 2
+        abs(beta) > 1
+        or sigma < 0
+        or sigma > 1
+        or abs(log_r_4) > 2
         or np.any(intrinsic_log_mass > 10)
         or np.any(intrinsic_log_mass < 0)
     ):
@@ -173,7 +179,7 @@ def fit_mass_size_relation(
     stds = np.inf * np.ones(3)  # uninitialized value, will set later
     converged, stds = is_converged(sampler, stds)
     while not converged:
-        state = sampler.run_mcmc(state, 1000, progress=True)
+        state = sampler.run_mcmc(state, 100, progress=True)
         converged, stds = is_converged(sampler, stds)
 
     # First make a plot of the chains if desired:
@@ -249,10 +255,10 @@ def plot_params(samples, plots_dir, plots_prefix):
     # plot the posterior for the fit parameters
     fig = corner.corner(
         samples[:, :3],
-        labels=["Slope", "log($R_{eff}$) at $10^4 M_\odot$", "Intrinsic Scatter"],
+        labels=["$\\beta$", "log($r_4$)", "$\sigma$"],
         quantiles=[0.16, 0.50, 0.84],
         show_titles=True,
-        title_kwargs={"fontsize": 12},
+        title_kwargs={"fontsize": 14},
         label_kwargs={"fontsize": 14},
     )
 
@@ -268,10 +274,10 @@ def plot_chains(samples, plots_dir, plots_prefix):
 
     names = [
         "$\\beta$",
-        "log($\\rho_4$)",
+        "log($r_4$)",
         "$\sigma$",
-        "log($\mu_{" + f"{param_idxs[-2]}" + "}$)",
-        "log($\mu_{" + f"{param_idxs[-1]}" + "}$)",
+        "log($m_{" + f"{param_idxs[-2]}" + "}$)",
+        "log($m_{" + f"{param_idxs[-1]}" + "}$)",
     ]
 
     # x values are simply the position
