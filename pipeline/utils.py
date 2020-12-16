@@ -129,7 +129,7 @@ distances_and_errs_mpc = {
     # other available estimates are Tully Fisher, and the modern ones (>1990) are
     # consistent with Sabbi et al. 2018, so I just use it for consistency.
     "ngc1433": (9.1, 1.0),
-    "ngc1566": (18, 2),
+    "ngc1566": (15.6, 0.6),
     "ngc1705": (5.22, 0.38),
     "ngc3344": (8.3, 0.7),
     # Sabbi et al. 2018 says: A combination of distance, crowding, and metallicity made
