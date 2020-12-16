@@ -8,6 +8,40 @@ import betterplotlib as bpl
 bpl.set_style()
 
 
+# ======================================================================================
+#
+# some helper functions for likelihoods
+#
+# ======================================================================================
+def log_gaussian(x, mean, variance, include_norm=False):
+    """
+    Natural log of the likelihood for a Gaussian distribution.
+
+    :param x: Value(s) at which to evaluate the likelihood.
+    :param mean: Mean of the Gaussian distribution
+    :param sigma: Variance of the Gaussian distribution
+    :param include_norm: whether or not to calculate the normalization term. This is
+                         not needed unless the variance is a parameter of interest
+    :return: log of the likelihood at x
+    """
+    log_likelihood = -((x - mean) ** 2) / (2 * variance)
+    if include_norm:
+        log_likelihood -= (1 / 2) * np.log(2 * np.pi * variance)
+    return log_likelihood
+
+
+def gaussian(x, mean, variance, include_norm=False):
+    """
+    Equivalent of log_gaussian, but returns the likelhood, not log of the likelihood
+    """
+    return np.exp(log_gaussian(x, mean, variance, include_norm))
+
+
+# ======================================================================================
+#
+# likelihood functions
+#
+# ======================================================================================
 # define the functions to minimize
 def log_likelihood(params, log_mass, log_mass_err, log_r_eff, log_r_eff_err):
     slope = params[0]
@@ -22,10 +56,13 @@ def log_likelihood(params, log_mass, log_mass_err, log_r_eff, log_r_eff_err):
     intrinsic_log_mass = params[3:]
     assert len(intrinsic_log_mass) == len(log_mass)
 
-    # start by getting the likelihoods of the intrinsic masses
+    # start by getting the likelihoods of the intrinsic masses. Error doesn't matter,
+    # so we don't need to include the normalizattion term
     log_likelihood = 0
-    log_likelihood += -0.5 * np.sum(
-        ((intrinsic_log_mass - log_mass) / log_mass_err) ** 2
+    log_likelihood += np.sum(
+        log_gaussian(
+            intrinsic_log_mass, log_mass, log_mass_err ** 2, include_norm=False
+        )
     )
 
     # then add the probability of the observed radius from the true mass. In this
@@ -34,15 +71,13 @@ def log_likelihood(params, log_mass, log_mass_err, log_r_eff, log_r_eff_err):
     # added.
     expected_true_log_radii = intercept + intrinsic_log_mass * slope
     total_variance = log_r_eff_err ** 2 + scatter ** 2
-    log_likelihood += -0.5 * np.sum(
-        ((expected_true_log_radii - log_r_eff) ** 2) / total_variance
+    # note that here we do need to return the correct normalization, as the scatter is
+    # a term of interest
+    log_likelihood += np.sum(
+        log_gaussian(
+            expected_true_log_radii, log_r_eff, total_variance, include_norm=True
+        )
     )
-
-    # then penalize large intrinsic scatter. This term really comes from the definition
-    # of a Gaussian likelihood. This term is always out front of a Gaussian, but
-    # normally it's just a constant. When we include intrinsic scatter it now
-    # affects the likelihood.
-    log_likelihood += np.sum(-0.5 * np.log(total_variance))
 
     # priors
     if (
