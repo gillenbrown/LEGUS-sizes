@@ -58,54 +58,29 @@ def log_likelihood(params, log_mass, log_mass_err, log_r_eff, log_r_eff_err):
     return log_likelihood
 
 
-def is_converged(sampler, previous_tau):
-    # This convergence code inspired by:
-    # https://emcee.readthedocs.io/en/stable/tutorials/monitor/
-    autocorr_multiples = 50
-    autocorr_change_tol = 0.05
-    # check for samplers that aren't initialized yet
-    if sampler.iteration < 1:
-        return False, previous_tau  # will be set to infinity at the beginning anyway
-    # elif sampler.iteration >= 1000:
-    #     discard = int(0.1 * sampler.iteration)  # dummy value
-    #     return True, sampler.get_autocorr_time(tol=0, discard=discard)
-    # Compute the autocorrelation time so far. Set the tolerance for trusting the
-    # autocorrelation time. This is the value that our chain must be X times longer
-    # than the calculated value to trust that value.
-    tol = 10
-    # set the burn in
-    if not np.any(np.isinf(previous_tau)):
-        burn_in = int(2 * np.max(previous_tau))  # 2 autocorrelation times
-    else:
-        burn_in = int(0.1 * sampler.iteration)  # 10% of the chain
-    # This will raise an error if the chain isn't long enough to trust the
-    # autocorrelation time
-    try:
-        tau = sampler.get_autocorr_time(tol=tol, discard=burn_in)
-    except emcee.autocorr.AutocorrError:  # too short to trust
-        est_tau = sampler.get_autocorr_time(tol=0, discard=burn_in)
-        max_tau_change = np.max(np.abs(previous_tau - est_tau) / est_tau)
-        print(
-            f"{sampler.iteration} iterations, max a_cor = {np.max(est_tau):.1f}, "
-            f"N/a_cor = {sampler.iteration / np.max(est_tau):.1f}, "
-            f"max a_cor change = {100*max_tau_change:.1f}%"
-        )
-        return False, est_tau
-    # if we're here the autocorrelation time is reliable
-    # check convergence.
-    tau_change = np.abs(previous_tau - tau) / tau
-    converged = np.all(tau_change < autocorr_change_tol)
-    converged &= np.max(tau) * autocorr_multiples < sampler.iteration
-
+def is_converged(sampler, previous_stds):
+    # Simple convergence check based on parameters of interest. We iterate until the
+    # standard deviation is within some percent of the previous version.
+    std_tol = 0.01
+    # if we haven't started yet, we haven't converged
+    if sampler.iteration == 0:
+        return False, previous_stds  # should be initialized to infinity
+    # always use a burn-in of 10% of the chain. Not an amazing estimate, but
+    # should be good enough. I know the rough values of the parameters, so the
+    # burn-in isn't very long anyway
+    burn_in = int(0.1 * sampler.iteration)
+    samples = sampler.get_chain(flat=True, discard=burn_in, thin=1)  # no thinning here
+    stds = np.array([np.median(samples[:, idx]) for idx in range(3)])
+    std_diffs = np.abs((stds - previous_stds) / stds)
+    converged = np.all(std_diffs < std_tol)
     if converged:
         print(f"converged after {sampler.iteration} iterations!")
     else:
         print(
-            f"{sampler.iteration} iterations, max a_cor = {np.max(tau):.1f}, "
-            f"N/a_cor = {sampler.iteration / np.max(tau):.1f}, "
-            f"max a_cor change = {100 * np.max(tau_change):.1f}%"
+            f"{sampler.iteration} iterations, "
+            f"max sigma change = {100 * np.max(std_diffs):.1f}%"
         )
-    return converged, tau
+    return converged, stds
 
 
 def fit_mass_size_relation(
@@ -160,15 +135,11 @@ def fit_mass_size_relation(
         assert not 0 in np.array(state)
 
     # then run until we're converged!
-    tau = np.inf * np.ones(n_dim)  # uninitialized value, will set later
-    converged, tau = is_converged(sampler, tau)
-
+    stds = np.inf * np.ones(3)  # uninitialized value, will set later
+    converged, stds = is_converged(sampler, stds)
     while not converged:
-        state = sampler.run_mcmc(state, 2000, progress=True)
-        converged, tau = is_converged(sampler, tau)
-        out_file = open("autocorrelation.txt", "a")
-        out_file.write(f"{sampler.iteration} {np.max(tau)}\n")
-        out_file.close()
+        state = sampler.run_mcmc(state, 1000, progress=True)
+        converged, stds = is_converged(sampler, stds)
 
     # First make a plot of the chains if desired:
     if plots_dir is not None:
@@ -176,8 +147,10 @@ def fit_mass_size_relation(
         plot_chains(samples, plots_dir, plots_prefix)
 
     # then postprocess this to get the mean values.
-    # we throw away the beginning as burn-in, and also thin it
-    n_burn_in = int(2 * np.max(tau))
+    # we throw away the beginning as burn-in, and also thin it.
+    # here we actually use the autocorrelation time
+    tau = sampler.get_autocorr_time(discard=int(0.1 * sampler.iteration), tol=0)
+    n_burn_in = max(int(2 * np.max(tau)), 0.1 * sampler.iteration)
     n_thin = int(np.max(tau))
     samples = sampler.get_chain(flat=True, discard=n_burn_in, thin=n_thin)
     best_fit_params = [np.median(samples[:, idx]) for idx in range(3)]
