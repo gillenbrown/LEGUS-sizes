@@ -76,6 +76,51 @@ for row in galaxy_table:
 
 # ======================================================================================
 #
+# significant figures in the distances table
+#
+# ======================================================================================
+# each galaxy has a different number, so I need to be careful with how I present.
+# for galaxies in Sabbi directly, I use the same sig figs as that paper lists. For
+# galaxies with the mean I use 2 decimal places
+distances_decimal_places = {
+    "ic4247": (2, 1),
+    "ic559": (1, 1),
+    "ngc1313-e": (2, 2),
+    "ngc1313-w": (2, 2),
+    "ngc1433": (1, 1),
+    "ngc1566": (1, 1),
+    "ngc1705": (2, 2),
+    "ngc3344": (1, 1),
+    "ngc3351": (1, 1),
+    "ngc3738": (2, 2),
+    "ngc4242": (1, 1),
+    "ngc4395-n": (2, 2),
+    "ngc4395-s": (2, 2),
+    "ngc4449": (2, 2),
+    "ngc45": (1, 1),
+    "ngc4656": (1, 1),
+    "ngc5194-ngc5195-mosaic": (2, 2),
+    "ngc5238": (2, 2),
+    "ngc5253": (2, 2),
+    "ngc5474": (1, 1),
+    "ngc5477": (1, 1),
+    "ngc628-c": (1, 1),
+    "ngc628-e": (1, 1),
+    "ngc6503": (1, 1),
+    "ngc7793-e": (2, 2),
+    "ngc7793-w": (2, 2),
+    "ugc1249": (1, 1),
+    "ugc4305": (2, 2),
+    "ugc4459": (2, 2),
+    "ugc5139": (2, 2),
+    "ugc685": (2, 2),
+    "ugc695": (1, 1),
+    "ugc7408": (1, 1),
+    "ugca281": (2, 2),
+}
+
+# ======================================================================================
+#
 # Functions to calculate the psf effective radius
 #
 # ======================================================================================
@@ -147,17 +192,18 @@ def get_iqr_string(cat):
     return f"{values[0]:.2f} --- {values[1]:.2f} --- {values[2]:.2f}"
 
 
-def handle_regular_galaxy(home_dir, cat, out_file):
+def handle_regular_galaxy(galaxy_name_fancy, home_dir, cat, out_file):
     n = len(cat)
-    ssfr_str = f"{ssfr[galaxy.split('-')[0]]:.2e}"
+    ssfr_str = f"{ssfr[galaxy_name_fancy.split('-')[0]]:.2e}"
     dist = utils.distance(home_dir).to("Mpc").value
     dist_err = utils.distance_error(home_dir).to("Mpc").value
-    dist_str = f"{dist:.2f} $\pm$ {dist_err:.2f}"
+    dist_decimals, err_decimals = distances_decimal_places[home_dir.name]
+    dist_str = f"{dist:.{dist_decimals}f} $\pm$ {dist_err:.{err_decimals}f}"
     this_psf_size = psf_sizes[home_dir]
     iqr_str = get_iqr_string(cat)
 
     out_file.write(
-        f"\t\t{galaxy} & "
+        f"\t\t{galaxy_name_fancy} & "
         f"{n} & "
         f"{ssfr_str} & "
         f"{dist_str} & "
@@ -236,7 +282,7 @@ with open(output_name, "w") as out_file:
         if galaxy == "NGC 5194/NGC 5195":
             handle_ngc5194_ngc5195(home_dir, cat, out_file)
         else:
-            handle_regular_galaxy(home_dir, cat, out_file)
+            handle_regular_galaxy(galaxy, home_dir, cat, out_file)
 
     out_file.write("\t\t\midrule\n")
     # get the total values
