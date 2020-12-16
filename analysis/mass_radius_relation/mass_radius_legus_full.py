@@ -28,6 +28,7 @@ big_catalog = mru.make_big_table(sys.argv[4:])
 mask = big_catalog["ID"] < 10  # restrict sample size for testing
 mass, mass_err_lo, mass_err_hi = mru.get_my_masses(big_catalog, mask)
 r_eff, r_eff_err_lo, r_eff_err_hi = mru.get_my_radii(big_catalog, mask)
+age, age_err_lo, age_err_hi = mru.get_my_ages(big_catalog, mask)
 ids = big_catalog["ID"][mask]
 galaxies = big_catalog["galaxy"][mask]
 
@@ -54,6 +55,9 @@ fit_mcmc, fit_history_mcmc = mru_mcmc.fit_mass_size_relation(
     r_eff[fit_mask],
     r_eff_err_lo[fit_mask],
     r_eff_err_hi[fit_mask],
+    age[fit_mask],
+    age_err_lo[fit_mask],
+    age_err_hi[fit_mask],
     mcmc_plot_dir,
     "legus_full",
 )
@@ -63,6 +67,9 @@ mru_mcmc.mcmc_plots(
     mass[fit_mask],
     mass_err_lo[fit_mask],
     mass_err_hi[fit_mask],
+    age[fit_mask],
+    age_err_lo[fit_mask],
+    age_err_hi[fit_mask],
     ids[fit_mask],
     galaxies[fit_mask],
     mcmc_plot_dir,

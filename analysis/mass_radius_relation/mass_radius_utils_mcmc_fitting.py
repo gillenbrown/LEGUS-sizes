@@ -1,11 +1,49 @@
+from pathlib import Path
 import numpy as np
 import emcee
+from astropy import table
+from scipy import interpolate, integrate, special
 
 import mass_radius_utils as mru
 import corner
 import betterplotlib as bpl
 
 bpl.set_style()
+
+# ======================================================================================
+#
+# SPS models to use in the selection effects calculation
+#
+# ======================================================================================
+# initialize the Yggdrasil table to read the SPS models from, so we can use them later
+ygg_name = "Z=0.02_kroupa_IMF_fcov_1_SFR_inst_HST_AB_lyman_alpha0_redshiftgroup3.txt"
+ygg_loc = Path(__file__).parent / ygg_name
+ygg_table = table.Table.read(ygg_loc, format="ascii")
+# restrict to zero redshift
+ygg_table = ygg_table[ygg_table["Redshift"] == 0]
+# create interpolation objects to get the mass and magnitude at a given age
+mass_interp = interpolate.interp1d(
+    x=ygg_table["Age(yr)"],
+    y=ygg_table["Mstars"],
+    bounds_error=False,
+    fill_value=np.inf,
+)
+f555_interp = interpolate.interp1d(
+    x=ygg_table["Age(yr)"],
+    y=ygg_table["F555W"],
+    bounds_error=False,
+    fill_value=np.inf,
+)
+min_age = np.min(ygg_table["Age(yr)"])
+max_age = np.max(ygg_table["Age(yr)"])
+
+# then convenience functions to use this
+def get_absolute_mag(mass, age):
+    table_mass = mass_interp(age)
+    table_mag = f555_interp(age)
+
+    # the correct the magnitude based on the masses.
+    return table_mag - 2.5 * np.log10(mass / table_mass)
 
 
 # ======================================================================================
@@ -52,25 +90,135 @@ def mass_size_relation_mean_log(log_mass, beta, log_r_4):
 
 # ======================================================================================
 #
+# selection functions
+#
+# ======================================================================================
+# define the cut for V band absolute magnitude
+v_cut = -6
+# define a function for the radius selection. Note that we don't have a function for V
+# band magnitude. It's a step function, which makes the integral analytically solvable
+# (to an error function). So we only need to integrate over the radius selection
+# function numerically. See the `selection_probability` function below for more.
+def r_selection(r_pc):
+    """
+    Probability of a cluster of a given radius being seleted.
+
+    :param r_pc: radius of the cluster in pc
+    :return: Probability of selecting a cluster with this radius
+    # TODO: actually define this function based on data
+    # TODO: define this function in arcsec, not pc
+    """
+    return np.minimum(r_pc, 1)
+
+
+def gaussian_integral_lower(mean, sigma, x_max):
+    """
+    Integral of a Gaussian function from negative infinity to some value
+
+    This comes from the cumulative distribution function of the Gaussian
+
+    :param mean: Mean of the Gaussian
+    :param sigma: Standard deviation of the Gaussian
+    :param x_max: Value to integrate to
+    :return: Integral from negative infinity to the given value
+    """
+    return 0.5 * (1 + special.erf((x_max - mean) / (sigma * np.sqrt(2))))
+
+
+def selection_probability(log_true_mass, log_true_age, beta, log_r_4, sigma):
+    """
+    Determine Phi, the probability of selecting a cluster of a given true mass and age
+
+    This is elaborated more in the paper. But the idea is to integrate over all values
+    of any variables that have selection functions.
+    \int f(X) p(X|m, t) dX
+    where f(X) is the selection function, and p(X|m, t) is the conditional likelihood
+    of selecting this variable.
+
+    Here we have two selection variables: radius and V band magnitude. V band magnitude
+    has a step function selection function and a Gaussian likelihood, which mean it
+    integrates to an error function. The radius is more complicated, so we need to do
+    the integration numerically. The fit parameters are needed for the radius selection
+    too, as the determine the likelihood of a cluster of a given mass being above the
+    selection threshold.
+
+    :param log_true_mass: log of the true mass of the cluster
+    :param log_true_age: log of the true age of the cluster
+    :param beta, log_r_4, sigma: Parameters of the mass-radius relation, see
+                                 `mass_size_relation_mean_log` for more
+    :return: The probability that a cluster of this mass and age will pass the selection
+             criteria
+    """
+    # first lets handle the V band magnitude. The likelihood is Gaussian, with a mean
+    # provided by the SPS models. We integrate it up to the cut.
+    expected_v = get_absolute_mag(10 ** log_true_mass, 10 ** log_true_age)
+    v_err = 0.1  # dummy value for now
+    v_term = gaussian_integral_lower(expected_v, v_err, v_cut)
+
+    # then we have to numerically integrate over the radius selection function times
+    # its likelihood
+    expected_log_radii = mass_size_relation_mean_log(log_true_mass, beta, log_r_4)
+    r_err = 0.1  # dex, dummy value for now
+    total_variance = sigma ** 2 + r_err ** 2
+
+    def integrand_radius(log_r):
+        # here we multiply the selection function times the likelihood. Note that we
+        # need the raw likelihood, not the log likelihood
+        return r_selection(10 ** log_r) * gaussian(
+            log_r, expected_log_radii, total_variance, include_norm=True
+        )
+
+    # then integrate this. I restrict the range to ensure convergence. But this is from
+    # 10^-5 to 10^5 pc, it will have all the likelihood
+    r_term = integrate.quad(integrand_radius, -5, 5)[0]
+
+    # then the final selection probability is the product of these two
+    return v_term * r_term
+
+
+# ======================================================================================
+#
 # likelihood functions
 #
 # ======================================================================================
 # define the functions to minimize
-def log_likelihood(params, log_mass, log_mass_err, log_r_eff, log_r_eff_err):
+def log_likelihood(
+    params, log_mass, log_mass_err, log_r_eff, log_r_eff_err, log_age, log_age_err
+):
+    """
+    Get the log likelihood for a given model
+
+    :param params: All the free parameters of the model. The first 3 parameters are
+                   beta (slope), log(r_4) (normalization), and sigma (intrinsic
+                   scatter), followed by the values for underlying masses and ages.
+    :param log_mass: Observed log masses.
+    :param log_mass_err:  Errors on the observed log mass
+    :param log_r_eff: Observed log radii
+    :param log_r_eff_err: Errors on the observed log radii
+    :param log_age: Observed log age
+    :param log_age_err: Errors on the observed log age
+    :return:
+    """
     # parse the parameters
     beta = params[0]
     log_r_4 = params[1]
     sigma = params[2]
-    intrinsic_log_mass = params[3:]
-    assert len(intrinsic_log_mass) == len(log_mass)
+    # then split the ages from the masses
+    split_idx = 3 + len(log_mass)
+    intrinsic_log_mass = params[3:split_idx]
+    intrinsic_log_age = params[split_idx:]
+    assert len(intrinsic_log_mass) == len(intrinsic_log_age) == len(log_mass)
 
-    # start by getting the likelihoods of the intrinsic masses. Error doesn't matter,
-    # so we don't need to include the normalizattion term
+    # start by getting the likelihoods of the intrinsic masses and radii. The error is
+    # not a free parameter, so we don't need to include the normalization
     log_likelihood = 0
     log_likelihood += np.sum(
         log_gaussian(
             intrinsic_log_mass, log_mass, log_mass_err ** 2, include_norm=False
         )
+    )
+    log_likelihood += np.sum(
+        log_gaussian(intrinsic_log_age, log_age, log_age_err ** 2, include_norm=False)
     )
 
     # then add the probability of the observed radius from the true mass. In this
@@ -85,6 +233,18 @@ def log_likelihood(params, log_mass, log_mass_err, log_r_eff, log_r_eff_err):
         log_gaussian(expected_log_radii, log_r_eff, total_variance, include_norm=True)
     )
 
+    # then normalize by the selection function. In the (not log) likelihood it enters
+    # as division, so we subtract the log value. We have to do this separately for
+    # each cluster
+    for i in range(len(log_r_eff)):
+        s_prob = selection_probability(
+            intrinsic_log_mass[i], intrinsic_log_age[i], beta, log_r_4, sigma
+        )
+        if s_prob == 0:
+            log_likelihood += np.inf
+        else:
+            log_likelihood -= np.log(s_prob)
+
     # priors
     if (
         abs(beta) > 1
@@ -93,6 +253,8 @@ def log_likelihood(params, log_mass, log_mass_err, log_r_eff, log_r_eff_err):
         or abs(log_r_4) > 2
         or np.any(intrinsic_log_mass > 10)
         or np.any(intrinsic_log_mass < 0)
+        or np.any(intrinsic_log_age > max_age)
+        or np.any(intrinsic_log_age < min_age)
     ):
         log_likelihood -= np.inf
 
@@ -131,6 +293,9 @@ def fit_mass_size_relation(
     r_eff,
     r_eff_err_lo,
     r_eff_err_hi,
+    age,
+    age_err_lo,
+    age_err_hi,
     plots_dir=None,
     plots_prefix="",
 ):
@@ -140,17 +305,24 @@ def fit_mass_size_relation(
     log_r_eff, log_r_eff_err_lo, log_r_eff_err_hi = mru.transform_to_log(
         r_eff, r_eff_err_lo, r_eff_err_hi
     )
+    log_age, log_age_err_lo, log_age_err_hi = mru.transform_to_log(
+        age, age_err_lo, age_err_hi
+    )
     # then symmetrixe the errors. I'll start with a simple mean.
     log_mass_err = np.mean([log_mass_err_lo, log_mass_err_hi], axis=0)
     log_r_eff_err = np.mean([log_r_eff_err_lo, log_r_eff_err_hi], axis=0)
-    assert len(log_mass_err) == len(log_r_eff_err) == len(mass) == len(r_eff)
+    log_age_err = np.mean([log_age_err_lo, log_age_err_hi], axis=0)
+    # validate the data passed int
+    n_clusters = len(mass)
+    assert len(log_mass_err) == len(log_r_eff_err) == len(log_age_err) == n_clusters
+    assert len(log_mass) == len(log_r_eff) == len(log_age) == n_clusters
 
     # Then set up the MCMC.
-    # our dimensions for fitting include slope, intercept, scatter, plus mass
+    # our dimensions for fitting include slope, intercept, scatter, plus mass and age
     # for each cluster
-    n_dim = 3 + len(log_mass)
+    n_dim = 3 + 2 * n_clusters
     n_walkers = 2 * n_dim + 1  # need at least 2x the dimensions
-    args = [log_mass, log_mass_err, log_r_eff, log_r_eff_err]
+    args = [log_mass, log_mass_err, log_r_eff, log_r_eff_err, log_age, log_age_err]
     backend = emcee.backends.HDFBackend(f"mcmc_chain_{n_dim}dim.h5")
     sampler = emcee.EnsembleSampler(
         n_walkers, n_dim, log_likelihood, args=args, backend=backend
@@ -168,10 +340,12 @@ def fit_mass_size_relation(
         state[:, 0] = np.random.uniform(0, 0.5, n_walkers)
         state[:, 1] = np.random.uniform(0, 1, n_walkers)
         state[:, 2] = np.random.uniform(0.01, 0.5, n_walkers)
-        # masses will be perturbed within the errors
-        for idx in range(len(log_mass)):
+        # masses and ages will be perturbed within the errors
+        for idx in range(n_clusters):
             masses = log_mass[idx] + np.random.normal(0, log_mass_err[idx], n_walkers)
+            ages = log_age[idx] + np.random.normal(0, log_age_err[idx], n_walkers)
             state[:, 3 + idx] = masses
+            state[:, 3 + idx + n_clusters] = ages
         # double check that we added everything to the array
         assert not 0 in np.array(state)
 
@@ -179,7 +353,9 @@ def fit_mass_size_relation(
     stds = np.inf * np.ones(3)  # uninitialized value, will set later
     converged, stds = is_converged(sampler, stds)
     while not converged:
-        state = sampler.run_mcmc(state, 100, progress=True)
+        state = sampler.run_mcmc(
+            state, 100, progress=True, skip_initial_state_check=True
+        )
         converged, stds = is_converged(sampler, stds)
 
     # First make a plot of the chains if desired:
@@ -209,6 +385,9 @@ def mcmc_plots(
     mass,
     mass_err_lo,
     mass_err_hi,
+    age,
+    age_err_lo,
+    age_err_hi,
     ids,
     galaxies,
     plots_dir,
@@ -222,6 +401,9 @@ def mcmc_plots(
     :param mass: The observed masses
     :param mass_err_lo: The observed mass lower limits
     :param mass_err_hi: The observed mass upper limits
+    :param age: The observed ages
+    :param age_err_lo: The observed age lower limits
+    :param age_err_hi: The observed age upper limits
     :param ids: The cluster IDs corresponding to the above
     :param galaxies: The galaxy each cluster belongs to
     :param plots_dir: Directory to save these plots to - can be None to not save
@@ -233,7 +415,9 @@ def mcmc_plots(
     plot_params(samples, plots_dir, plots_prefix)
 
     if plot_mass_posteriors:
-        mass_samples = 10 ** samples[:, 3:]
+        split_idx = 3 + len(mass)
+        mass_samples = 10 ** samples[:, 3:split_idx]
+        age_samples = 10 ** samples[:, split_idx:]
 
         for galaxy in np.unique(galaxies):
             gal_mask = np.where(galaxies == galaxy)[0]
@@ -246,6 +430,17 @@ def mcmc_plots(
                 ids[gal_mask],
                 galaxy,
                 "mass",
+                plots_dir,
+                plots_prefix,
+            )
+            plot_cluster_samples(
+                age_samples[:, gal_mask],
+                age[gal_mask],
+                age_err_lo[gal_mask],
+                age_err_hi[gal_mask],
+                ids[gal_mask],
+                galaxy,
+                "age",
                 plots_dir,
                 plots_prefix,
             )
@@ -361,6 +556,9 @@ def plot_cluster_samples(
     elif value == "radius":
         ax.set_limits(0.1, 30, min(dummy_y) - 1, max(dummy_y) + 1)
         ax.add_labels("Radius [pc]", "ID", galaxy.replace("ngc", "NGC "))
+    elif value == "age":
+        ax.set_limits(1e6, 1e11, min(dummy_y) - 1, max(dummy_y) + 1)
+        ax.add_labels("Age [yr]", "ID", galaxy.replace("ngc", "NGC "))
     ax.set_xscale("log")
     ax.legend()
 
