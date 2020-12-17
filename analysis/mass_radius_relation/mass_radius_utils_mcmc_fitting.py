@@ -26,16 +26,14 @@ mass_interp = interpolate.interp1d(
     x=ygg_table["Age(yr)"],
     y=ygg_table["Mstars"],
     bounds_error=False,
-    fill_value=np.inf,
+    fill_value=(ygg_table["Mstars"][0], ygg_table["Mstars"][-1]),
 )
 f555_interp = interpolate.interp1d(
     x=ygg_table["Age(yr)"],
     y=ygg_table["F555W"],
     bounds_error=False,
-    fill_value=np.inf,
+    fill_value=(ygg_table["F555W"][0], ygg_table["F555W"][-1]),
 )
-min_age = np.min(ygg_table["Age(yr)"])
-max_age = np.max(ygg_table["Age(yr)"])
 
 # then convenience functions to use this
 def get_absolute_mag(mass, age):
@@ -173,7 +171,9 @@ def selection_probability(log_true_mass, log_true_age, beta, log_r_4, sigma):
     r_term = integrate.quad(integrand_radius, -5, 5)[0]
 
     # then the final selection probability is the product of these two
-    return v_term * r_term
+    final_probability = v_term * r_term
+    # then set a minimum value when returning the likelihood
+    return np.maximum(final_probability, 0.001)
 
 
 # ======================================================================================
@@ -253,8 +253,8 @@ def log_likelihood(
         or abs(log_r_4) > 2
         or np.any(intrinsic_log_mass > 10)
         or np.any(intrinsic_log_mass < 0)
-        or np.any(intrinsic_log_age > max_age)
-        or np.any(intrinsic_log_age < min_age)
+        or np.any(intrinsic_log_age > 12)
+        or np.any(intrinsic_log_age < 3)
     ):
         log_likelihood -= np.inf
 
@@ -353,9 +353,7 @@ def fit_mass_size_relation(
     stds = np.inf * np.ones(3)  # uninitialized value, will set later
     converged, stds = is_converged(sampler, stds)
     while not converged:
-        state = sampler.run_mcmc(
-            state, 100, progress=True, skip_initial_state_check=True
-        )
+        state = sampler.run_mcmc(state, 1000, progress=True)
         converged, stds = is_converged(sampler, stds)
 
     # First make a plot of the chains if desired:
@@ -462,17 +460,28 @@ def plot_params(samples, plots_dir, plots_prefix):
 
 
 def plot_chains(samples, plots_dir, plots_prefix):
-    fig, axs = bpl.subplots(nrows=5, sharex=True)
-    # plot the 3 main parameters plus 2 mass chains, randomly selected
+    fig, axs = bpl.subplots(nrows=7, sharex=True, figsize=[10, 10])
+    # plot the 3 main parameters plus 2 mass and age chains, randomly selected
     n_iterations, n_walkers, n_params = samples.shape
-    param_idxs = np.concatenate([[0, 1, 2], np.random.randint(3, n_params, 2)])
+    n_clusters = 0.5 * (n_params - 3)
+    assert np.isclose(int(n_clusters), n_clusters)
+    n_clusters = int(n_clusters)
+    param_idxs = np.concatenate(
+        [
+            [0, 1, 2],
+            np.random.randint(3, 3 + n_clusters, 2),
+            np.random.randint(3 + n_clusters, n_params, 2),
+        ]
+    )
 
     names = [
         "$\\beta$",
         "log($r_4$)",
         "$\sigma$",
-        "log($m_{" + f"{param_idxs[-2]}" + "}$)",
-        "log($m_{" + f"{param_idxs[-1]}" + "}$)",
+        "log($m_{" + f"{param_idxs[-4]}" + "}$)",
+        "log($m_{" + f"{param_idxs[-3]}" + "}$)",
+        "log($t_{" + f"{param_idxs[-4]}" + "}$)",
+        "log($t_{" + f"{param_idxs[-3]}" + "}$)",
     ]
 
     # x values are simply the position
@@ -482,7 +491,7 @@ def plot_chains(samples, plots_dir, plots_prefix):
         for chain_idx in range(n_walkers):
             ax.plot(xs, samples[:, chain_idx, param_idx], lw=0.1, c=bpl.almost_black)
         ax.add_labels(y_label=name)
-        ax.set_limits(x_min=0, x_max=n_iterations)
+        ax.set_limits(x_min=1, x_max=n_iterations)
 
     axs[-1].add_labels(x_label="Iteration")
 
