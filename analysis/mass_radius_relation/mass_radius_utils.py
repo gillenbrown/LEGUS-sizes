@@ -59,10 +59,33 @@ def make_big_table(tables_loc_list):
     big_catalog = table.vstack(catalogs, join_type="inner")
 
     # filter out the clusters that can't be used in fitting the mass-radius relation
-    mask = big_catalog["good"]
-    mask = np.logical_and(mask, big_catalog["mass_msun"] > 0)
-    mask = np.logical_and(mask, big_catalog["mass_msun_max"] > 0)
-    mask = np.logical_and(mask, big_catalog["mass_msun_min"] > 0)
+    mask = np.logical_and.reduce(
+        [
+            big_catalog["good"],
+            big_catalog["mass_msun"] > 0,
+            big_catalog["mass_msun_max"] > 0,
+            big_catalog["mass_msun_min"] > 0,
+            big_catalog["age_yr"] > 0,
+            big_catalog["age_yr_max"] > 0,
+            big_catalog["age_yr_min"] > 0,
+            # some clusters have weird errors, don't know why. Some clusters really
+            # are listed as having minimum values higher than the best fit value,
+            # for example. I don't know what to do with these.
+            big_catalog["mass_msun"] <= big_catalog["mass_msun_max"],
+            big_catalog["mass_msun"] >= big_catalog["mass_msun_min"],
+            big_catalog["age_yr"] <= big_catalog["age_yr_max"],
+            big_catalog["age_yr"] >= big_catalog["age_yr_min"],
+            # make sure clusters have at least one nonzero error
+            np.logical_or(
+                big_catalog["age_yr"] != big_catalog["age_yr_max"],
+                big_catalog["age_yr"] != big_catalog["age_yr_min"],
+            ),
+            np.logical_or(
+                big_catalog["mass_msun"] != big_catalog["mass_msun_max"],
+                big_catalog["mass_msun"] != big_catalog["mass_msun_min"],
+            ),
+        ]
+    )
 
     return big_catalog[mask]
 
