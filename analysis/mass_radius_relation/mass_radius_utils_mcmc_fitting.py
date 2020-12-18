@@ -161,20 +161,21 @@ def r_selection(r_pc):
 def radius_selection_probability_raw(log_true_mass, beta, log_r_4, sigma):
     # then we have to numerically integrate over the radius selection function times
     # its likelihood
-    expected_log_radii = mass_size_relation_mean_log(log_true_mass, beta, log_r_4)
-    r_err = 0.1  # dex, dummy value for now
-    total_variance = sigma ** 2 + r_err ** 2
-
-    def integrand_radius(log_r):
-        # here we multiply the selection function times the likelihood. Note that we
-        # need the raw likelihood, not the log likelihood
-        return r_selection(10 ** log_r) * gaussian(
-            log_r, expected_log_radii, total_variance, include_norm=True
-        )
-
-    # then integrate this. I restrict the range to ensure convergence. But this is from
-    # 10^-5 to 10^5 pc, it will have all the likelihood
-    return integrate.quad(integrand_radius, -5, 5)[0]
+    # expected_log_radii = mass_size_relation_mean_log(log_true_mass, beta, log_r_4)
+    # r_err = 0.1  # dex, dummy value for now
+    # total_variance = sigma ** 2 + r_err ** 2
+    #
+    # def integrand_radius(log_r):
+    #     # here we multiply the selection function times the likelihood. Note that we
+    #     # need the raw likelihood, not the log likelihood
+    #     return r_selection(10 ** log_r) * gaussian(
+    #         log_r, expected_log_radii, total_variance, include_norm=True
+    #     )
+    #
+    # # then integrate this. I restrict the range to ensure convergence. But this is from
+    # # 10^-5 to 10^5 pc, it will have all the likelihood
+    # return integrate.quad(integrand_radius, -5, 5)[0]
+    return 1
 
 
 # # use the same mass grid as before
@@ -239,7 +240,7 @@ def selection_probability(log_true_mass, log_true_age, beta, log_r_4, sigma):
              criteria
     """
     v_term = v_band_selection_probability(log_true_mass, log_true_age)
-    r_term = radius_selection_probability((log_true_mass, beta, log_r_4, sigma))
+    r_term = 1  # radius_selection_probability((log_true_mass, beta, log_r_4, sigma))
     # then the final selection probability is the product of these two
     return v_term * r_term
 
