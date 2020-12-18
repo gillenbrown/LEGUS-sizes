@@ -253,7 +253,7 @@ def log_likelihood(
         )
         for i in range(len(log_r_eff))
     ]
-    log_likelihood -= np.log(np.maximum(0.01, selection_likelihoods))
+    log_likelihood -= np.sum(np.log(np.maximum(0.01, selection_likelihoods)))
 
     return log_likelihood
 
