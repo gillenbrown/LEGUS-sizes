@@ -3,6 +3,7 @@ import numpy as np
 import emcee
 from astropy import table
 from scipy import interpolate, integrate, special
+from tqdm import tqdm
 
 import mass_radius_utils as mru
 import corner
@@ -42,6 +43,60 @@ def get_absolute_mag(mass, age):
 
     # the correct the magnitude based on the masses.
     return table_mag - 2.5 * np.log10(mass / table_mass)
+
+
+# ======================================================================================
+#
+# precalculating V band selection function
+#
+# ======================================================================================
+# I'll also precalculate the selection probability for a grid of mass and age. I do
+# this so I don't have to calculate everything each iteration. Note that the V band
+# magnitude selection is a step function, which makes the integral analytically solvable
+# with a Gaussian likelihood to an error function.
+# define the cut for V band absolute magnitude
+v_cut = -6
+
+
+def gaussian_integral_lower(mean, sigma, x_max):
+    """
+    Integral of a Gaussian function from negative infinity to some value
+
+    This comes from the cumulative distribution function of the Gaussian
+
+    :param mean: Mean of the Gaussian
+    :param sigma: Standard deviation of the Gaussian
+    :param x_max: Value to integrate to
+    :return: Integral from negative infinity to the given value
+    """
+    return 0.5 * (1 + special.erf((x_max - mean) / (sigma * np.sqrt(2))))
+
+
+def v_band_selection_probability_raw(log_mass, log_age):
+    # The likelihood is Gaussian, with a mean provided by the SPS models. We integrate
+    # it up to the cut, which is an error function.
+    expected_v = get_absolute_mag(10 ** log_mass, 10 ** log_age)
+    v_err = 0.1  # dummy value for now
+    return gaussian_integral_lower(expected_v, v_err, v_cut)
+
+
+# then put this all together in a grid.
+min_log_mass, max_log_mass = 0, 10
+min_log_age, max_log_age = 3, 12
+log_mass_grid = np.arange(min_log_mass, max_log_mass, 0.1)
+log_age_grid = np.arange(min_log_age, max_log_age, 0.1)
+v_selection_grid = np.zeros((log_mass_grid.size, log_age_grid.size))
+print("precalculating V selection function")
+for m_idx in tqdm(range(log_mass_grid.size)):
+    log_m = log_mass_grid[m_idx]
+    for t_idx in range(log_age_grid.size):
+        log_t = log_age_grid[t_idx]
+        v_selection_grid[m_idx, t_idx] = v_band_selection_probability_raw(log_m, log_t)
+# then create the interpolation object. Note that the scipy.interpolate.interp2d notes
+# say that the RectBivariateSpline is faster, so that's what I use
+v_band_selection_probability = interpolate.RectBivariateSpline(
+    x=log_mass_grid, y=log_age_grid, z=v_selection_grid, s=0
+)
 
 
 # ======================================================================================
@@ -91,12 +146,7 @@ def mass_size_relation_mean_log(log_mass, beta, log_r_4):
 # selection functions
 #
 # ======================================================================================
-# define the cut for V band absolute magnitude
-v_cut = -6
-# define a function for the radius selection. Note that we don't have a function for V
-# band magnitude. It's a step function, which makes the integral analytically solvable
-# (to an error function). So we only need to integrate over the radius selection
-# function numerically. See the `selection_probability` function below for more.
+# define a function for the radius selection.
 def r_selection(r_pc):
     """
     Probability of a cluster of a given radius being seleted.
@@ -107,20 +157,6 @@ def r_selection(r_pc):
     # TODO: define this function in arcsec, not pc
     """
     return np.minimum(r_pc, 1)
-
-
-def gaussian_integral_lower(mean, sigma, x_max):
-    """
-    Integral of a Gaussian function from negative infinity to some value
-
-    This comes from the cumulative distribution function of the Gaussian
-
-    :param mean: Mean of the Gaussian
-    :param sigma: Standard deviation of the Gaussian
-    :param x_max: Value to integrate to
-    :return: Integral from negative infinity to the given value
-    """
-    return 0.5 * (1 + special.erf((x_max - mean) / (sigma * np.sqrt(2))))
 
 
 def selection_probability(log_true_mass, log_true_age, beta, log_r_4, sigma):
@@ -147,17 +183,7 @@ def selection_probability(log_true_mass, log_true_age, beta, log_r_4, sigma):
     :return: The probability that a cluster of this mass and age will pass the selection
              criteria
     """
-    # first lets handle the V band magnitude. The likelihood is Gaussian, with a mean
-    # provided by the SPS models. We integrate it up to the cut.
-    expected_v = get_absolute_mag(10 ** log_true_mass, 10 ** log_true_age)
-    v_err = 0.1  # dummy value for now
-    v_term = gaussian_integral_lower(expected_v, v_err, v_cut)
-
-    # then we have to numerically integrate over the radius selection function times
-    # its likelihood
-    expected_log_radii = mass_size_relation_mean_log(log_true_mass, beta, log_r_4)
-    r_err = 0.1  # dex, dummy value for now
-    total_variance = sigma ** 2 + r_err ** 2
+    v_term = v_band_selection_probability(log_true_mass, log_true_age)
 
     def integrand_radius(log_r):
         # here we multiply the selection function times the likelihood. Note that we
@@ -213,10 +239,10 @@ def log_likelihood(
         or sigma < 0
         or sigma > 1
         or abs(log_r_4) > 2
-        or np.any(intrinsic_log_mass > 10)
-        or np.any(intrinsic_log_mass < 0)
-        or np.any(intrinsic_log_age > 12)
-        or np.any(intrinsic_log_age < 3)
+        or np.any(intrinsic_log_mass > max_log_mass)
+        or np.any(intrinsic_log_mass < min_log_mass)
+        or np.any(intrinsic_log_age > max_log_age)
+        or np.any(intrinsic_log_age < min_log_age)
     ):
         return np.inf
 
