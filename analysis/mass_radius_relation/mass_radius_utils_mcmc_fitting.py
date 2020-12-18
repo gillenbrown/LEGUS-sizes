@@ -207,6 +207,19 @@ def log_likelihood(
     intrinsic_log_age = params[split_idx:]
     assert len(intrinsic_log_mass) == len(intrinsic_log_age) == len(log_mass)
 
+    # put priors first, since these short circuit the evaluation
+    if (
+        abs(beta) > 1
+        or sigma < 0
+        or sigma > 1
+        or abs(log_r_4) > 2
+        or np.any(intrinsic_log_mass > 10)
+        or np.any(intrinsic_log_mass < 0)
+        or np.any(intrinsic_log_age > 12)
+        or np.any(intrinsic_log_age < 3)
+    ):
+        return np.inf
+
     # start by getting the likelihoods of the intrinsic masses and radii. The error is
     # not a free parameter, so we don't need to include the normalization
     log_likelihood = 0
@@ -241,19 +254,6 @@ def log_likelihood(
         for i in range(len(log_r_eff))
     ]
     log_likelihood -= np.log(np.maximum(0.01, selection_likelihoods))
-
-    # priors
-    if (
-        abs(beta) > 1
-        or sigma < 0
-        or sigma > 1
-        or abs(log_r_4) > 2
-        or np.any(intrinsic_log_mass > 10)
-        or np.any(intrinsic_log_mass < 0)
-        or np.any(intrinsic_log_age > 12)
-        or np.any(intrinsic_log_age < 3)
-    ):
-        log_likelihood -= np.inf
 
     return log_likelihood
 
