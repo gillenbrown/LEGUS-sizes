@@ -290,7 +290,7 @@ def log_likelihood(
         or np.any(intrinsic_log_age > max_log_age)
         or np.any(intrinsic_log_age < min_log_age)
     ):
-        return np.inf
+        return -np.inf
 
     # start by getting the likelihoods of the intrinsic masses and radii. The error is
     # not a free parameter, so we don't need to include the normalization
