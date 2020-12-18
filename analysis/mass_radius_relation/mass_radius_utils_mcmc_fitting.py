@@ -171,9 +171,7 @@ def selection_probability(log_true_mass, log_true_age, beta, log_r_4, sigma):
     r_term = integrate.quad(integrand_radius, -5, 5)[0]
 
     # then the final selection probability is the product of these two
-    final_probability = v_term * r_term
-    # then set a minimum value when returning the likelihood
-    return np.maximum(final_probability, 0.001)
+    return v_term * r_term
 
 
 # ======================================================================================
@@ -236,14 +234,13 @@ def log_likelihood(
     # then normalize by the selection function. In the (not log) likelihood it enters
     # as division, so we subtract the log value. We have to do this separately for
     # each cluster
-    for i in range(len(log_r_eff)):
-        s_prob = selection_probability(
+    selection_likelihoods = [
+        selection_probability(
             intrinsic_log_mass[i], intrinsic_log_age[i], beta, log_r_4, sigma
         )
-        if s_prob == 0:
-            log_likelihood += np.inf
-        else:
-            log_likelihood -= np.log(s_prob)
+        for i in range(len(log_r_eff))
+    ]
+    log_likelihood -= np.log(np.maximum(0.01, selection_likelihoods))
 
     # priors
     if (
