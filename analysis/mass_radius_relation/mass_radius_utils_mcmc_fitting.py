@@ -185,6 +185,12 @@ def selection_probability(log_true_mass, log_true_age, beta, log_r_4, sigma):
     """
     v_term = v_band_selection_probability(log_true_mass, log_true_age)
 
+    # then we have to numerically integrate over the radius selection function times
+    # its likelihood
+    expected_log_radii = mass_size_relation_mean_log(log_true_mass, beta, log_r_4)
+    r_err = 0.1  # dex, dummy value for now
+    total_variance = sigma ** 2 + r_err ** 2
+
     def integrand_radius(log_r):
         # here we multiply the selection function times the likelihood. Note that we
         # need the raw likelihood, not the log likelihood
