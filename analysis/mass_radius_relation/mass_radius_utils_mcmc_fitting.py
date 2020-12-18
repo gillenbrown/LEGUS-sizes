@@ -47,6 +47,48 @@ def get_absolute_mag(mass, age):
 
 # ======================================================================================
 #
+# some helper functions for likelihoods
+#
+# ======================================================================================
+def log_gaussian(x, mean, variance, include_norm=False):
+    """
+    Natural log of the likelihood for a Gaussian distribution.
+
+    :param x: Value(s) at which to evaluate the likelihood.
+    :param mean: Mean of the Gaussian distribution
+    :param sigma: Variance of the Gaussian distribution
+    :param include_norm: whether or not to calculate the normalization term. This is
+                         not needed unless the variance is a parameter of interest
+    :return: log of the likelihood at x
+    """
+    log_likelihood = -((x - mean) ** 2) / (2 * variance)
+    if include_norm:
+        log_likelihood -= (1 / 2) * np.log(2 * np.pi * variance)
+    return log_likelihood
+
+
+def gaussian(x, mean, variance, include_norm=False):
+    """
+    Equivalent of log_gaussian, but returns the likelhood, not log of the likelihood
+    """
+    return np.exp(log_gaussian(x, mean, variance, include_norm))
+
+
+def mass_size_relation_mean_log(log_mass, beta, log_r_4):
+    """
+    Return the mean value of the mass-radius relation.
+
+    :param log_mass: Log of the true intrinsic cluster mass
+    :param beta: Slope of the mass-radius relation
+    :param log_r_4: Normalization, defined as the log of the radius at 10^4 Msun
+    :return: log(radius) at the given mass
+    """
+    pivot_point_mass = 4
+    return log_r_4 + (log_mass - pivot_point_mass) * beta
+
+
+# ======================================================================================
+#
 # precalculating V band selection function
 #
 # ======================================================================================
@@ -98,52 +140,9 @@ v_band_selection_probability = interpolate.RectBivariateSpline(
     x=log_mass_grid, y=log_age_grid, z=v_selection_grid, s=0
 )
 
-
 # ======================================================================================
 #
-# some helper functions for likelihoods
-#
-# ======================================================================================
-def log_gaussian(x, mean, variance, include_norm=False):
-    """
-    Natural log of the likelihood for a Gaussian distribution.
-
-    :param x: Value(s) at which to evaluate the likelihood.
-    :param mean: Mean of the Gaussian distribution
-    :param sigma: Variance of the Gaussian distribution
-    :param include_norm: whether or not to calculate the normalization term. This is
-                         not needed unless the variance is a parameter of interest
-    :return: log of the likelihood at x
-    """
-    log_likelihood = -((x - mean) ** 2) / (2 * variance)
-    if include_norm:
-        log_likelihood -= (1 / 2) * np.log(2 * np.pi * variance)
-    return log_likelihood
-
-
-def gaussian(x, mean, variance, include_norm=False):
-    """
-    Equivalent of log_gaussian, but returns the likelhood, not log of the likelihood
-    """
-    return np.exp(log_gaussian(x, mean, variance, include_norm))
-
-
-def mass_size_relation_mean_log(log_mass, beta, log_r_4):
-    """
-    Return the mean value of the mass-radius relation.
-
-    :param log_mass: Log of the true intrinsic cluster mass
-    :param beta: Slope of the mass-radius relation
-    :param log_r_4: Normalization, defined as the log of the radius at 10^4 Msun
-    :return: log(radius) at the given mass
-    """
-    pivot_point_mass = 4
-    return log_r_4 + (log_mass - pivot_point_mass) * beta
-
-
-# ======================================================================================
-#
-# selection functions
+# precalculating radius selection function
 #
 # ======================================================================================
 # define a function for the radius selection.
@@ -157,6 +156,62 @@ def r_selection(r_pc):
     # TODO: define this function in arcsec, not pc
     """
     return np.minimum(r_pc, 1)
+
+
+def radius_selection_probability_raw(log_true_mass, beta, log_r_4, sigma):
+    # then we have to numerically integrate over the radius selection function times
+    # its likelihood
+    expected_log_radii = mass_size_relation_mean_log(log_true_mass, beta, log_r_4)
+    r_err = 0.1  # dex, dummy value for now
+    total_variance = sigma ** 2 + r_err ** 2
+
+    def integrand_radius(log_r):
+        # here we multiply the selection function times the likelihood. Note that we
+        # need the raw likelihood, not the log likelihood
+        return r_selection(10 ** log_r) * gaussian(
+            log_r, expected_log_radii, total_variance, include_norm=True
+        )
+
+    # then integrate this. I restrict the range to ensure convergence. But this is from
+    # 10^-5 to 10^5 pc, it will have all the likelihood
+    return integrate.quad(integrand_radius, -5, 5)[0]
+
+
+# # use the same mass grid as before
+min_beta, max_beta = -1, 1
+min_log_r_4, max_log_r_4 = -2, 2
+min_sigma, max_sigma = 0, 1
+beta_grid = np.arange(min_beta, max_beta + 0.2, 0.2)
+log_r_4_grid = np.arange(min_log_r_4, max_log_r_4 + 0.2, 0.2)
+sigma_grid = np.arange(min_sigma, max_sigma + 0.2, 0.2)
+r_selection_grid = np.zeros(
+    (log_mass_grid.size, beta_grid.size, log_r_4_grid.size, sigma_grid.size)
+)
+print("precalculating radius selection function")
+for m_idx in tqdm(range(log_mass_grid.size)):
+    log_m = log_mass_grid[m_idx]
+    for b_idx in range(beta_grid.size):
+        b = beta_grid[b_idx]
+        for r_idx in range(log_r_4_grid.size):
+            log_r4 = log_r_4_grid[r_idx]
+            for s_idx in range(sigma_grid.size):
+                s = sigma_grid[s_idx]
+
+                r_selection_grid[
+                    m_idx, b_idx, r_idx, s_idx
+                ] = radius_selection_probability_raw(log_m, b, log_r4, s)
+# then create the interpolation object. Note that the scipy.interpolate.interp2d notes
+# say that the RectBivariateSpline is faster, so that's what I use
+radius_selection_probability = interpolate.RegularGridInterpolator(
+    points=(log_mass_grid, beta_grid, log_r_4_grid, sigma_grid), values=r_selection_grid
+)
+
+
+# ======================================================================================
+#
+# selection functions
+#
+# ======================================================================================
 
 
 def selection_probability(log_true_mass, log_true_age, beta, log_r_4, sigma):
@@ -184,24 +239,7 @@ def selection_probability(log_true_mass, log_true_age, beta, log_r_4, sigma):
              criteria
     """
     v_term = v_band_selection_probability(log_true_mass, log_true_age)
-
-    # then we have to numerically integrate over the radius selection function times
-    # its likelihood
-    expected_log_radii = mass_size_relation_mean_log(log_true_mass, beta, log_r_4)
-    r_err = 0.1  # dex, dummy value for now
-    total_variance = sigma ** 2 + r_err ** 2
-
-    def integrand_radius(log_r):
-        # here we multiply the selection function times the likelihood. Note that we
-        # need the raw likelihood, not the log likelihood
-        return r_selection(10 ** log_r) * gaussian(
-            log_r, expected_log_radii, total_variance, include_norm=True
-        )
-
-    # then integrate this. I restrict the range to ensure convergence. But this is from
-    # 10^-5 to 10^5 pc, it will have all the likelihood
-    r_term = integrate.quad(integrand_radius, -5, 5)[0]
-
+    r_term = radius_selection_probability((log_true_mass, beta, log_r_4, sigma))
     # then the final selection probability is the product of these two
     return v_term * r_term
 
@@ -241,10 +279,12 @@ def log_likelihood(
 
     # put priors first, since these short circuit the evaluation
     if (
-        abs(beta) > 1
-        or sigma < 0
-        or sigma > 1
-        or abs(log_r_4) > 2
+        beta < min_beta
+        or beta > max_beta
+        or log_r_4 < min_log_r_4
+        or log_r_4 > max_log_r_4
+        or sigma < min_sigma
+        or sigma > max_sigma
         or np.any(intrinsic_log_mass > max_log_mass)
         or np.any(intrinsic_log_mass < min_log_mass)
         or np.any(intrinsic_log_age > max_log_age)
