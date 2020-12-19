@@ -426,7 +426,8 @@ def fit_mass_size_relation(
         state = sampler.run_mcmc(state, 1000, progress=True)
         converged, stds = is_converged(sampler, stds)
 
-    # First make a plot of the chains if desired:
+    # First make a plot of the chains if desired. Do this here as the chains are
+    # thinned later, this shows the raw chains
     if plots_dir is not None:
         samples = sampler.get_chain(flat=False, discard=0, thin=1)
         plot_chains(samples, plots_dir, plots_prefix)
