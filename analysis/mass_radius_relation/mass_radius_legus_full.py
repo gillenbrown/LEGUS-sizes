@@ -106,20 +106,20 @@ fit_mcmc_real_select, fit_history_mcmc_real_select = mru_mcmc.fit_mass_size_rela
 )
 
 # make the debug plots for the MCMC chain
-# mru_mcmc.mcmc_plots(
-#     fit_history_mcmc,
-#     mass[fit_mask],
-#     mass_err_lo[fit_mask],
-#     mass_err_hi[fit_mask],
-#     age[fit_mask],
-#     age_err_lo[fit_mask],
-#     age_err_hi[fit_mask],
-#     ids[fit_mask],
-#     galaxies[fit_mask],
-#     mcmc_plot_dir,
-#     "legus_full",
-#     True,
-# )
+mru_mcmc.mcmc_plots(
+    fit_history_mcmc_real_select,
+    mass[fit_mask],
+    mass_err_lo[fit_mask],
+    mass_err_hi[fit_mask],
+    age[fit_mask],
+    age_err_lo[fit_mask],
+    age_err_hi[fit_mask],
+    ids[fit_mask],
+    galaxies[fit_mask],
+    mcmc_plot_dir,
+    "legus_full_real_selection",
+    True,
+)
 
 
 # then plot the dataset
