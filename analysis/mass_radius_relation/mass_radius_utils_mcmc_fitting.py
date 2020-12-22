@@ -212,11 +212,10 @@ class SelectionProbabilityR:
     def __call__(self, log_mass, beta, log_r_4, sigma):
         # Here I don't precalculate, but what I do is store values as we go. This allows
         # commonly used values to already be available.
-        decimals = 2
-        log_mass_r = round(log_mass, decimals)
-        beta_r = round(beta, decimals)
-        log_r_4_r = round(log_r_4, decimals)
-        sigma_r = round(sigma, decimals)
+        log_mass_r = round(log_mass, 1)
+        beta_r = round(beta, 2)
+        log_r_4_r = round(log_r_4, 2)
+        sigma_r = round(sigma, 2)
         # give short names to the strings that are dictionary keys, to make the code
         # below cleaner. P for parameter
         p1 = str(log_mass_r)
