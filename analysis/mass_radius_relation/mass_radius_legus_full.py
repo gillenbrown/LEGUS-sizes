@@ -59,7 +59,7 @@ fit_mle_vertical, fit_history_mle_vertical = mru_mle.fit_mass_size_relation(
     fit_style="vertical",
 )
 
-fit_mcmc, fit_history_mcmc = mru_mcmc.fit_mass_size_relation(
+fit_mcmc_no_select, fit_history_mcmc_no_select = mru_mcmc.fit_mass_size_relation(
     mass[fit_mask],
     mass_err_lo[fit_mask],
     mass_err_hi[fit_mask],
@@ -70,23 +70,56 @@ fit_mcmc, fit_history_mcmc = mru_mcmc.fit_mass_size_relation(
     age_err_lo[fit_mask],
     age_err_hi[fit_mask],
     mcmc_plot_dir,
-    "legus_full",
+    "legus_full_no_selection",
+    v_band_cut=None,
 )
-# make the debug plots for the MCMC chain
-mru_mcmc.mcmc_plots(
-    fit_history_mcmc,
+
+fit_mcmc_all_select, fit_history_mcmc_all_select = mru_mcmc.fit_mass_size_relation(
     mass[fit_mask],
     mass_err_lo[fit_mask],
     mass_err_hi[fit_mask],
+    r_eff[fit_mask],
+    r_eff_err_lo[fit_mask],
+    r_eff_err_hi[fit_mask],
     age[fit_mask],
     age_err_lo[fit_mask],
     age_err_hi[fit_mask],
-    ids[fit_mask],
-    galaxies[fit_mask],
     mcmc_plot_dir,
-    "legus_full",
-    True,
+    "legus_full_all_selection",
+    v_band_cut=100,  # dummy value to show that we select everything
+    # should be identical to fitting without including selection
 )
+
+fit_mcmc_real_select, fit_history_mcmc_real_select = mru_mcmc.fit_mass_size_relation(
+    mass[fit_mask],
+    mass_err_lo[fit_mask],
+    mass_err_hi[fit_mask],
+    r_eff[fit_mask],
+    r_eff_err_lo[fit_mask],
+    r_eff_err_hi[fit_mask],
+    age[fit_mask],
+    age_err_lo[fit_mask],
+    age_err_hi[fit_mask],
+    mcmc_plot_dir,
+    "legus_full_real_selection",
+    v_band_cut=-6,
+)
+
+# make the debug plots for the MCMC chain
+# mru_mcmc.mcmc_plots(
+#     fit_history_mcmc,
+#     mass[fit_mask],
+#     mass_err_lo[fit_mask],
+#     mass_err_hi[fit_mask],
+#     age[fit_mask],
+#     age_err_lo[fit_mask],
+#     age_err_hi[fit_mask],
+#     ids[fit_mask],
+#     galaxies[fit_mask],
+#     mcmc_plot_dir,
+#     "legus_full",
+#     True,
+# )
 
 
 # then plot the dataset
@@ -103,15 +136,31 @@ mru_p.plot_mass_size_dataset_scatter(
 )
 # mru_p.add_percentile_lines(ax, mass, r_eff)
 for fit, history, name, color in zip(
-    [fit_mle_orthogonal, fit_mle_vertical, fit_mcmc],
-    [fit_history_mle_orthogonal, fit_history_mle_vertical, fit_history_mcmc.T],
-    ["Orthogonal", "Vertical", "MCMC"],
-    [bpl.color_cycle[1], bpl.color_cycle[2], bpl.color_cycle[3]],
+    [
+        fit_mle_orthogonal,
+        fit_mle_vertical,
+        fit_mcmc_no_select,
+        fit_mcmc_all_select,
+        fit_mcmc_real_select,
+    ],
+    [
+        fit_history_mle_orthogonal,
+        fit_history_mle_vertical,
+        fit_history_mcmc_no_select.T,
+        fit_history_mcmc_all_select.T,
+        fit_history_mcmc_real_select.T,
+    ],
+    [
+        "Orthogonal",
+        "Vertical",
+        "MCMC - No Selection",
+        "MCMC - V$_{cut}$=100",
+        "MCMC - V$_{cut}$=-6",
+    ],
+    bpl.color_cycle[:5],
 ):
     label = f"{name} - "
-    for param_idx, param_name in zip(
-        [0, 1, 2], ["$\\beta$", "log$r_4$", "$\sigma$"]
-    ):
+    for param_idx, param_name in zip([0, 1, 2], ["$\\beta$", "log$r_4$", "$\sigma$"]):
         lo, hi = np.percentile(history[param_idx], [16, 84])
         med = fit[param_idx]
         label += f"{param_name} = {med:.2f}"
@@ -124,16 +173,16 @@ for fit, history, name, color in zip(
 mru_p.format_mass_size_plot(ax, legend_fontsize=12)
 fig.savefig(plot_name)
 
-mru.write_fit_results(
-    fit_out_file, "Full LEGUS Sample - MLE", len(r_eff), fit_mle, fit_history_mle
-)
-mru.write_fit_results(
-    fit_out_file,
-    "Full LEGUS Sample - MCMC",
-    len(r_eff),
-    fit_mcmc,
-    fit_history_mcmc[:, :3].T,
-)
+# mru.write_fit_results(
+#     fit_out_file, "Full LEGUS Sample - MLE", len(r_eff), fit_mle, fit_history_mle
+# )
+# mru.write_fit_results(
+#     fit_out_file,
+#     "Full LEGUS Sample - MCMC",
+#     len(r_eff),
+#     fit_mcmc,
+#     fit_history_mcmc[:, :3].T,
+# )
 
 # finalize output file
 fit_out_file.close()

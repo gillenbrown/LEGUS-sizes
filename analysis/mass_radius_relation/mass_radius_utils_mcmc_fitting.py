@@ -89,7 +89,7 @@ def mass_size_relation_mean_log(log_mass, beta, log_r_4):
 
 # ======================================================================================
 #
-# precalculating V band selection function
+# precalculating selection functions
 #
 # ======================================================================================
 # I'll also precalculate the selection probability for a grid of mass and age. I do
@@ -97,9 +97,6 @@ def mass_size_relation_mean_log(log_mass, beta, log_r_4):
 # magnitude selection is a step function, which makes the integral analytically solvable
 # with a Gaussian likelihood to an error function.
 # define the cut for V band absolute magnitude
-v_cut = -6
-
-
 def gaussian_integral_lower(mean, sigma, x_max):
     """
     Integral of a Gaussian function from negative infinity to some value
@@ -114,99 +111,116 @@ def gaussian_integral_lower(mean, sigma, x_max):
     return 0.5 * (1 + special.erf((x_max - mean) / (sigma * np.sqrt(2))))
 
 
-def v_band_selection_probability_raw(log_mass, log_age):
-    # The likelihood is Gaussian, with a mean provided by the SPS models. We integrate
-    # it up to the cut, which is an error function.
-    expected_v = get_absolute_mag(10 ** log_mass, 10 ** log_age)
-    v_err = 0.1  # dummy value for now
-    return gaussian_integral_lower(expected_v, v_err, v_cut)
-
-
-# then put this all together in a grid.
+# define the limits that will be used for the precalculation - also the boundaries
+# of the flat prior.
 min_log_mass, max_log_mass = 0, 10
 min_log_age, max_log_age = 3, 12
-log_mass_grid = np.arange(min_log_mass, max_log_mass, 0.1)
-log_age_grid = np.arange(min_log_age, max_log_age, 0.1)
-v_selection_grid = np.zeros((log_mass_grid.size, log_age_grid.size))
-print("precalculating V selection function")
-for m_idx in tqdm(range(log_mass_grid.size)):
-    log_m = log_mass_grid[m_idx]
-    for t_idx in range(log_age_grid.size):
-        log_t = log_age_grid[t_idx]
-        v_selection_grid[m_idx, t_idx] = v_band_selection_probability_raw(log_m, log_t)
-# then create the interpolation object. Note that the scipy.interpolate.interp2d notes
-# say that the RectBivariateSpline is faster, so that's what I use
-v_band_selection_probability = interpolate.RectBivariateSpline(
-    x=log_mass_grid, y=log_age_grid, z=v_selection_grid, s=0
-)
-
-# ======================================================================================
-#
-# precalculating radius selection function
-#
-# ======================================================================================
-# define a function for the radius selection.
-def r_selection(r_pc):
-    """
-    Probability of a cluster of a given radius being seleted.
-
-    :param r_pc: radius of the cluster in pc
-    :return: Probability of selecting a cluster with this radius
-    # TODO: actually define this function based on data
-    # TODO: define this function in arcsec, not pc
-    """
-    return np.minimum(r_pc, 1)
-
-
-def radius_selection_probability_raw(log_true_mass, beta, log_r_4, sigma):
-    # then we have to numerically integrate over the radius selection function times
-    # its likelihood
-    # expected_log_radii = mass_size_relation_mean_log(log_true_mass, beta, log_r_4)
-    # r_err = 0.1  # dex, dummy value for now
-    # total_variance = sigma ** 2 + r_err ** 2
-    #
-    # def integrand_radius(log_r):
-    #     # here we multiply the selection function times the likelihood. Note that we
-    #     # need the raw likelihood, not the log likelihood
-    #     return r_selection(10 ** log_r) * gaussian(
-    #         log_r, expected_log_radii, total_variance, include_norm=True
-    #     )
-    #
-    # # then integrate this. I restrict the range to ensure convergence. But this is from
-    # # 10^-5 to 10^5 pc, it will have all the likelihood
-    # return integrate.quad(integrand_radius, -5, 5)[0]
-    return 1
-
-
-# # use the same mass grid as before
 min_beta, max_beta = -1, 1
 min_log_r_4, max_log_r_4 = -2, 2
 min_sigma, max_sigma = 0, 1
+log_mass_grid = np.arange(min_log_mass, max_log_mass, 0.1)
+log_age_grid = np.arange(min_log_age, max_log_age, 0.1)
 beta_grid = np.arange(min_beta, max_beta + 0.2, 0.2)
 log_r_4_grid = np.arange(min_log_r_4, max_log_r_4 + 0.2, 0.2)
 sigma_grid = np.arange(min_sigma, max_sigma + 0.2, 0.2)
-r_selection_grid = np.zeros(
-    (log_mass_grid.size, beta_grid.size, log_r_4_grid.size, sigma_grid.size)
-)
-print("precalculating radius selection function")
-for m_idx in tqdm(range(log_mass_grid.size)):
-    log_m = log_mass_grid[m_idx]
-    for b_idx in range(beta_grid.size):
-        b = beta_grid[b_idx]
-        for r_idx in range(log_r_4_grid.size):
-            log_r4 = log_r_4_grid[r_idx]
-            for s_idx in range(sigma_grid.size):
-                s = sigma_grid[s_idx]
 
-                r_selection_grid[
-                    m_idx, b_idx, r_idx, s_idx
-                ] = radius_selection_probability_raw(log_m, b, log_r4, s)
-# then create the interpolation object. Note that the scipy.interpolate.interp2d notes
-# say that the RectBivariateSpline is faster, so that's what I use
-radius_selection_probability = interpolate.RegularGridInterpolator(
-    points=(log_mass_grid, beta_grid, log_r_4_grid, sigma_grid), values=r_selection_grid
-)
 
+class SelectionProbabilityV:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def v_band_selection_probability(log_mass, log_age, v_cut):
+        # The likelihood is Gaussian, with a mean provided by the SPS models. We
+        # integrate it up to the cut, which is an error function.
+        expected_v = get_absolute_mag(10 ** log_mass, 10 ** log_age)
+        v_err = 0.1  # dummy value for now
+        return gaussian_integral_lower(expected_v, v_err, v_cut)
+
+    def precalculate(self, v_band_cut=-6):
+        v_selection_grid = np.zeros((log_mass_grid.size, log_age_grid.size))
+        print(f"precalculating V selection function with V_cut = {v_band_cut}")
+        for m_idx in tqdm(range(log_mass_grid.size)):
+            log_m = log_mass_grid[m_idx]
+            for t_idx in range(log_age_grid.size):
+                log_t = log_age_grid[t_idx]
+                v_selection_grid[m_idx, t_idx] = self.v_band_selection_probability(
+                    log_m, log_t, v_band_cut
+                )
+        # then create the interpolation object. Note that the scipy.interpolate.interp2d
+        # notes say that the RectBivariateSpline is faster, so that's what I use.
+        self.precalculated_probability = interpolate.RectBivariateSpline(
+            x=log_mass_grid, y=log_age_grid, z=v_selection_grid, s=0
+        )
+
+    def __call__(self, log_mass, log_age):
+        return self.precalculated_probability(log_mass, log_age)
+
+
+class SelectionProbabilityR:
+    def __init__(self):
+        # I can precalculate this ahead of time, since there's no need to vary it later
+        self.precalculate()
+
+    @staticmethod
+    def r_selection(r_pc):
+        """
+        Probability of a cluster of a given radius being seleted.
+
+        :param r_pc: radius of the cluster in pc
+        :return: Probability of selecting a cluster with this radius
+        # TODO: actually define this function based on data
+        # TODO: define this function in arcsec, not pc
+        """
+        return np.minimum(r_pc, 1)
+
+    def radius_selection_at_mass(self, log_true_mass, beta, log_r_4, sigma):
+        # then we have to numerically integrate over the radius selection function times
+        # its likelihood
+        expected_log_radii = mass_size_relation_mean_log(log_true_mass, beta, log_r_4)
+        r_err = 0.1  # dex, dummy value for now
+        total_variance = sigma ** 2 + r_err ** 2
+
+        def integrand_radius(log_r):
+            # here we multiply the selection function times the likelihood. Note that we
+            # need the raw likelihood, not the log likelihood
+            return self.r_selection(10 ** log_r) * gaussian(
+                log_r, expected_log_radii, total_variance, include_norm=True
+            )
+
+        # then integrate this. I restrict the range to ensure convergence. But this is
+        # from 10^-5 to 10^5 pc, it will have all the likelihood
+        return integrate.quad(integrand_radius, -5, 5)[0]
+
+    def precalculate(self):
+        r_selection_grid = np.zeros(
+            (log_mass_grid.size, beta_grid.size, log_r_4_grid.size, sigma_grid.size)
+        )
+        print("precalculating radius selection function")
+        for m_idx in tqdm(range(log_mass_grid.size)):
+            log_m = log_mass_grid[m_idx]
+            for b_idx in range(beta_grid.size):
+                b = beta_grid[b_idx]
+                for r_idx in range(log_r_4_grid.size):
+                    log_r4 = log_r_4_grid[r_idx]
+                    for s_idx in range(sigma_grid.size):
+                        s = sigma_grid[s_idx]
+
+                        this_frac = self.radius_selection_at_mass(log_m, b, log_r4, s)
+                        r_selection_grid[m_idx, b_idx, r_idx, s_idx] = this_frac
+        # then create the interpolation object. Note that the scipy.interpolate.interp2d
+        # notes say that the RectBivariateSpline is faster, so that's what I use
+        self.precalculated_probability = interpolate.RegularGridInterpolator(
+            points=(log_mass_grid, beta_grid, log_r_4_grid, sigma_grid),
+            values=r_selection_grid,
+        )
+
+    def __call__(self, log_mass, beta, log_r_4, sigma):
+        return self.precalculated_probability((log_mass, beta, log_r_4, sigma))
+
+
+selection_v = SelectionProbabilityV()
+selection_r = SelectionProbabilityR()
 
 # ======================================================================================
 #
@@ -239,8 +253,8 @@ def selection_probability(log_true_mass, log_true_age, beta, log_r_4, sigma):
     :return: The probability that a cluster of this mass and age will pass the selection
              criteria
     """
-    v_term = v_band_selection_probability(log_true_mass, log_true_age)
-    r_term = 1  # radius_selection_probability((log_true_mass, beta, log_r_4, sigma))
+    v_term = selection_v(log_true_mass, log_true_age)
+    r_term = 1  # selection_r(log_true_mass, beta, log_r_4, sigma)
     # then the final selection probability is the product of these two
     return v_term * r_term
 
@@ -252,7 +266,14 @@ def selection_probability(log_true_mass, log_true_age, beta, log_r_4, sigma):
 # ======================================================================================
 # define the functions to minimize
 def log_likelihood(
-    params, log_mass, log_mass_err, log_r_eff, log_r_eff_err, log_age, log_age_err
+    params,
+    log_mass,
+    log_mass_err,
+    log_r_eff,
+    log_r_eff_err,
+    log_age,
+    log_age_err,
+    use_selection,
 ):
     """
     Get the log likelihood for a given model
@@ -266,6 +287,8 @@ def log_likelihood(
     :param log_r_eff_err: Errors on the observed log radii
     :param log_age: Observed log age
     :param log_age_err: Errors on the observed log age
+    :param use_selection: Whether to include the selection function term in the log
+                          likelihood
     :return:
     """
     # parse the parameters
@@ -320,13 +343,14 @@ def log_likelihood(
     # then normalize by the selection function. In the (not log) likelihood it enters
     # as division, so we subtract the log value. We have to do this separately for
     # each cluster
-    selection_likelihoods = [
-        selection_probability(
-            intrinsic_log_mass[i], intrinsic_log_age[i], beta, log_r_4, sigma
-        )
-        for i in range(len(log_r_eff))
-    ]
-    log_likelihood -= np.sum(np.log(np.maximum(0.01, selection_likelihoods)))
+    if use_selection:
+        selection_likelihoods = [
+            selection_probability(
+                intrinsic_log_mass[i], intrinsic_log_age[i], beta, log_r_4, sigma
+            )
+            for i in range(len(log_r_eff))
+        ]
+        log_likelihood -= np.sum(np.log(np.maximum(0.01, selection_likelihoods)))
 
     return log_likelihood
 
@@ -368,7 +392,12 @@ def fit_mass_size_relation(
     age_err_hi,
     plots_dir=None,
     plots_prefix="",
+    v_band_cut=-6,
 ):
+    # determine the v_band cut to use - precalculate the grid
+    if v_band_cut is not None:
+        selection_v.precalculate(v_band_cut)
+
     log_mass, log_mass_err_lo, log_mass_err_hi = mru.transform_to_log(
         mass, mass_err_lo, mass_err_hi
     )
@@ -392,8 +421,16 @@ def fit_mass_size_relation(
     # for each cluster
     n_dim = 3 + 2 * n_clusters
     n_walkers = 2 * n_dim + 1  # need at least 2x the dimensions
-    args = [log_mass, log_mass_err, log_r_eff, log_r_eff_err, log_age, log_age_err]
-    backend = emcee.backends.HDFBackend(f"mcmc_chain_{n_dim}dim.h5")
+    args = [
+        log_mass,
+        log_mass_err,
+        log_r_eff,
+        log_r_eff_err,
+        log_age,
+        log_age_err,
+        v_band_cut is not None,
+    ]
+    backend = emcee.backends.HDFBackend(f"mcmc_chain_{plots_prefix}_{n_clusters}.h5")
     sampler = emcee.EnsembleSampler(
         n_walkers, n_dim, log_likelihood, args=args, backend=backend
     )
