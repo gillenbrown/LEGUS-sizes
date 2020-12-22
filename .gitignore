@@ -12,8 +12,9 @@ data/
 outputs*/*
 plots*/*
 
-# mcmc chain storage
+# mcmc chain storage and pickle object
 mcmc_chain*.h5
+radius_precalc.p
 
 # other
 __pycache__

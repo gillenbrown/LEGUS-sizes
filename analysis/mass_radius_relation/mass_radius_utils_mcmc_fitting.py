@@ -1,4 +1,7 @@
 from pathlib import Path
+import pickle
+from collections import defaultdict
+
 import numpy as np
 import emcee
 from astropy import table
@@ -120,9 +123,6 @@ min_log_r_4, max_log_r_4 = -2, 2
 min_sigma, max_sigma = 0, 1
 log_mass_grid = np.arange(min_log_mass, max_log_mass, 0.1)
 log_age_grid = np.arange(min_log_age, max_log_age, 0.1)
-beta_grid = np.arange(min_beta, max_beta + 0.2, 0.2)
-log_r_4_grid = np.arange(min_log_r_4, max_log_r_4 + 0.2, 0.2)
-sigma_grid = np.arange(min_sigma, max_sigma + 0.2, 0.2)
 
 
 class SelectionProbabilityV:
@@ -135,32 +135,49 @@ class SelectionProbabilityV:
         # integrate it up to the cut, which is an error function.
         expected_v = get_absolute_mag(10 ** log_mass, 10 ** log_age)
         v_err = 0.1  # dummy value for now
-        return gaussian_integral_lower(expected_v, v_err, v_cut)
+        r_value = gaussian_integral_lower(expected_v, v_err, v_cut)
+        assert 0 <= r_value <= 1
+        return r_value
 
     def precalculate(self, v_band_cut=-6):
+        self.v_cut = v_band_cut
         v_selection_grid = np.zeros((log_mass_grid.size, log_age_grid.size))
-        print(f"precalculating V selection function with V_cut = {v_band_cut}")
+        print(f"precalculating V selection function with V_cut = {self.v_cut}")
         for m_idx in tqdm(range(log_mass_grid.size)):
             log_m = log_mass_grid[m_idx]
             for t_idx in range(log_age_grid.size):
                 log_t = log_age_grid[t_idx]
                 v_selection_grid[m_idx, t_idx] = self.v_band_selection_probability(
-                    log_m, log_t, v_band_cut
+                    log_m, log_t, self.v_cut
                 )
         # then create the interpolation object. Note that the scipy.interpolate.interp2d
-        # notes say that the RectBivariateSpline is faster, so that's what I use.
+        # notes say that the RectBivariateSpline is faster, so that's what I use. Note
+        # that this is a spline, so it can have values outside of 0-1. So we'll need to
+        # do some error checking later
         self.precalculated_probability = interpolate.RectBivariateSpline(
-            x=log_mass_grid, y=log_age_grid, z=v_selection_grid, s=0
+            x=log_mass_grid,
+            y=log_age_grid,
+            z=v_selection_grid,
+            s=0,
         )
 
     def __call__(self, log_mass, log_age):
-        return self.precalculated_probability(log_mass, log_age)
+        # the spline can go outside the range 0-1, so restrict it to be in that range
+        r_value = self.precalculated_probability(log_mass, log_age)
+        return max(0, min(r_value[0, 0], 1))
 
 
 class SelectionProbabilityR:
     def __init__(self):
-        # I can precalculate this ahead of time, since there's no need to vary it later
-        self.precalculate()
+        # start the initial dictionary - load this from pickle if availabe
+        self.pickle_name = "radius_precalc.p"
+        try:
+            with open(self.pickle_name, "rb") as in_file:
+                self.precalculated_values = pickle.load(in_file)
+                print("loaded precalculated radii values")
+        except FileNotFoundError:
+            self.precalculated_values = dict()  # will fill later
+            print("initializing new radii precalculations")
 
     @staticmethod
     def r_selection(r_pc):
@@ -192,31 +209,43 @@ class SelectionProbabilityR:
         # from 10^-5 to 10^5 pc, it will have all the likelihood
         return integrate.quad(integrand_radius, -5, 5)[0]
 
-    def precalculate(self):
-        r_selection_grid = np.zeros(
-            (log_mass_grid.size, beta_grid.size, log_r_4_grid.size, sigma_grid.size)
-        )
-        print("precalculating radius selection function")
-        for m_idx in tqdm(range(log_mass_grid.size)):
-            log_m = log_mass_grid[m_idx]
-            for b_idx in range(beta_grid.size):
-                b = beta_grid[b_idx]
-                for r_idx in range(log_r_4_grid.size):
-                    log_r4 = log_r_4_grid[r_idx]
-                    for s_idx in range(sigma_grid.size):
-                        s = sigma_grid[s_idx]
-
-                        this_frac = self.radius_selection_at_mass(log_m, b, log_r4, s)
-                        r_selection_grid[m_idx, b_idx, r_idx, s_idx] = this_frac
-        # then create the interpolation object. Note that the scipy.interpolate.interp2d
-        # notes say that the RectBivariateSpline is faster, so that's what I use
-        self.precalculated_probability = interpolate.RegularGridInterpolator(
-            points=(log_mass_grid, beta_grid, log_r_4_grid, sigma_grid),
-            values=r_selection_grid,
-        )
-
     def __call__(self, log_mass, beta, log_r_4, sigma):
-        return self.precalculated_probability((log_mass, beta, log_r_4, sigma))
+        # Here I don't precalculate, but what I do is store values as we go. This allows
+        # commonly used values to already be available.
+        decimals = 2
+        log_mass_r = round(log_mass, decimals)
+        beta_r = round(beta, decimals)
+        log_r_4_r = round(log_r_4, decimals)
+        sigma_r = round(sigma, decimals)
+        # give short names to the strings that are dictionary keys, to make the code
+        # below cleaner. P for parameter
+        p1 = str(log_mass_r)
+        p2 = str(beta_r)
+        p3 = str(log_r_4_r)
+        p4 = str(sigma_r)
+
+        try:
+            return self.precalculated_values[p1][p2][p3][p4]
+        except KeyError:
+            # calculate the value with rounded values
+            this_value = self.radius_selection_at_mass(
+                log_mass_r, beta_r, log_r_4_r, sigma_r
+            )
+            # then put it in this dictionary. This can be a bit complicated, since this
+            # isn't a defaultdict
+            if p1 not in self.precalculated_values:
+                self.precalculated_values[p1] = dict()
+            if p2 not in self.precalculated_values[p1]:
+                self.precalculated_values[p1][p2] = dict()
+            if p3 not in self.precalculated_values[p1][p2]:
+                self.precalculated_values[p1][p2][p3] = dict()
+            # no more nesting, we can set the final value
+            self.precalculated_values[p1][p2][p3][p4] = this_value
+            return this_value
+
+    def write(self):
+        with open(self.pickle_name, "wb") as out_file:
+            pickle.dump(self.precalculated_values, out_file)
 
 
 selection_v = SelectionProbabilityV()
@@ -254,7 +283,7 @@ def selection_probability(log_true_mass, log_true_age, beta, log_r_4, sigma):
              criteria
     """
     v_term = selection_v(log_true_mass, log_true_age)
-    r_term = 1  # selection_r(log_true_mass, beta, log_r_4, sigma)
+    r_term = selection_r(log_true_mass, beta, log_r_4, sigma)
     # then the final selection probability is the product of these two
     return v_term * r_term
 
@@ -477,6 +506,11 @@ def fit_mass_size_relation(
     n_thin = int(np.max(tau))
     samples = sampler.get_chain(flat=True, discard=n_burn_in, thin=n_thin)
     best_fit_params = [np.median(samples[:, idx]) for idx in range(3)]
+
+    # once we're done, write the precalculated values to the file. This is the best
+    # place to do this, as we do it once, and don't have to do each time there is a new
+    # value entered or something similar.
+    selection_r.write()
 
     return best_fit_params, samples
 
