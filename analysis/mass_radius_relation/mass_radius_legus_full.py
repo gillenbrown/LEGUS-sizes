@@ -38,7 +38,7 @@ fit_mask = mass < 1e5
 print(np.sum(fit_mask))
 
 # Then actually make the fit and plot it. Do this for both MLE and MCMC
-fit_mle, fit_history_mle = mru_mle.fit_mass_size_relation(
+fit_mle_orthogonal, fit_history_mle_orthogonal = mru_mle.fit_mass_size_relation(
     mass,
     mass_err_lo,
     mass_err_hi,
@@ -46,6 +46,17 @@ fit_mle, fit_history_mle = mru_mle.fit_mass_size_relation(
     r_eff_err_lo,
     r_eff_err_hi,
     fit_mass_upper_limit=1e5,
+    fit_style="orthogonal",
+)
+fit_mle_vertical, fit_history_mle_vertical = mru_mle.fit_mass_size_relation(
+    mass,
+    mass_err_lo,
+    mass_err_hi,
+    r_eff,
+    r_eff_err_lo,
+    r_eff_err_hi,
+    fit_mass_upper_limit=1e5,
+    fit_style="vertical",
 )
 
 fit_mcmc, fit_history_mcmc = mru_mcmc.fit_mass_size_relation(
@@ -92,14 +103,14 @@ mru_p.plot_mass_size_dataset_scatter(
 )
 # mru_p.add_percentile_lines(ax, mass, r_eff)
 for fit, history, name, color in zip(
-    [fit_mle, fit_mcmc],
-    [fit_history_mle, fit_history_mcmc.T],
-    ["MLE", "MCMC"],
-    [bpl.color_cycle[1], bpl.color_cycle[2]],
+    [fit_mle_orthogonal, fit_mle_vertical, fit_mcmc],
+    [fit_history_mle_orthogonal, fit_history_mle_vertical, fit_history_mcmc.T],
+    ["Orthogonal", "Vertical", "MCMC"],
+    [bpl.color_cycle[1], bpl.color_cycle[2], bpl.color_cycle[3]],
 ):
     label = f"{name} - "
     for param_idx, param_name in zip(
-        [0, 1, 2], ["$\\beta$", "log$\\rho_4$", "$\sigma$"]
+        [0, 1, 2], ["$\\beta$", "log$r_4$", "$\sigma$"]
     ):
         lo, hi = np.percentile(history[param_idx], [16, 84])
         med = fit[param_idx]
@@ -110,7 +121,7 @@ for fit, history, name, color in zip(
 
 # mru_p.plot_best_fit_line(ax, fit_mle, 1e2, 1e5, color=bpl.color_cycle[1], label="MLE")
 # mru_p.plot_best_fit_line(ax, fit_mcmc, 1e2, 1e5, color=bpl.color_cycle[2], label="MCMC")
-mru_p.format_mass_size_plot(ax)
+mru_p.format_mass_size_plot(ax, legend_fontsize=12)
 fig.savefig(plot_name)
 
 mru.write_fit_results(
