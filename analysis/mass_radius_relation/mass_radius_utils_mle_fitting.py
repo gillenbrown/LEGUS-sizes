@@ -47,9 +47,7 @@ def project_data_differences(xs, ys, slope, intercept):
     return np.cos(np.arctan(slope)) * (ys - (slope * xs + intercept))
 
 
-def project_data_variance(
-    xs, x_err_down, x_err_up, ys, y_err_down, y_err_up, slope, intercept
-):
+def project_data_variance(x_err, y_err, slope):
     """
     Calculate the orthogonal uncertainty of all data points from the line specified.
     See equation 31 of Hogg, Bovy, Lang 2010 (arxiv:1008.4686)
@@ -58,49 +56,23 @@ def project_data_variance(
     :param intercept: Intercept of the line
     :return: Orthogonal displacement of all datapoints from this line
     """
-    # make dummy error arrays, which will be filled later
-    x_errors = np.zeros(xs.shape)
-    y_errors = np.zeros(ys.shape)
-    # determine which errors to use. This is done on a datapoint by datapoint basis.
-    # If the datapoint is above the best fit line, we use the lower errors on y,
-    # if it is below the line we use the upper errors.
-    expected_values = xs * slope + intercept
-    mask_above = ys > expected_values
-
-    y_errors[mask_above] = y_err_down[mask_above]
-    y_errors[~mask_above] = y_err_up[~mask_above]
-
-    # Errors on x are similar, but it depends on the sign of the slope. For a
-    # positive slope, we use the upper errors for points above the line, and lower
-    # errors for points below the line. This is opposite for negative slope. This can
-    # be determined by examining the direction the orthogonal line will go in each of
-    # these cases.
-    if slope > 0:
-        x_errors[mask_above] = x_err_up[mask_above]
-        x_errors[~mask_above] = x_err_down[~mask_above]
-    else:
-        x_errors[mask_above] = x_err_down[mask_above]
-        x_errors[~mask_above] = x_err_up[~mask_above]
-    # convert to variance
-    x_variance = x_errors ** 2
-    y_variance = y_errors ** 2
-
-    # Then we follow the equation 31 to project this along the direction requested.
+    # We follow the equation 31 to project this along the direction requested.
     # Since our covariance array is diagonal already (no covariance terms), Equation
     # 26 is simple and Equation 31 can be simplified. Note that this has limits
     # of x_variance if slope = infinity (makes sense, as the horizontal direction
     # would be perpendicular to that line), and y_variance if slope = 0 (makes
     # sense, as the vertical direction is perpendicular to that line).
-    return (slope ** 2 * x_variance + y_variance) / (1 + slope ** 2)
+    return (slope ** 2 * x_err ** 2 + y_err ** 2) / (1 + slope ** 2)
 
 
 # Then we can define the functions to minimize
-def negative_log_likelihood(params, xs, x_err_down, x_err_up, ys, y_err_down, y_err_up):
+def negative_log_likelihood_orthogonal(params, xs, x_err, ys, y_err):
     """
     Function to be minimized. We use negative log likelihood, as minimizing this
     maximizes likelihood.
 
     The functional form is taken from Hogg, Bovy, Lang 2010 (arxiv:1008.4686) eq 35.
+    This takes the difference orthogonal to the best fit line
 
     :param params: Slope, height at the pivot point, and standard deviation of
                    intrinsic scatter
@@ -111,20 +83,59 @@ def negative_log_likelihood(params, xs, x_err_down, x_err_up, ys, y_err_down, y_
     # so params[1] is really y(pivot_point_x) = m (pivot_point_x) + intercept
     intercept = params[1] - params[0] * pivot_point_x
 
-    data_variance = project_data_variance(
-        xs, x_err_down, x_err_up, ys, y_err_down, y_err_up, params[0], intercept
-    )
+    # variance is the same as the orthogonal fit, as we account for errors in the
+    # x and y directions
+    data_variance = project_data_variance(x_err, y_err, params[0])
+    total_variance = data_variance + params[2] ** 2
+    # calculate the difference orthogonal to the best fit line
     data_diffs = project_data_differences(xs, ys, params[0], intercept)
 
     # calculate the sum of data likelihoods
-    data_likelihoods = -0.5 * np.sum(
-        (data_diffs ** 2) / (data_variance + params[2] ** 2)
-    )
+    data_likelihoods = -0.5 * np.sum((data_diffs ** 2) / total_variance)
+
     # then penalize large intrinsic scatter. This term really comes from the definition
     # of a Gaussian likelihood. This term is always out front of a Gaussian, but
     # normally it's just a constant. When we include intrinsic scatter it now
     # affects the likelihood.
-    scatter_likelihood = -0.5 * np.sum(np.log(data_variance + params[2] ** 2))
+    scatter_likelihood = -0.5 * np.sum(np.log(total_variance))
+    # up to a constant, the sum of these is the likelihood. Return the negative of it
+    # to get the negative log likelihood
+    return -1 * (data_likelihoods + scatter_likelihood)
+
+
+def negative_log_likelihood_vertical(params, xs, x_err, ys, y_err):
+    """
+    Function to be minimized. We use negative log likelihood, as minimizing this
+    maximizes likelihood.
+
+    This accounts for x and y errors, but takes the vertial difference from the best
+    fit line
+
+    :param params: Slope, height at the pivot point, and standard deviation of
+                   intrinsic scatter
+    :return: Value for the negative log likelihood
+    """
+    # first convert the pivot point value into the intercept
+    pivot_point_x = 4
+    # so params[1] is really y(pivot_point_x) = m (pivot_point_x) + intercept
+    intercept = params[1] - params[0] * pivot_point_x
+
+    # variance is the same as the orthogonal fit, as we account for errors in the
+    # x and y directions
+    data_variance = project_data_variance(x_err, y_err, params[0])
+    total_variance = data_variance + params[2] ** 2
+    # the differences are simply the differences in y
+    expected_ys = intercept + params[0] * xs
+    data_diffs = ys - expected_ys
+
+    # calculate the sum of data likelihoods
+    data_likelihoods = -0.5 * np.sum((data_diffs ** 2) / total_variance)
+
+    # then penalize large intrinsic scatter. This term really comes from the definition
+    # of a Gaussian likelihood. This term is always out front of a Gaussian, but
+    # normally it's just a constant. When we include intrinsic scatter it now
+    # affects the likelihood.
+    scatter_likelihood = -0.5 * np.sum(np.log(total_variance))
     # up to a constant, the sum of these is the likelihood. Return the negative of it
     # to get the negative log likelihood
     return -1 * (data_likelihoods + scatter_likelihood)
@@ -139,23 +150,33 @@ def fit_mass_size_relation(
     r_eff_err_hi,
     fit_mass_lower_limit=1e-5,
     fit_mass_upper_limit=1e10,
+    fit_style="orthogonal",
 ):
+    # choose the likelihood function to use
+    if fit_style == "orthogonal":
+        negative_log_likelihood = negative_log_likelihood_orthogonal
+    elif fit_style == "vertical":
+        negative_log_likelihood = negative_log_likelihood_vertical
+    else:
+        raise ValueError("fit style not recognized")
+
     log_mass, log_mass_err_lo, log_mass_err_hi = mru.transform_to_log(
         mass, mass_err_lo, mass_err_hi
     )
     log_r_eff, log_r_eff_err_lo, log_r_eff_err_hi = mru.transform_to_log(
         r_eff, r_eff_err_lo, r_eff_err_hi
     )
+    # and symmetrize the errors
+    log_mass_err = np.mean([log_mass_err_lo, log_mass_err_hi], axis=0)
+    log_r_eff_err = np.mean([log_r_eff_err_lo, log_r_eff_err_hi], axis=0)
 
     fit_mask = log_mass > np.log10(fit_mass_lower_limit)
     fit_mask = np.logical_and(fit_mask, log_mass < np.log10(fit_mass_upper_limit))
 
     log_mass = log_mass[fit_mask]
-    log_mass_err_lo = log_mass_err_lo[fit_mask]
-    log_mass_err_hi = log_mass_err_hi[fit_mask]
+    log_mass_err = log_mass_err[fit_mask]
     log_r_eff = log_r_eff[fit_mask]
-    log_r_eff_err_lo = log_r_eff_err_lo[fit_mask]
-    log_r_eff_err_hi = log_r_eff_err_hi[fit_mask]
+    log_r_eff_err = log_r_eff_err[fit_mask]
 
     # set some of the convergence criteria parameters for the Powell fitting routine.
     xtol = 1e-10
@@ -167,11 +188,9 @@ def fit_mass_size_relation(
         negative_log_likelihood,
         args=(
             log_mass,
-            log_mass_err_lo,
-            log_mass_err_hi,
+            log_mass_err,
             log_r_eff,
-            log_r_eff_err_lo,
-            log_r_eff_err_hi,
+            log_r_eff_err,
         ),
         bounds=([-1, 1], [None, None], [0, 0.5]),
         x0=np.array([0.2, np.log10(2), 0.3]),
@@ -207,11 +226,9 @@ def fit_mass_size_relation(
             negative_log_likelihood,
             args=(
                 log_mass[sample_idxs],
-                log_mass_err_lo[sample_idxs],
-                log_mass_err_hi[sample_idxs],
+                log_mass_err[sample_idxs],
                 log_r_eff[sample_idxs],
-                log_r_eff_err_lo[sample_idxs],
-                log_r_eff_err_hi[sample_idxs],
+                log_r_eff_err[sample_idxs],
             ),
             bounds=([-1, 1], [None, None], [0, 0.5]),
             x0=best_fit_result.x,
