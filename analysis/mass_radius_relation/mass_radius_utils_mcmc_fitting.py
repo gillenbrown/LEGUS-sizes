@@ -118,15 +118,18 @@ def gaussian_integral_lower(mean, sigma, x_max):
 # of the flat prior.
 min_log_mass, max_log_mass = 0, 10
 min_log_age, max_log_age = 3, 12
+min_log_r_eff, max_log_r_eff = -2, 3
 min_beta, max_beta = -1, 1
 min_log_r_4, max_log_r_4 = -2, 2
 min_sigma, max_sigma = 0, 1
-log_mass_grid = np.arange(min_log_mass, max_log_mass, 0.1)
-log_age_grid = np.arange(min_log_age, max_log_age, 0.1)
+log_mass_grid = np.arange(min_log_mass, max_log_mass, 0.05)
+log_age_grid = np.arange(min_log_age, max_log_age, 0.05)
+log_r_eff_grid = np.arange(min_log_r_eff, max_log_r_eff, 0.01)
 
 
 class SelectionProbabilityV:
     def __init__(self):
+        self.v_cut = -6
         self.precalculate()
         self.activated = True
 
@@ -140,8 +143,7 @@ class SelectionProbabilityV:
         assert 0 <= r_value <= 1
         return r_value
 
-    def precalculate(self, v_band_cut=-6):
-        self.v_cut = v_band_cut
+    def precalculate(self):
         v_selection_grid = np.zeros((log_mass_grid.size, log_age_grid.size))
         print(f"precalculating V selection function with V_cut = {self.v_cut}")
         for m_idx in tqdm(range(log_mass_grid.size)):
@@ -166,22 +168,14 @@ class SelectionProbabilityV:
         if not self.activated:
             return 1
         # the spline can go outside the range 0-1, so restrict it to be in that range
-        r_value = self.precalculated_probability(log_mass, log_age)
-        return max(0, min(r_value[0, 0], 1))
+        r_value = self.precalculated_probability(log_mass, log_age, grid=False)
+        return np.maximum(0, np.minimum(r_value, 1))
 
 
 class SelectionProbabilityR:
     def __init__(self):
         self.activated = True
-        # start the initial dictionary - load this from pickle if availabe
-        self.pickle_name = "radius_precalc.p"
-        try:
-            with open(self.pickle_name, "rb") as in_file:
-                self.precalculated_values = pickle.load(in_file)
-                print("loaded precalculated radii values")
-        except FileNotFoundError:
-            self.precalculated_values = dict()  # will fill later
-            print("initializing new radii precalculations")
+        self.precalculate()
 
     @staticmethod
     def r_selection(r_pc):
@@ -195,62 +189,42 @@ class SelectionProbabilityR:
         """
         return np.minimum(r_pc, 1)
 
-    def radius_selection_at_mass(self, log_true_mass, beta, log_r_4, sigma):
+    def radius_selection_probability(self, true_log_radius):
         # then we have to numerically integrate over the radius selection function times
         # its likelihood
-        expected_log_radii = mass_size_relation_mean_log(log_true_mass, beta, log_r_4)
-        r_err = 0.1  # dex, dummy value for now
-        total_variance = sigma ** 2 + r_err ** 2
+        log_r_err = 0.1  # dex, dummy for now
 
-        def integrand_radius(log_r):
+        def integrand_radius(observed_log_radius):
             # here we multiply the selection function times the likelihood. Note that we
-            # need the raw likelihood, not the log likelihood
-            return self.r_selection(10 ** log_r) * gaussian(
-                log_r, expected_log_radii, total_variance, include_norm=True
+            # need the raw likelihood, not the log likelihood. Here we are integrating
+            # over the observed radius, and comparing it to the intrinsic radius
+            return self.r_selection(10 ** observed_log_radius) * gaussian(
+                observed_log_radius, true_log_radius, log_r_err, include_norm=True
             )
 
         # then integrate this. I restrict the range to ensure convergence. But this is
         # from 10^-5 to 10^5 pc, it will have all the likelihood
         return integrate.quad(integrand_radius, -5, 5)[0]
 
-    def __call__(self, log_mass, beta, log_r_4, sigma):
+    def precalculate(self):
+        print(f"precalculating radius selection function")
+        r_selection_grid = [
+            self.radius_selection_probability(log_r) for log_r in tqdm(log_r_eff_grid)
+        ]
+
+        # then create the interpolation object. Note that the scipy.interpolate.interp2d
+        # notes say that the RectBivariateSpline is faster, so that's what I use. Note
+        # that this is a spline, so it can have values outside of 0-1. So we'll need to
+        # do some error checking later
+        self.precalculated_probability = interpolate.interp1d(
+            x=log_r_eff_grid, y=r_selection_grid, kind="linear"
+        )
+
+    def __call__(self, log_radius):
         if not self.activated:
             return 1
-        # Here I don't precalculate, but what I do is store values as we go. This allows
-        # commonly used values to already be available.
-        log_mass_r = round(log_mass, 1)
-        beta_r = round(beta, 2)
-        log_r_4_r = round(log_r_4, 2)
-        sigma_r = round(sigma, 2)
-        # give short names to the strings that are dictionary keys, to make the code
-        # below cleaner. P for parameter
-        p1 = str(log_mass_r)
-        p2 = str(beta_r)
-        p3 = str(log_r_4_r)
-        p4 = str(sigma_r)
-
-        try:
-            return self.precalculated_values[p1][p2][p3][p4]
-        except KeyError:
-            # calculate the value with rounded values
-            this_value = self.radius_selection_at_mass(
-                log_mass_r, beta_r, log_r_4_r, sigma_r
-            )
-            # then put it in this dictionary. This can be a bit complicated, since this
-            # isn't a defaultdict
-            if p1 not in self.precalculated_values:
-                self.precalculated_values[p1] = dict()
-            if p2 not in self.precalculated_values[p1]:
-                self.precalculated_values[p1][p2] = dict()
-            if p3 not in self.precalculated_values[p1][p2]:
-                self.precalculated_values[p1][p2][p3] = dict()
-            # no more nesting, we can set the final value
-            self.precalculated_values[p1][p2][p3][p4] = this_value
-            return this_value
-
-    def write(self):
-        with open(self.pickle_name, "wb") as out_file:
-            pickle.dump(self.precalculated_values, out_file)
+        # return the precalculated probability
+        return self.precalculated_probability(log_radius)
 
 
 selection_v = SelectionProbabilityV()
@@ -263,7 +237,7 @@ selection_r = SelectionProbabilityR()
 # ======================================================================================
 
 
-def selection_probability(log_true_mass, log_true_age, beta, log_r_4, sigma):
+def selection_probability(log_true_mass, log_true_age, true_log_radius):
     """
     Determine Phi, the probability of selecting a cluster of a given true mass and age
 
@@ -282,13 +256,12 @@ def selection_probability(log_true_mass, log_true_age, beta, log_r_4, sigma):
 
     :param log_true_mass: log of the true mass of the cluster
     :param log_true_age: log of the true age of the cluster
-    :param beta, log_r_4, sigma: Parameters of the mass-radius relation, see
-                                 `mass_size_relation_mean_log` for more
-    :return: The probability that a cluster of this mass and age will pass the selection
-             criteria
+    :param true_log_radius: log of the true radius of the cluster
+    :return: The probability that a cluster of this mass, age, radius will pass the
+             selection criteria
     """
     v_term = selection_v(log_true_mass, log_true_age)
-    r_term = selection_r(log_true_mass, beta, log_r_4, sigma)
+    r_term = selection_r(true_log_radius)
     # then the final selection probability is the product of these two
     return v_term * r_term
 
@@ -330,10 +303,16 @@ def log_likelihood(
     log_r_4 = params[1]
     sigma = params[2]
     # then split the ages from the masses
-    split_idx = 3 + len(log_mass)
-    intrinsic_log_mass = params[3:split_idx]
-    intrinsic_log_age = params[split_idx:]
-    assert len(intrinsic_log_mass) == len(intrinsic_log_age) == len(log_mass)
+    n_clusters = len(log_mass)
+    intrinsic_log_mass = params[3 : 3 + n_clusters]
+    intrinsic_log_age = params[3 + n_clusters : 3 + 2 * n_clusters]
+    intrinsic_log_r_eff = params[3 + 2 * n_clusters :]
+    assert (
+        len(intrinsic_log_mass)
+        == len(intrinsic_log_age)
+        == len(intrinsic_log_r_eff)
+        == n_clusters
+    )
 
     # put priors first, since these short circuit the evaluation
     if (
@@ -347,11 +326,13 @@ def log_likelihood(
         or np.any(intrinsic_log_mass < min_log_mass)
         or np.any(intrinsic_log_age > max_log_age)
         or np.any(intrinsic_log_age < min_log_age)
+        or np.any(intrinsic_log_r_eff > max_log_r_eff)
+        or np.any(intrinsic_log_r_eff < min_log_r_eff)
     ):
         return -np.inf
 
-    # start by getting the likelihoods of the intrinsic masses and radii. The error is
-    # not a free parameter, so we don't need to include the normalization
+    # start by getting the likelihoods of the intrinsic masses, radii, ages. The error
+    # is not a free parameter, so we don't need to include the normalization
     log_likelihood = 0
     log_likelihood += np.sum(
         log_gaussian(
@@ -361,30 +342,34 @@ def log_likelihood(
     log_likelihood += np.sum(
         log_gaussian(intrinsic_log_age, log_age, log_age_err ** 2, include_norm=False)
     )
+    log_likelihood += np.sum(
+        log_gaussian(
+            intrinsic_log_r_eff, log_r_eff, log_r_eff_err ** 2, include_norm=False
+        )
+    )
 
     # then add the probability of the observed radius from the true mass. In this
     # equation, I'm analytically marginalizing over the true radius. This produces a
     # Gaussian where we compare observed to predicted intrinsic, with the variances
     # added.
     expected_log_radii = mass_size_relation_mean_log(intrinsic_log_mass, beta, log_r_4)
-    total_variance = log_r_eff_err ** 2 + sigma ** 2
     # note that here we do need to return the correct normalization, as the scatter is
     # a term of interest
     log_likelihood += np.sum(
-        log_gaussian(expected_log_radii, log_r_eff, total_variance, include_norm=True)
+        log_gaussian(
+            expected_log_radii, intrinsic_log_r_eff, sigma ** 2, include_norm=True
+        )
     )
 
     # then normalize by the selection function. In the (not log) likelihood it enters
     # as division, so we subtract the log value. We have to do this separately for
     # each cluster
     if use_selection:
-        selection_likelihoods = [
-            selection_probability(
-                intrinsic_log_mass[i], intrinsic_log_age[i], beta, log_r_4, sigma
-            )
-            for i in range(len(log_r_eff))
-        ]
-        log_likelihood -= np.sum(np.log(np.maximum(0.01, selection_likelihoods)))
+        selection_likelihoods = selection_probability(
+            intrinsic_log_mass, intrinsic_log_age, intrinsic_log_r_eff
+        )
+
+        log_likelihood -= np.sum(np.log(np.maximum(1e-7, selection_likelihoods)))
 
     return log_likelihood
 
@@ -452,9 +437,9 @@ def fit_mass_size_relation(
     assert len(log_mass) == len(log_r_eff) == len(log_age) == n_clusters
 
     # Then set up the MCMC.
-    # our dimensions for fitting include slope, intercept, scatter, plus mass and age
-    # for each cluster
-    n_dim = 3 + 2 * n_clusters
+    # our dimensions for fitting include slope, intercept, scatter, plus mass, age,
+    # radius, for each cluster
+    n_dim = 3 + 3 * n_clusters
     n_walkers = 2 * n_dim + 1  # need at least 2x the dimensions
     args = [
         log_mass,
@@ -486,8 +471,10 @@ def fit_mass_size_relation(
         for idx in range(n_clusters):
             masses = log_mass[idx] + np.random.normal(0, log_mass_err[idx], n_walkers)
             ages = log_age[idx] + np.random.normal(0, log_age_err[idx], n_walkers)
+            radii = log_r_eff[idx] + np.random.normal(0, log_r_eff_err[idx], n_walkers)
             state[:, 3 + idx] = masses
             state[:, 3 + idx + n_clusters] = ages
+            state[:, 3 + idx + 2 * n_clusters] = radii
         # double check that we added everything to the array
         assert not 0 in np.array(state)
 
@@ -513,11 +500,6 @@ def fit_mass_size_relation(
     samples = sampler.get_chain(flat=True, discard=n_burn_in, thin=n_thin)
     best_fit_params = [np.median(samples[:, idx]) for idx in range(3)]
 
-    # once we're done, write the precalculated values to the file. This is the best
-    # place to do this, as we do it once, and don't have to do each time there is a new
-    # value entered or something similar.
-    selection_r.write()
-
     return best_fit_params, samples
 
 
@@ -534,6 +516,9 @@ def mcmc_plots(
     age,
     age_err_lo,
     age_err_hi,
+    r_eff,
+    r_eff_err_lo,
+    r_eff_err_hi,
     ids,
     galaxies,
     plots_dir,
@@ -550,6 +535,9 @@ def mcmc_plots(
     :param age: The observed ages
     :param age_err_lo: The observed age lower limits
     :param age_err_hi: The observed age upper limits
+    :param r_eff: The observed radii
+    :param r_eff_err_lo: The observed radii lower limits
+    :param r_eff_err_hi: The observed radii upper limits
     :param ids: The cluster IDs corresponding to the above
     :param galaxies: The galaxy each cluster belongs to
     :param plots_dir: Directory to save these plots to
@@ -561,9 +549,10 @@ def mcmc_plots(
     plot_params(samples, plots_dir, plots_prefix)
 
     if plot_mass_posteriors:
-        split_idx = 3 + len(mass)
-        mass_samples = 10 ** samples[:, 3:split_idx]
-        age_samples = 10 ** samples[:, split_idx:]
+        n_clusters = len(mass)
+        mass_samples = 10 ** samples[:, 3 : 3 + n_clusters]
+        age_samples = 10 ** samples[:, 3 + len(mass) : 3 + 2 * n_clusters]
+        radius_samples = 10 ** samples[:, 3 + 2 * n_clusters :]
 
         for galaxy in np.unique(galaxies):
             gal_mask = np.where(galaxies == galaxy)[0]
@@ -590,6 +579,17 @@ def mcmc_plots(
                 plots_dir,
                 plots_prefix,
             )
+            plot_cluster_samples(
+                radius_samples[:, gal_mask],
+                r_eff[gal_mask],
+                r_eff_err_lo[gal_mask],
+                r_eff_err_hi[gal_mask],
+                ids[gal_mask],
+                galaxy,
+                "radius",
+                plots_dir,
+                plots_prefix,
+            )
 
 
 def plot_params(samples, plots_dir, plots_prefix):
@@ -607,17 +607,19 @@ def plot_params(samples, plots_dir, plots_prefix):
 
 
 def plot_chains(samples, plots_dir, plots_prefix):
-    fig, axs = bpl.subplots(nrows=7, sharex=True, figsize=[10, 10])
-    # plot the 3 main parameters plus 2 mass and age chains, randomly selected
+    fig, axs = bpl.subplots(nrows=9, sharex=True, figsize=[13, 10])
+    # plot the 3 main parameters plus 2 mass, age, radius chains, randomly selected
     n_iterations, n_walkers, n_params = samples.shape
-    n_clusters = 0.5 * (n_params - 3)
+    n_clusters = (n_params - 3) / 3.0
     assert np.isclose(int(n_clusters), n_clusters)
     n_clusters = int(n_clusters)
+    rand_cluster_idxs = np.random.randint(3, 3 + n_clusters, 2)
     param_idxs = np.concatenate(
         [
             [0, 1, 2],
-            np.random.randint(3, 3 + n_clusters, 2),
-            np.random.randint(3 + n_clusters, n_params, 2),
+            rand_cluster_idxs,
+            rand_cluster_idxs + n_clusters,
+            rand_cluster_idxs + 2 * n_clusters,
         ]
     )
 
@@ -625,10 +627,12 @@ def plot_chains(samples, plots_dir, plots_prefix):
         "$\\beta$",
         "log($r_4$)",
         "$\sigma$",
-        "log($m_{" + f"{param_idxs[-4]}" + "}$)",
-        "log($m_{" + f"{param_idxs[-3]}" + "}$)",
-        "log($t_{" + f"{param_idxs[-4]}" + "}$)",
-        "log($t_{" + f"{param_idxs[-3]}" + "}$)",
+        "log($m_{" + f"{param_idxs[3]}" + "}$)",
+        "log($m_{" + f"{param_idxs[4]}" + "}$)",
+        "log($t_{" + f"{param_idxs[3]}" + "}$)",
+        "log($t_{" + f"{param_idxs[4]}" + "}$)",
+        "log($r_{" + f"{param_idxs[3]}" + "}$)",
+        "log($r_{" + f"{param_idxs[4]}" + "}$)",
     ]
 
     # x values are simply the position

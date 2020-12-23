@@ -125,20 +125,37 @@ fit_mcmc_rv_select, fit_history_mcmc_rv_select = mru_mcmc.fit_mass_size_relation
 
 
 # make the debug plots for the MCMC chain
-mru_mcmc.mcmc_plots(
-    fit_history_mcmc_rv_select,
-    mass[fit_mask],
-    mass_err_lo[fit_mask],
-    mass_err_hi[fit_mask],
-    age[fit_mask],
-    age_err_lo[fit_mask],
-    age_err_hi[fit_mask],
-    ids[fit_mask],
-    galaxies[fit_mask],
-    mcmc_plot_dir,
-    "legus_full_rv_selection",
-    True,
-)
+for history, name in zip(
+    [
+        fit_history_mcmc_no_select,
+        fit_history_mcmc_v_select,
+        fit_history_mcmc_r_select,
+        fit_history_mcmc_rv_select,
+    ],
+    [
+        "legus_full_no_selection",
+        "legus_full_v_selection",
+        "legus_full_r_selection",
+        "legus_full_rv_selection",
+    ],
+):
+    mru_mcmc.mcmc_plots(
+        history,
+        mass[fit_mask],
+        mass_err_lo[fit_mask],
+        mass_err_hi[fit_mask],
+        age[fit_mask],
+        age_err_lo[fit_mask],
+        age_err_hi[fit_mask],
+        r_eff[fit_mask],
+        r_eff_err_lo[fit_mask],
+        r_eff_err_hi[fit_mask],
+        ids[fit_mask],
+        galaxies[fit_mask],
+        mcmc_plot_dir,
+        name,
+        False,
+    )
 
 
 # then plot the dataset
