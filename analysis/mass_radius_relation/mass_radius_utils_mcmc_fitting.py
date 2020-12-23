@@ -1,10 +1,9 @@
 from pathlib import Path
-import pickle
-from collections import defaultdict
 
 import numpy as np
 import emcee
 from astropy import table
+from astropy import units as u
 from scipy import interpolate, integrate, special
 from tqdm import tqdm
 
@@ -178,7 +177,7 @@ class SelectionProbabilityR:
         self.precalculate()
 
     @staticmethod
-    def r_selection(r_pc):
+    def r_selection(r_arcsec):
         """
         Probability of a cluster of a given radius being seleted.
 
@@ -187,29 +186,35 @@ class SelectionProbabilityR:
         # TODO: actually define this function based on data
         # TODO: define this function in arcsec, not pc
         """
-        return np.minimum(r_pc, 1)
+        # 2 pc is the maximum in NGC628c, and that corresponds to roughly 0.05 arcsec
+        return np.minimum(r_arcsec / 0.05, 1)
 
-    def radius_selection_probability(self, true_log_radius):
+    def radius_selection_probability(self, true_log_radius_arcsec):
         # then we have to numerically integrate over the radius selection function times
         # its likelihood
-        log_r_err = 0.1  # dex, dummy for now
+        log_r_err = 0.1  # dex, dummy for now. Is the same in either arcsec or pc
 
-        def integrand_radius(observed_log_radius):
+        def integrand_radius(observed_log_radius_arcsec):
             # here we multiply the selection function times the likelihood. Note that we
             # need the raw likelihood, not the log likelihood. Here we are integrating
             # over the observed radius, and comparing it to the intrinsic radius
-            return self.r_selection(10 ** observed_log_radius) * gaussian(
-                observed_log_radius, true_log_radius, log_r_err, include_norm=True
+            return self.r_selection(10 ** observed_log_radius_arcsec) * gaussian(
+                observed_log_radius_arcsec,
+                true_log_radius_arcsec,
+                log_r_err,
+                include_norm=True,
             )
 
         # then integrate this. I restrict the range to ensure convergence. But this is
-        # from 10^-5 to 10^5 pc, it will have all the likelihood
-        return integrate.quad(integrand_radius, -5, 5)[0]
+        # from 10^-5 to 10^5 arcsec, it will have all the likelihood
+        return integrate.quad(integrand_radius, -10, 5)[0]
 
     def precalculate(self):
         print(f"precalculating radius selection function")
+        log_r_eff_arcsec_grid = np.arange(-10, 5, 0.01)
         r_selection_grid = [
-            self.radius_selection_probability(log_r) for log_r in tqdm(log_r_eff_grid)
+            self.radius_selection_probability(log_r_arcsec)
+            for log_r_arcsec in tqdm(log_r_eff_arcsec_grid)
         ]
 
         # then create the interpolation object. Note that the scipy.interpolate.interp2d
@@ -217,14 +222,18 @@ class SelectionProbabilityR:
         # that this is a spline, so it can have values outside of 0-1. So we'll need to
         # do some error checking later
         self.precalculated_probability = interpolate.interp1d(
-            x=log_r_eff_grid, y=r_selection_grid, kind="linear"
+            x=log_r_eff_arcsec_grid, y=r_selection_grid, kind="linear"
         )
 
-    def __call__(self, log_radius):
+    def __call__(self, log_radius_pc, distance_mpc):
         if not self.activated:
             return 1
-        # return the precalculated probability
-        return self.precalculated_probability(log_radius)
+        # return the precalculated probability, but first we need to convert to arcsec
+        radius_pc = 10 ** log_radius_pc * u.pc
+        distance_mpc *= u.Mpc
+        radius_radians = (radius_pc / distance_mpc) * u.radian
+        radius_arcsec = radius_radians.to(u.arcsec).value
+        return self.precalculated_probability(np.log10(radius_arcsec))
 
 
 selection_v = SelectionProbabilityV()
@@ -237,7 +246,7 @@ selection_r = SelectionProbabilityR()
 # ======================================================================================
 
 
-def selection_probability(log_true_mass, log_true_age, true_log_radius):
+def selection_probability(log_true_mass, log_true_age, true_log_radius, distance_mpc):
     """
     Determine Phi, the probability of selecting a cluster of a given true mass and age
 
@@ -257,11 +266,12 @@ def selection_probability(log_true_mass, log_true_age, true_log_radius):
     :param log_true_mass: log of the true mass of the cluster
     :param log_true_age: log of the true age of the cluster
     :param true_log_radius: log of the true radius of the cluster
+    :param distance_mpc: distance to the cluster in Mpc
     :return: The probability that a cluster of this mass, age, radius will pass the
              selection criteria
     """
     v_term = selection_v(log_true_mass, log_true_age)
-    r_term = selection_r(true_log_radius)
+    r_term = selection_r(true_log_radius, distance_mpc)
     # then the final selection probability is the product of these two
     return v_term * r_term
 
@@ -280,7 +290,7 @@ def log_likelihood(
     log_r_eff_err,
     log_age,
     log_age_err,
-    use_selection,
+    distance_mpc,
 ):
     """
     Get the log likelihood for a given model
@@ -294,8 +304,7 @@ def log_likelihood(
     :param log_r_eff_err: Errors on the observed log radii
     :param log_age: Observed log age
     :param log_age_err: Errors on the observed log age
-    :param use_selection: Whether to include the selection function term in the log
-                          likelihood
+    :param distance: Distances (in Mpc) to each cluster
     :return:
     """
     # parse the parameters
@@ -363,13 +372,12 @@ def log_likelihood(
 
     # then normalize by the selection function. In the (not log) likelihood it enters
     # as division, so we subtract the log value. We have to do this separately for
-    # each cluster
-    if use_selection:
-        selection_likelihoods = selection_probability(
-            intrinsic_log_mass, intrinsic_log_age, intrinsic_log_r_eff
-        )
+    # each cluster. I have a minimum value in case the probability is identically zero
+    selection_likelihoods = selection_probability(
+        intrinsic_log_mass, intrinsic_log_age, intrinsic_log_r_eff, distance_mpc
+    )
 
-        log_likelihood -= np.sum(np.log(np.maximum(1e-7, selection_likelihoods)))
+    log_likelihood -= np.sum(np.log(np.maximum(1e-10, selection_likelihoods)))
 
     return log_likelihood
 
@@ -409,6 +417,7 @@ def fit_mass_size_relation(
     age,
     age_err_lo,
     age_err_hi,
+    distance_mpc,
     plots_dir=None,
     plots_prefix="",
     v_selection=True,
@@ -448,7 +457,7 @@ def fit_mass_size_relation(
         log_r_eff_err,
         log_age,
         log_age_err,
-        v_selection or r_selection,
+        distance_mpc,
     ]
     backend = emcee.backends.HDFBackend(f"mcmc_chain_{plots_prefix}_{n_clusters}.h5")
     sampler = emcee.EnsembleSampler(
@@ -482,7 +491,7 @@ def fit_mass_size_relation(
     stds = np.inf * np.ones(3)  # uninitialized value, will set later
     converged, stds = is_converged(sampler, stds)
     while not converged:
-        state = sampler.run_mcmc(state, 1000, progress=True)
+        state = sampler.run_mcmc(state, 200, progress=True)
         converged, stds = is_converged(sampler, stds)
 
     # First make a plot of the chains if desired. Do this here as the chains are

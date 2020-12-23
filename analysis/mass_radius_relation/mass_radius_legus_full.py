@@ -31,6 +31,7 @@ r_eff, r_eff_err_lo, r_eff_err_hi = mru.get_my_radii(big_catalog, mask)
 age, age_err_lo, age_err_hi = mru.get_my_ages(big_catalog, mask)
 ids = big_catalog["ID"][mask]
 galaxies = big_catalog["galaxy"][mask]
+distances = big_catalog["distance_mpc"][mask]
 
 # restrict to mass range. Can't do this at the beginning since we want to
 # plot everything

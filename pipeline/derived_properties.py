@@ -114,6 +114,9 @@ if galaxy_name == "ngc5194-ngc5195-mosaic":
 else:
     fits_catalog["galaxy"] = galaxy_name
 
+# and the distance in Mpc
+fits_catalog["distance_mpc"] = utils.distance(home_dir, ryon_like)
+
 
 # ======================================================================================
 #
