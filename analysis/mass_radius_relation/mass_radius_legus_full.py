@@ -71,10 +71,11 @@ fit_mcmc_no_select, fit_history_mcmc_no_select = mru_mcmc.fit_mass_size_relation
     age_err_hi[fit_mask],
     mcmc_plot_dir,
     "legus_full_no_selection",
-    v_band_cut=None,
+    v_selection=False,
+    r_selection=False,
 )
 
-fit_mcmc_all_select, fit_history_mcmc_all_select = mru_mcmc.fit_mass_size_relation(
+fit_mcmc_v_select, fit_history_mcmc_v_select = mru_mcmc.fit_mass_size_relation(
     mass[fit_mask],
     mass_err_lo[fit_mask],
     mass_err_hi[fit_mask],
@@ -85,12 +86,12 @@ fit_mcmc_all_select, fit_history_mcmc_all_select = mru_mcmc.fit_mass_size_relati
     age_err_lo[fit_mask],
     age_err_hi[fit_mask],
     mcmc_plot_dir,
-    "legus_full_all_selection",
-    v_band_cut=100,  # dummy value to show that we select everything
-    # should be identical to fitting without including selection
+    "legus_full_v_selection",
+    v_selection=True,
+    r_selection=False,
 )
 
-fit_mcmc_real_select, fit_history_mcmc_real_select = mru_mcmc.fit_mass_size_relation(
+fit_mcmc_r_select, fit_history_mcmc_r_select = mru_mcmc.fit_mass_size_relation(
     mass[fit_mask],
     mass_err_lo[fit_mask],
     mass_err_hi[fit_mask],
@@ -101,13 +102,31 @@ fit_mcmc_real_select, fit_history_mcmc_real_select = mru_mcmc.fit_mass_size_rela
     age_err_lo[fit_mask],
     age_err_hi[fit_mask],
     mcmc_plot_dir,
-    "legus_full_real_selection",
-    v_band_cut=-6,
+    "legus_full_r_selection",
+    v_selection=False,
+    r_selection=True,
 )
+
+fit_mcmc_rv_select, fit_history_mcmc_rv_select = mru_mcmc.fit_mass_size_relation(
+    mass[fit_mask],
+    mass_err_lo[fit_mask],
+    mass_err_hi[fit_mask],
+    r_eff[fit_mask],
+    r_eff_err_lo[fit_mask],
+    r_eff_err_hi[fit_mask],
+    age[fit_mask],
+    age_err_lo[fit_mask],
+    age_err_hi[fit_mask],
+    mcmc_plot_dir,
+    "legus_full_rv_selection",
+    v_selection=True,
+    r_selection=True,
+)
+
 
 # make the debug plots for the MCMC chain
 mru_mcmc.mcmc_plots(
-    fit_history_mcmc_real_select,
+    fit_history_mcmc_rv_select,
     mass[fit_mask],
     mass_err_lo[fit_mask],
     mass_err_hi[fit_mask],
@@ -117,7 +136,7 @@ mru_mcmc.mcmc_plots(
     ids[fit_mask],
     galaxies[fit_mask],
     mcmc_plot_dir,
-    "legus_full_real_selection",
+    "legus_full_rv_selection",
     True,
 )
 
@@ -140,24 +159,27 @@ for fit, history, name, color in zip(
         fit_mle_orthogonal,
         fit_mle_vertical,
         fit_mcmc_no_select,
-        fit_mcmc_all_select,
-        fit_mcmc_real_select,
+        fit_mcmc_r_select,
+        fit_mcmc_v_select,
+        fit_mcmc_rv_select,
     ],
     [
         fit_history_mle_orthogonal,
         fit_history_mle_vertical,
         fit_history_mcmc_no_select.T,
-        fit_history_mcmc_all_select.T,
-        fit_history_mcmc_real_select.T,
+        fit_history_mcmc_r_select.T,
+        fit_history_mcmc_v_select.T,
+        fit_history_mcmc_rv_select.T,
     ],
     [
         "Orthogonal",
         "Vertical",
         "MCMC - No Selection",
-        "MCMC - V$_{cut}$=100",
-        "MCMC - V$_{cut}$=-6",
+        "MCMC - V Selection",
+        "MCMC - R Selection",
+        "MCMC - Both Selection",
     ],
-    bpl.color_cycle[:5],
+    bpl.color_cycle[:6],
 ):
     label = f"{name} - "
     for param_idx, param_name in zip([0, 1, 2], ["$\\beta$", "log$r_4$", "$\sigma$"]):

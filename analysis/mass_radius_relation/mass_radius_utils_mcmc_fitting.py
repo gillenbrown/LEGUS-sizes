@@ -127,7 +127,8 @@ log_age_grid = np.arange(min_log_age, max_log_age, 0.1)
 
 class SelectionProbabilityV:
     def __init__(self):
-        pass
+        self.precalculate()
+        self.activated = True
 
     @staticmethod
     def v_band_selection_probability(log_mass, log_age, v_cut):
@@ -162,6 +163,8 @@ class SelectionProbabilityV:
         )
 
     def __call__(self, log_mass, log_age):
+        if not self.activated:
+            return 1
         # the spline can go outside the range 0-1, so restrict it to be in that range
         r_value = self.precalculated_probability(log_mass, log_age)
         return max(0, min(r_value[0, 0], 1))
@@ -169,6 +172,7 @@ class SelectionProbabilityV:
 
 class SelectionProbabilityR:
     def __init__(self):
+        self.activated = True
         # start the initial dictionary - load this from pickle if availabe
         self.pickle_name = "radius_precalc.p"
         try:
@@ -210,6 +214,8 @@ class SelectionProbabilityR:
         return integrate.quad(integrand_radius, -5, 5)[0]
 
     def __call__(self, log_mass, beta, log_r_4, sigma):
+        if not self.activated:
+            return 1
         # Here I don't precalculate, but what I do is store values as we go. This allows
         # commonly used values to already be available.
         log_mass_r = round(log_mass, 1)
@@ -420,11 +426,12 @@ def fit_mass_size_relation(
     age_err_hi,
     plots_dir=None,
     plots_prefix="",
-    v_band_cut=-6,
+    v_selection=True,
+    r_selection=True,
 ):
     # determine the v_band cut to use - precalculate the grid
-    if v_band_cut is not None:
-        selection_v.precalculate(v_band_cut)
+    selection_r.activated = r_selection
+    selection_v.activated = v_selection
 
     log_mass, log_mass_err_lo, log_mass_err_hi = mru.transform_to_log(
         mass, mass_err_lo, mass_err_hi
@@ -456,7 +463,7 @@ def fit_mass_size_relation(
         log_r_eff_err,
         log_age,
         log_age_err,
-        v_band_cut is not None,
+        v_selection or r_selection,
     ]
     backend = emcee.backends.HDFBackend(f"mcmc_chain_{plots_prefix}_{n_clusters}.h5")
     sampler = emcee.EnsembleSampler(
