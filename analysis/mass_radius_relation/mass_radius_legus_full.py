@@ -72,8 +72,8 @@ fit_mcmc_no_select, fit_history_mcmc_no_select = mru_mcmc.fit_mass_size_relation
     age_err_lo[fit_mask],
     age_err_hi[fit_mask],
     distances[fit_mask],
-    mcmc_plot_dir,
-    "legus_full_no_selection",
+    plots_dir=mcmc_plot_dir,
+    plots_prefix="legus_full_no_selection",
     v_selection=False,
     r_selection=False,
 )
@@ -89,8 +89,8 @@ fit_mcmc_v_select, fit_history_mcmc_v_select = mru_mcmc.fit_mass_size_relation(
     age_err_lo[fit_mask],
     age_err_hi[fit_mask],
     distances[fit_mask],
-    mcmc_plot_dir,
-    "legus_full_v_selection",
+    plots_dir=mcmc_plot_dir,
+    plots_prefix="legus_full_v_selection",
     v_selection=True,
     r_selection=False,
 )
@@ -106,8 +106,8 @@ fit_mcmc_r_select, fit_history_mcmc_r_select = mru_mcmc.fit_mass_size_relation(
     age_err_lo[fit_mask],
     age_err_hi[fit_mask],
     distances[fit_mask],
-    mcmc_plot_dir,
-    "legus_full_r_selection",
+    plots_dir=mcmc_plot_dir,
+    plots_prefix="legus_full_r_selection",
     v_selection=False,
     r_selection=True,
 )
@@ -123,8 +123,8 @@ fit_mcmc_rv_select, fit_history_mcmc_rv_select = mru_mcmc.fit_mass_size_relation
     age_err_lo[fit_mask],
     age_err_hi[fit_mask],
     distances[fit_mask],
-    mcmc_plot_dir,
-    "legus_full_rv_selection",
+    plots_dir=mcmc_plot_dir,
+    plots_prefix="legus_full_rv_selection",
     v_selection=True,
     r_selection=True,
 )
