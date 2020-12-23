@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 import numpy as np
 import emcee
@@ -12,6 +13,18 @@ import corner
 import betterplotlib as bpl
 
 bpl.set_style()
+
+# for emcee parallelization
+os.environ["OMP_NUM_THREADS"] = "1"
+
+# initialize some global variables I'll use later
+log_mass_g = None
+log_mass_err_g = None
+log_r_eff_g = None
+log_r_eff_err_g = None
+log_age_g = None
+log_age_err_g = None
+distance_mpc_g = None
 
 # ======================================================================================
 #
@@ -418,6 +431,7 @@ def fit_mass_size_relation(
     age_err_lo,
     age_err_hi,
     distance_mpc,
+    pool,
     plots_dir=None,
     plots_prefix="",
     v_selection=True,
