@@ -545,7 +545,7 @@ def mcmc_plots(
     :param age_err_hi: The observed age upper limits
     :param ids: The cluster IDs corresponding to the above
     :param galaxies: The galaxy each cluster belongs to
-    :param plots_dir: Directory to save these plots to - can be None to not save
+    :param plots_dir: Directory to save these plots to
     :param plots_prefix: Prefix to the plot savename - will be common to all plots
     :param plot_mass_posteriors: whether or not to make these plots
     :return: None
@@ -596,8 +596,7 @@ def plot_params(samples, plots_dir, plots_prefix):
         label_kwargs={"fontsize": 14},
     )
 
-    if not plots_dir is None:
-        fig.savefig(plots_dir / f"{plots_prefix}_param_posterior.png", dpi=100)
+    fig.savefig(plots_dir / f"{plots_prefix}_param_posterior.png", dpi=100)
 
 
 def plot_chains(samples, plots_dir, plots_prefix):
@@ -636,8 +635,7 @@ def plot_chains(samples, plots_dir, plots_prefix):
 
     axs[-1].add_labels(x_label="Iteration")
 
-    if not plots_dir is None:
-        fig.savefig(plots_dir / f"{plots_prefix}_chains.png", dpi=100)
+    fig.savefig(plots_dir / f"{plots_prefix}_chains.png", dpi=100)
 
 
 def plot_cluster_samples(
@@ -712,5 +710,4 @@ def plot_cluster_samples(
     ax.set_xscale("log")
     ax.legend()
 
-    if not plots_dir is None:
-        fig.savefig(plots_dir / f"{plots_prefix}_{galaxy}_{value}_posterior.png")
+    fig.savefig(plots_dir / f"{plots_prefix}_{galaxy}_{value}_posterior.png")
