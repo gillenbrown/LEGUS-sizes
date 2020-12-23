@@ -25,7 +25,8 @@ big_catalog = mru.make_big_table(sys.argv[4:])
 # start parsing my catalogs
 # No clusters to filter out here
 # mask = np.full(len(big_catalog), True)
-mask = big_catalog["ID"] < 10  # restrict sample size for testing
+np.random.seed(42)
+mask = np.random.choice(len(big_catalog), 100)
 mass, mass_err_lo, mass_err_hi = mru.get_my_masses(big_catalog, mask)
 r_eff, r_eff_err_lo, r_eff_err_hi = mru.get_my_radii(big_catalog, mask)
 age, age_err_lo, age_err_hi = mru.get_my_ages(big_catalog, mask)
@@ -70,7 +71,7 @@ fit_mcmc_no_select, fit_history_mcmc_no_select = mru_mcmc.fit_mass_size_relation
     age[fit_mask],
     age_err_lo[fit_mask],
     age_err_hi[fit_mask],
-    distances,
+    distances[fit_mask],
     mcmc_plot_dir,
     "legus_full_no_selection",
     v_selection=False,
@@ -87,7 +88,7 @@ fit_mcmc_v_select, fit_history_mcmc_v_select = mru_mcmc.fit_mass_size_relation(
     age[fit_mask],
     age_err_lo[fit_mask],
     age_err_hi[fit_mask],
-    distances,
+    distances[fit_mask],
     mcmc_plot_dir,
     "legus_full_v_selection",
     v_selection=True,
@@ -104,7 +105,7 @@ fit_mcmc_r_select, fit_history_mcmc_r_select = mru_mcmc.fit_mass_size_relation(
     age[fit_mask],
     age_err_lo[fit_mask],
     age_err_hi[fit_mask],
-    distances,
+    distances[fit_mask],
     mcmc_plot_dir,
     "legus_full_r_selection",
     v_selection=False,
@@ -121,7 +122,7 @@ fit_mcmc_rv_select, fit_history_mcmc_rv_select = mru_mcmc.fit_mass_size_relation
     age[fit_mask],
     age_err_lo[fit_mask],
     age_err_hi[fit_mask],
-    distances,
+    distances[fit_mask],
     mcmc_plot_dir,
     "legus_full_rv_selection",
     v_selection=True,

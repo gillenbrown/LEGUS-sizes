@@ -115,7 +115,7 @@ else:
     fits_catalog["galaxy"] = galaxy_name
 
 # and the distance in Mpc
-fits_catalog["distance_mpc"] = utils.distance(home_dir, ryon_like)
+fits_catalog["distance_mpc"] = utils.distance(home_dir, ryon_like).to("Mpc").value
 
 
 # ======================================================================================
