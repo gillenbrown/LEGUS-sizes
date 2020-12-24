@@ -158,9 +158,10 @@ for history, name in zip(
         r_eff_err_hi[fit_mask],
         ids[fit_mask],
         galaxies[fit_mask],
-        mcmc_plot_dir,
-        name,
-        False,
+        plots_dir=mcmc_plot_dir,
+        plots_prefix=name,
+        plot_mass_posteriors=True,
+        split_mass_posteriors=False,
     )
 
 

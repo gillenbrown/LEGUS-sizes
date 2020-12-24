@@ -333,7 +333,7 @@ def plot_mass_size_dataset_contour(ax, mass, r_eff, color, zorder=5):
 def format_mass_size_plot(ax, xmin=1e2, xmax=1e6, legend_fontsize=16):
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_limits(xmin, xmax, 0.1, 40)
+    ax.set_limits(xmin, xmax, 0.3, 40)
     ax.add_labels("Cluster Mass [M$_\odot$]", "Cluster Effective Radius [pc]")
     ax.xaxis.set_ticks_position("both")
     ax.yaxis.set_ticks_position("both")

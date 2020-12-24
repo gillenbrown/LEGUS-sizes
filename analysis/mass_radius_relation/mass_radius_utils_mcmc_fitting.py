@@ -533,6 +533,7 @@ def mcmc_plots(
     plots_dir,
     plots_prefix,
     plot_mass_posteriors=True,
+    split_mass_posteriors=False,
 ):
     """
     Parent function for the debug MCMC plots - call this externally
@@ -563,8 +564,16 @@ def mcmc_plots(
         age_samples = 10 ** samples[:, 3 + len(mass) : 3 + 2 * n_clusters]
         radius_samples = 10 ** samples[:, 3 + 2 * n_clusters :]
 
-        for galaxy in np.unique(galaxies):
-            gal_mask = np.where(galaxies == galaxy)[0]
+        if split_mass_posteriors:
+            plot_galaxies = np.unique(galaxies)
+        else:
+            plot_galaxies = ["all"]
+
+        for galaxy in plot_galaxies:
+            if galaxy == "all":
+                gal_mask = np.full(len(galaxies), True)
+            else:
+                gal_mask = np.where(galaxies == galaxy)[0]
 
             plot_cluster_samples(
                 mass_samples[:, gal_mask],
