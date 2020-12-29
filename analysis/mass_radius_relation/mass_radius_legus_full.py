@@ -183,16 +183,16 @@ for fit, history, name, color in zip(
         fit_mle_orthogonal,
         fit_mle_vertical,
         fit_mcmc_no_select,
-        fit_mcmc_r_select,
         fit_mcmc_v_select,
+        fit_mcmc_r_select,
         fit_mcmc_rv_select,
     ],
     [
         fit_history_mle_orthogonal,
         fit_history_mle_vertical,
         fit_history_mcmc_no_select.T,
-        fit_history_mcmc_r_select.T,
         fit_history_mcmc_v_select.T,
+        fit_history_mcmc_r_select.T,
         fit_history_mcmc_rv_select.T,
     ],
     [
