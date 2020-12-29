@@ -66,7 +66,7 @@ def project_data_variance(x_err, y_err, slope):
 
 
 # Then we can define the functions to minimize
-def negative_log_likelihood_orthogonal(params, xs, x_err, ys, y_err):
+def negative_log_likelihood(params, xs, x_err, ys, y_err):
     """
     Function to be minimized. We use negative log likelihood, as minimizing this
     maximizes likelihood.
@@ -83,50 +83,10 @@ def negative_log_likelihood_orthogonal(params, xs, x_err, ys, y_err):
     # so params[1] is really y(pivot_point_x) = m (pivot_point_x) + intercept
     intercept = params[1] - params[0] * pivot_point_x
 
-    # variance is the same as the orthogonal fit, as we account for errors in the
-    # x and y directions
     data_variance = project_data_variance(x_err, y_err, params[0])
     total_variance = data_variance + params[2] ** 2
     # calculate the difference orthogonal to the best fit line
     data_diffs = project_data_differences(xs, ys, params[0], intercept)
-
-    # calculate the sum of data likelihoods
-    data_likelihoods = -0.5 * np.sum((data_diffs ** 2) / total_variance)
-
-    # then penalize large intrinsic scatter. This term really comes from the definition
-    # of a Gaussian likelihood. This term is always out front of a Gaussian, but
-    # normally it's just a constant. When we include intrinsic scatter it now
-    # affects the likelihood.
-    scatter_likelihood = -0.5 * np.sum(np.log(total_variance))
-    # up to a constant, the sum of these is the likelihood. Return the negative of it
-    # to get the negative log likelihood
-    return -1 * (data_likelihoods + scatter_likelihood)
-
-
-def negative_log_likelihood_vertical(params, xs, x_err, ys, y_err):
-    """
-    Function to be minimized. We use negative log likelihood, as minimizing this
-    maximizes likelihood.
-
-    This accounts for x and y errors, but takes the vertial difference from the best
-    fit line
-
-    :param params: Slope, height at the pivot point, and standard deviation of
-                   intrinsic scatter
-    :return: Value for the negative log likelihood
-    """
-    # first convert the pivot point value into the intercept
-    pivot_point_x = 4
-    # so params[1] is really y(pivot_point_x) = m (pivot_point_x) + intercept
-    intercept = params[1] - params[0] * pivot_point_x
-
-    # variance is the same as the orthogonal fit, as we account for errors in the
-    # x and y directions
-    data_variance = project_data_variance(x_err, y_err, params[0])
-    total_variance = data_variance + params[2] ** 2
-    # the differences are simply the differences in y
-    expected_ys = intercept + params[0] * xs
-    data_diffs = ys - expected_ys
 
     # calculate the sum of data likelihoods
     data_likelihoods = -0.5 * np.sum((data_diffs ** 2) / total_variance)
@@ -150,16 +110,7 @@ def fit_mass_size_relation(
     r_eff_err_hi,
     fit_mass_lower_limit=1e-5,
     fit_mass_upper_limit=1e10,
-    fit_style="orthogonal",
 ):
-    # choose the likelihood function to use
-    if fit_style == "orthogonal":
-        negative_log_likelihood = negative_log_likelihood_orthogonal
-    elif fit_style == "vertical":
-        negative_log_likelihood = negative_log_likelihood_vertical
-    else:
-        raise ValueError("fit style not recognized")
-
     log_mass, log_mass_err_lo, log_mass_err_hi = mru.transform_to_log(
         mass, mass_err_lo, mass_err_hi
     )
