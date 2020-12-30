@@ -59,11 +59,19 @@ def make_big_table(tables_loc_list):
     big_catalog = table.vstack(catalogs, join_type="inner")
 
     # filter out the clusters that can't be used in fitting the mass-radius relation
-    mask = big_catalog["good"]
-    mask = np.logical_and(mask, big_catalog["mass_msun"] > 0)
-    mask = np.logical_and(mask, big_catalog["mass_msun_max"] > 0)
-    mask = np.logical_and(mask, big_catalog["mass_msun_min"] > 0)
-
+    # I did investigate some weird errors that are present. There are clusters with a
+    # a fitted mass but zeros for the min and max. Throw those out. Also throw out ones
+    # where the error range is improper (i.e. the min is higher than the best fit)
+    mask = np.logical_and.reduce(
+        [
+            big_catalog["good"],
+            big_catalog["mass_msun"] > 0,
+            big_catalog["mass_msun_max"] > 0,
+            big_catalog["mass_msun_min"] > 0,
+            big_catalog["mass_msun_min"] <= big_catalog["mass_msun"],
+            big_catalog["mass_msun_max"] >= big_catalog["mass_msun"],
+        ]
+    )
     return big_catalog[mask]
 
 
