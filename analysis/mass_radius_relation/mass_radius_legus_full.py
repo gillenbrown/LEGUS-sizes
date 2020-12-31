@@ -53,7 +53,7 @@ mru_p.plot_mass_size_dataset_scatter(
     r_eff_err_hi,
     bpl.color_cycle[0],
 )
-# mru_p.add_percentile_lines(ax, mass, r_eff)
+mru_p.add_percentile_lines(ax, mass, r_eff)
 mru_p.plot_best_fit_line(ax, fit, 1e2, 1e5, color=bpl.color_cycle[1])
 mru_p.format_mass_size_plot(ax)
 fig.savefig(plot_name)
