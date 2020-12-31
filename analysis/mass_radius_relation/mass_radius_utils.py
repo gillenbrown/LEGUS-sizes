@@ -70,6 +70,7 @@ def make_big_table(tables_loc_list):
             big_catalog["mass_msun_min"] > 0,
             big_catalog["mass_msun_min"] <= big_catalog["mass_msun"],
             big_catalog["mass_msun_max"] >= big_catalog["mass_msun"],
+            big_catalog["Q_probability"] > 1e-3,
         ]
     )
     return big_catalog[mask]
