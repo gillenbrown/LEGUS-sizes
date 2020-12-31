@@ -30,6 +30,9 @@ def write_fit_results(fit_out_file, name, number, best_fit_params, fit_history):
     best_fit_params[1] = 10 ** best_fit_params[1]
     fit_history[1] = [10 ** f for f in fit_history[1]]
     for idx in range(len(best_fit_params)):
+        # I did check that the error distributions are roughly symmetric, so the
+        # standard deviation is a decent estimate of the error. With separate upper and
+        # lower limits, they were often the same or very close to it.
         std = np.std(fit_history[idx])
         print_str += f" & {best_fit_params[idx]:.3f} $\pm$ {std:.3f}"
     print_str += "\\\\ \n"

@@ -65,6 +65,21 @@ def project_data_variance(x_err, y_err, slope):
     return (slope ** 2 * x_err ** 2 + y_err ** 2) / (1 + slope ** 2)
 
 
+def log_gaussian(diff, variance):
+    """
+    Natural log of the likelihood for a Gaussian distribution.
+
+    :param diff: x - mean for a Gaussian. I use this parameter directly as I have my
+                 fancier way of calculating the orthodonal difference, which is what
+                 is used here.
+    :param variance: Variance of the Gaussian distribution
+    :return: log of the likelihood at x
+    """
+    log_likelihood = -(diff ** 2) / (2 * variance)
+    log_likelihood -= 0.5 * np.log(2 * np.pi * variance)
+    return log_likelihood
+
+
 # Then we can define the functions to minimize
 def negative_log_likelihood(params, xs, x_err, ys, y_err):
     """
@@ -88,17 +103,11 @@ def negative_log_likelihood(params, xs, x_err, ys, y_err):
     # calculate the difference orthogonal to the best fit line
     data_diffs = project_data_differences(xs, ys, params[0], intercept)
 
-    # calculate the sum of data likelihoods
-    data_likelihoods = -0.5 * np.sum((data_diffs ** 2) / total_variance)
-
-    # then penalize large intrinsic scatter. This term really comes from the definition
-    # of a Gaussian likelihood. This term is always out front of a Gaussian, but
-    # normally it's just a constant. When we include intrinsic scatter it now
-    # affects the likelihood.
-    scatter_likelihood = -0.5 * np.sum(np.log(total_variance))
-    # up to a constant, the sum of these is the likelihood. Return the negative of it
-    # to get the negative log likelihood
-    return -1 * (data_likelihoods + scatter_likelihood)
+    # calculate the sum of data likelihoods. The total likelihood is the product of
+    # individual cluster likelihoods, so when we take the log it turns into a sum of
+    # individual log likelihoods. Note that this gaussian function includes the
+    # normalization term, which is necessary when we fit for the intrinsic scatter
+    return -1 * np.sum(log_gaussian(data_diffs, total_variance))
 
 
 def fit_mass_size_relation(
