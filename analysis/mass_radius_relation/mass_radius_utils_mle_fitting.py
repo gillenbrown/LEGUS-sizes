@@ -121,6 +121,14 @@ def fit_mass_size_relation(
     log_mass_err = np.mean([log_mass_err_lo, log_mass_err_hi], axis=0)
     log_r_eff_err = np.mean([log_r_eff_err_lo, log_r_eff_err_hi], axis=0)
 
+    # increase the error for low-mass clusters. This is done because low-mass clusters
+    # have unreliable masses in the regular LEGUS catalog, due to stochasticity. See
+    # Krumholz et al 2015, ApJ, 812, 147. I calculated the median difference in error
+    # size of Krumholz's clusters compared to LEGUS, and increase the LEGUS errors
+    # by that factor, to approximate the increase in uncertainty
+    low_mass_mask = log_mass < np.log10(5000)
+    log_mass_err[low_mass_mask] += 0.163
+
     fit_mask = log_mass > np.log10(fit_mass_lower_limit)
     fit_mask = np.logical_and(fit_mask, log_mass < np.log10(fit_mass_upper_limit))
 
