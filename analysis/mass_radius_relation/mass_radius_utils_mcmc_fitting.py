@@ -137,7 +137,7 @@ class SelectionProbabilityV:
         # The likelihood is Gaussian, with a mean provided by the SPS models. We
         # integrate it up to the cut, which is an error function.
         expected_v = get_absolute_mag(10 ** log_mass, 10 ** log_age)
-        v_err = 0.1  # dummy value for now
+        v_err = 0.04  # dummy value for now
         r_value = gaussian_integral_lower(expected_v, v_err, v_cut)
         assert 0 <= r_value <= 1
         return r_value
