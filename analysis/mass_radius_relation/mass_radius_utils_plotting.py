@@ -54,6 +54,45 @@ def get_r_percentiles_moving(radii, masses, percentile, n, dn):
     return masses_median, radii_percentiles
 
 
+def get_r_percentiles_hybrid(radii, masses, percentile, d_log_M):
+    bins = np.logspace(0, 6, int(6 / d_log_M) + 1)
+
+    bin_centers = []
+    radii_percentiles = []
+    # I'll manually manipulate the index when going through the loop to get enough
+    # clusters in each bin
+    idx_lo = 0
+    idx_hi = 1
+    while idx_hi < len(bins):
+        lower = bins[idx_lo]
+        upper = bins[idx_hi]
+
+        # then find all clusters in this mass range
+        mask_above = masses > lower
+        mask_below = masses < upper
+        mask_good = np.logical_and(mask_above, mask_below)
+
+        good_radii = radii[mask_good]
+        # if there are no points at all, move both lo and hi up
+        if len(good_radii) == 0:
+            idx_lo = idx_hi
+            idx_hi = idx_lo + 1
+        # if there aren't too many, just move the top limit to get more
+        if len(good_radii) < 40:
+            print("changing limits", idx_lo, idx_hi)
+            idx_hi += 1
+        # if there is a decent number, plot them
+        else:
+            radii_percentiles.append(np.percentile(good_radii, percentile))
+            # the bin centers will be the mean in log space
+            bin_centers.append(10 ** np.mean([np.log10(lower), np.log10(upper)]))
+            # then move the indices along
+            idx_lo = idx_hi
+            idx_hi = idx_lo + 1
+
+    return bin_centers, radii_percentiles
+
+
 def get_r_percentiles_unique_values(radii, ages, percentile):
     # get the unique ages
     unique_ages = np.unique(ages)
@@ -66,12 +105,16 @@ def get_r_percentiles_unique_values(radii, ages, percentile):
     return unique_ages, radii_percentiles
 
 
-def add_percentile_lines(ax, mass, r_eff, style="moving", color=bpl.almost_black):
+def add_percentile_lines(ax, mass, r_eff, style="hybrid", color=bpl.almost_black):
     # plot the median and the IQR
     for percentile in [5, 25, 50, 75, 95]:
         if style == "moving":
             mass_bins, radii_percentile = get_r_percentiles_moving(
                 r_eff, mass, percentile, 200, 200
+            )
+        elif style == "hybrid":
+            mass_bins, radii_percentile = get_r_percentiles_hybrid(
+                r_eff, mass, percentile, 0.1
             )
         elif style == "unique":
             mass_bins, radii_percentile = get_r_percentiles_unique_values(
