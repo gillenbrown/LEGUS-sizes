@@ -55,7 +55,7 @@ for age_mask, name, color, zorder in zip(
     mru_p.plot_best_fit_line(
         ax, fit, 1, 1e5, color, fill=False, label=f"{name}, N={np.sum(age_mask)}"
     )
-    mru.write_fit_results(fit_out_file, name, np.sum(age_mask), fit, fit_history)
+    mru.write_fit_results(fit_out_file, name, fit, fit_history, mass[age_mask])
 mru_p.format_mass_size_plot(ax)
 fig.savefig(plot_name)
 

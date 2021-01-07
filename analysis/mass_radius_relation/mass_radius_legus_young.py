@@ -32,7 +32,7 @@ fit, fit_history = mru_mle.fit_mass_size_relation(
     r_eff_err_hi,
     fit_mass_upper_limit=1e5,
 )
-mru.write_fit_results(fit_out_file, "1 Myr - 1 Gyr", len(r_eff), fit, fit_history)
+mru.write_fit_results(fit_out_file, "1 Myr - 1 Gyr", fit, fit_history, mass)
 
 # finalize output file
 fit_out_file.close()

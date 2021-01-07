@@ -26,10 +26,6 @@ mask = np.full(len(big_catalog), True)
 mass, mass_err_lo, mass_err_hi = mru.get_my_masses(big_catalog, mask)
 r_eff, r_eff_err_lo, r_eff_err_hi = mru.get_my_radii(big_catalog, mask)
 
-# restrict to mass range. Can't do this at the beginning since we want to
-# plot everything
-fit_mask = mass < 1e5
-
 # Then actually make the fit and plot it. Do this for both MLE and MCMC
 fit, fit_history = mru_mle.fit_mass_size_relation(
     mass,
@@ -58,7 +54,7 @@ mru_p.plot_best_fit_line(ax, fit, 1e2, 1e5, color=bpl.color_cycle[1])
 mru_p.format_mass_size_plot(ax)
 fig.savefig(plot_name)
 
-mru.write_fit_results(fit_out_file, "Full LEGUS Sample", len(r_eff), fit, fit_history)
+mru.write_fit_results(fit_out_file, "Full LEGUS Sample", fit, fit_history, mass)
 
 # finalize output file
 fit_out_file.close()

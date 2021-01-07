@@ -133,8 +133,13 @@ def get_mw_open_clusters():
         .value
     )
 
+    # some of these have nans, so throw them out
+    mask = ~np.isnan(mass)
+    mass = mass[mask]
+    r_eff = r_eff[mask]
+
     # Errors are not present.
-    all_err = np.zeros(r_eff.shape)
+    all_err = np.zeros(len(mass))
 
     return mass, all_err, all_err, r_eff, all_err, all_err
 

@@ -15,14 +15,15 @@ legus_mw_m31 = sys.argv[8]
 
 # start output file, then make the header
 fit_out_file = open(output, "w")
-fit_out_file.write("\t\\begin{tabular}{lllll}\n")
+fit_out_file.write("\t\\begin{tabular}{llcccc}\n")
 fit_out_file.write("\t\t\\toprule\n")
 fit_out_file.write(
     "\t\tSelection & "
     "$N$ & "
     "Slope ($\\beta$) & "
     "$\\reff$(pc) at $10^4\Msun (R_4)$ & "
-    "Intrinsic Scatter \\\\ \n"
+    "Intrinsic Scatter & "
+    "Cluster $\log(M)$ Percentiles: 10---90 \\\\ \n"
 )
 fit_out_file.write("\t\t\midrule\n")
 

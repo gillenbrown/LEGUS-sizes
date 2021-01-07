@@ -14,18 +14,18 @@ import utils
 # functions for writing to an output file with fit info
 #
 # ======================================================================================
-def write_fit_results(fit_out_file, name, number, best_fit_params, fit_history):
+def write_fit_results(fit_out_file, name, best_fit_params, fit_history, masses):
     """
     Write the results of one fit to a file
 
     :param fit_out_file: Opened file object to write these results to
     :param name: Name of the fitted sample
-    :param number: Number of clusters in this sample
     :param best_fit_params: The 3 best fit parameters: slope, intercept, scatter
     :param fit_history: The history of these 3 parameters, used to find errors
+    :param masses: list of cluster masses, will be used to find percentiles
     :return: None, but the info is written to the file
     """
-    print_str = f"\t\t{name} & {number}"
+    print_str = f"\t\t{name} & {len(masses)}"
     # the second parameter is the log of clusters at 10^4. Put it back to linear space
     best_fit_params[1] = 10 ** best_fit_params[1]
     fit_history[1] = [10 ** f for f in fit_history[1]]
@@ -35,6 +35,9 @@ def write_fit_results(fit_out_file, name, number, best_fit_params, fit_history):
         # lower limits, they were often the same or very close to it.
         std = np.std(fit_history[idx])
         print_str += f" & {best_fit_params[idx]:.3f} $\pm$ {std:.3f}"
+
+    p_lo_log_m, p_hi_log_m = np.log10(np.percentile(masses, [10, 90]))
+    print_str += f" & {p_lo_log_m:.2f}---{p_hi_log_m:.2f} "
     print_str += "\\\\ \n"
     fit_out_file.write(print_str)
 

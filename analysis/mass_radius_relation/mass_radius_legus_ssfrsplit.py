@@ -81,7 +81,7 @@ for mask_ssfr, name, color in zip(
     mru_p.plot_best_fit_line(
         ax, fit, 1, 1e5, color, fill=False, label=f"{name}, N={np.sum(mask_ssfr)}"
     )
-    mru.write_fit_results(fit_out_file, name, np.sum(mask_ssfr), fit, fit_history)
+    mru.write_fit_results(fit_out_file, name, fit, fit_history, mass[mask_ssfr])
 mru_p.format_mass_size_plot(ax)
 fig.savefig(plot_name)
 

@@ -51,7 +51,7 @@ fit, fit_history = mru_mle.fit_mass_size_relation(
     r_eff_err_hi_total,
     fit_mass_upper_limit=1e5,
 )
-mru.write_fit_results(fit_out_file, "LEGUS + MW", len(r_eff_total), fit, fit_history)
+mru.write_fit_results(fit_out_file, "LEGUS + MW", fit, fit_history, mass_total)
 
 # finalize output file
 fit_out_file.close()
