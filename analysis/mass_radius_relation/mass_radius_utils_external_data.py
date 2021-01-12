@@ -32,7 +32,7 @@ data_path = code_home_dir / "analysis" / "krumholz_review_data"
 # ======================================================================================
 # M31 open clusters
 # ======================================================================================
-def get_m31_open_clusters():
+def get_m31_open_clusters(max_age=1e9):
     # M31 data. Masses and radii are in separate files.
     johnson_12_table = fits.open(data_path / "johnson2012_m31.fits")
     fouesneau_14_table = fits.open(data_path / "fouesneau2014_m31.fits")
@@ -46,8 +46,9 @@ def get_m31_open_clusters():
     fouesneau_14_mass = 10 ** fouesneau_14_table[1].data["logM-bset"]
     fouesneau_14_mass_min = 10 ** fouesneau_14_table[1].data["logM-p16"]
     fouesneau_14_mass_max = 10 ** fouesneau_14_table[1].data["logM-p84"]
+    fouesneau_14_age = 10 ** fouesneau_14_table[1].data["logA-best"]
 
-    # then restrict to ones that have ids that work
+    # then restrict to ones that have ids that work and ages in the appropriate range
     mass = []
     mass_min = []
     mass_max = []
@@ -61,9 +62,11 @@ def get_m31_open_clusters():
         johnson_12_idx = johnson_12_idx[0]
         fouesneau_14_idx = fouesneau_14_idx[0]
 
-        # check that there are no nans
-        if np.isnan(fouesneau_14_mass[fouesneau_14_idx]) or np.isnan(
-            johnson_12_r_eff_arcsec[johnson_12_idx]
+        # check that there are no nans, and that the clusters aren't too old
+        if (
+            np.isnan(fouesneau_14_mass[fouesneau_14_idx])
+            or np.isnan(johnson_12_r_eff_arcsec[johnson_12_idx])
+            or fouesneau_14_age[fouesneau_14_idx] >= max_age
         ):
             continue
 
@@ -161,11 +164,11 @@ def get_mw_open_clusters():
 # ======================================================================================
 # Then the Ryon et al 15 M83 clusters
 # ======================================================================================
-def get_m83_clusters():
+def get_m83_clusters(max_age=1e9):
     hdulist = fits.open(data_path / "ryon2015_m83.fits")
     data = hdulist[1].data
-    # Restrict to the clusters for which r_h is reliable
-    mask = data["eta"] > 1.3
+    # Restrict to the clusters for which r_h is reliable, and which aren't too old
+    mask = np.logical_and(data["eta"] > 1.3, data["logAge"] < np.log10(max_age))
     r_eff_log = data["logReff"][mask]
     r_eff_logerr = data["e_logReff"][mask]
 
