@@ -36,7 +36,6 @@ funcs = [
     dummy_legus,
     mru_d.get_m31_open_clusters,
     mru_d.get_m83_clusters,
-    mru_d.get_m82_sscs,
     mru_d.get_ngc253_sscs,
 ]
 
