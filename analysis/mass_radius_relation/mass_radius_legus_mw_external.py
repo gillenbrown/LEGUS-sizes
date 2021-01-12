@@ -45,28 +45,34 @@ for func, label, color in zip(
     [
         dummy_legus,
         mru_d.get_mw_open_clusters,
-        mru_d.get_m31_open_clusters,
-        mru_d.get_m83_clusters,
         mru_d.get_mw_ymc_krumholz_19_clusters,
-        mru_d.get_m82_sscs,
+        mru_d.get_m31_open_clusters,
         mru_d.get_ngc253_sscs,
+        mru_d.get_m82_sscs,
+        mru_d.get_m83_clusters,
     ],
-    ["LEGUS", "MW OCs", "M31 OCs", "M83", "MW YMCs", "M82 SSCs", "NGC 253 SSCs"],
+    ["LEGUS", "MW OCs", "MW YMCs", "M31 OCs", "NGC 253 SSCs", "M82 SSCs", "M83"],
     [
         bpl.color_cycle[0],
         bpl.color_cycle[2],
         bpl.color_cycle[3],
         bpl.color_cycle[4],
         bpl.color_cycle[5],
-        bpl.color_cycle[6],
         bpl.color_cycle[7],
+        bpl.color_cycle[6],
     ],
 ):
     # get the data from this function
     m, m_el, m_eh, r, r_el, r_eh = func()
-    print(f"Including {len(m)} clusters from {label}")
-    # and plot it
-    mru_p.plot_mass_size_dataset_scatter(ax, m, m_el, m_eh, r, r_el, r_eh, color, label)
+    # add the number of clusters to the label.
+    label += f": N = {len(m)}"
+
+    # Plot it. Have less common datasets have larger points.
+    # (30 for small datasets, 3 for large)
+    size = 3 + 27 * (len(m) < 20)
+    mru_p.plot_mass_size_dataset_scatter(
+        ax, m, m_el, m_eh, r, r_el, r_eh, color, label, size=size
+    )
     # and add the data to the total
     mass_total = np.concatenate([mass_total, m])
     mass_err_lo_total = np.concatenate([mass_err_lo_total, m_el])
@@ -88,8 +94,8 @@ fit, fit_history = mru_mle.fit_mass_size_relation(
 )
 
 mru_p.add_percentile_lines(ax, mass_total, r_eff_total)
-mru_p.plot_best_fit_line(ax, fit, 1, 1e5, label_intrinsic_scatter=False)
-mru_p.format_mass_size_plot(ax, xmin=1, xmax=1e7)
+mru_p.plot_best_fit_line(ax, fit, 0.1, 1e5)
+mru_p.format_mass_size_plot(ax, xmin=1, xmax=1e7, legend_fontsize=13)
 fig.savefig(plot_name)
 mru.write_fit_results(
     fit_out_file, "LEGUS + MW + External Galaxies", fit, fit_history, mass_total

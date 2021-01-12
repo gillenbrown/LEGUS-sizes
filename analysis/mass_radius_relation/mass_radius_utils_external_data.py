@@ -218,6 +218,8 @@ def get_mw_ymc_krumholz_19_clusters():
 
 
 def get_m82_sscs():
+    # Note that these have high masses (all above 1e5), so none of these are included
+    # in the fit
     mass = (
         np.array(
             [40, 5.5, 3.9, 23, 4.0, 22, 2.7, 5.7, 7.3, 2.8, 2.7, 8.6, 5.2, 3.0, 2.5]

@@ -303,8 +303,17 @@ def plot_mass_size_dataset_scatter(
     r_eff_err_hi,
     color,
     label=None,
+    size=3,
 ):
-    ax.scatter(mass, r_eff, alpha=1.0, s=3, c=color, zorder=4, label=label)
+    ax.scatter(
+        mass,
+        r_eff,
+        alpha=1.0,
+        s=size,
+        c=color,
+        zorder=4 + 1 / np.log10(len(mass)),
+        label=label,
+    )
     # Have errorbars separately so they can easily be turned off
     ax.errorbar(
         x=mass,
@@ -314,7 +323,7 @@ def plot_mass_size_dataset_scatter(
         yerr=[r_eff_err_lo, r_eff_err_hi],
         xerr=[mass_err_lo, mass_err_hi],
         lw=0.1,
-        zorder=3,
+        zorder=3 + 1 / np.log10(len(mass)),
         c=color,
     )
 
@@ -377,11 +386,19 @@ def plot_mass_size_dataset_contour(ax, mass, r_eff, color, zorder=5):
     ax.density_contour(mass, r_eff, zorder=zorder + 20, **common)
 
 
-def format_mass_size_plot(ax, xmin=1e2, xmax=1e6):
+def format_mass_size_plot(ax, xmin=1e2, xmax=1e6, legend_fontsize=18):
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_limits(xmin, xmax, 0.1, 40)
     ax.add_labels("Cluster Mass [M$_\odot$]", "Cluster Effective Radius [pc]")
     ax.xaxis.set_ticks_position("both")
     ax.yaxis.set_ticks_position("both")
-    ax.legend(loc=2, frameon=False)
+    # determine where to put the legend
+    legend = ax.legend(loc=2, frameon=False, fontsize=legend_fontsize)
+    # make the points in the legend larger
+    for handle in legend.legendHandles:
+        # if it's not a handle for a scatter plot, setting the sizes will fail
+        try:
+            handle.set_sizes([50])
+        except:
+            continue
