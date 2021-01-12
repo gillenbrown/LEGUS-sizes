@@ -1,5 +1,5 @@
 import numpy as np
-from matplotlib import colors
+from matplotlib import colors, ticker
 import betterplotlib as bpl
 
 bpl.set_style()
@@ -386,6 +386,22 @@ def plot_mass_size_dataset_contour(ax, mass, r_eff, color, zorder=5):
     ax.density_contour(mass, r_eff, zorder=zorder + 20, **common)
 
 
+# Function to use to set the ticks
+@ticker.FuncFormatter
+def nice_log_formatter(x, pos):
+    exp = np.log10(x)
+    # this only works for labels that are factors of 10. Other values will produce
+    # misleading results, so check this assumption.
+    assert np.isclose(exp, int(exp))
+
+    # for values between 0.01 and 100, just use that value.
+    # Otherwise use the log.
+    if abs(exp) < 2:
+        return f"{x:g}"
+    else:
+        return f"$10^{exp:.0f}$"
+
+
 def format_mass_size_plot(ax, xmin=1e2, xmax=1e6, legend_fontsize=18):
     ax.set_xscale("log")
     ax.set_yscale("log")
@@ -393,6 +409,7 @@ def format_mass_size_plot(ax, xmin=1e2, xmax=1e6, legend_fontsize=18):
     ax.add_labels("Cluster Mass [M$_\odot$]", "Cluster Effective Radius [pc]")
     ax.xaxis.set_ticks_position("both")
     ax.yaxis.set_ticks_position("both")
+    ax.xaxis.set_major_formatter(nice_log_formatter)
     # determine where to put the legend
     legend = ax.legend(loc=2, frameon=False, fontsize=legend_fontsize)
     # make the points in the legend larger
