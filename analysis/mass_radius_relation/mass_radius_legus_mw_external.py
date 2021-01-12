@@ -64,6 +64,22 @@ for func, label, color in zip(
 ):
     # get the data from this function
     m, m_el, m_eh, r, r_el, r_eh = func()
+
+    # in the case of the M31 OCs, the masses are binned. I want to add some scatter to
+    # them for plotting purposes.
+    if label == "M31 OCs":
+        # add a lognormal scatter of 0.2 dex. I want to keep the error range the same,
+        # so I need to keep track of how much I adjusted the center, then adjust
+        # the error range appropriately
+        m_plot = m * 10 ** np.random.normal(0, 0.05, len(m))
+        m_diff = m - m_plot
+        m_el_plot = m_el - m_diff
+        m_eh_plot = m_eh + m_diff
+    else:
+        m_plot = m
+        m_el_plot = m_el
+        m_eh_plot = m_eh
+
     # add the number of clusters to the label.
     label += f": N = {len(m)}"
 
@@ -71,7 +87,7 @@ for func, label, color in zip(
     # (30 for small datasets, 3 for large)
     size = 3 + 27 * (len(m) < 20)
     mru_p.plot_mass_size_dataset_scatter(
-        ax, m, m_el, m_eh, r, r_el, r_eh, color, label, size=size
+        ax, m_plot, m_el_plot, m_eh_plot, r, r_el, r_eh, color, label, size=size
     )
     # and add the data to the total
     mass_total = np.concatenate([mass_total, m])
