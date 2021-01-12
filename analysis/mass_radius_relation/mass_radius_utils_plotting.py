@@ -79,7 +79,6 @@ def get_r_percentiles_hybrid(radii, masses, percentile, d_log_M):
             idx_hi = idx_lo + 1
         # if there aren't too many, just move the top limit to get more
         if len(good_radii) < 40:
-            print("changing limits", idx_lo, idx_hi)
             idx_hi += 1
         # if there is a decent number, plot them
         else:

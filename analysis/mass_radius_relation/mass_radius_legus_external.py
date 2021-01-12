@@ -1,5 +1,5 @@
 """
-mass_radius_legus_m31.py
+mass_radius_legus_external.py
 - Fit the mass-size relation for all LEGUS clusters plus clusters from M31
 """
 import sys
@@ -51,7 +51,9 @@ fit, fit_history = mru_mle.fit_mass_size_relation(
     r_eff_err_hi_total,
     fit_mass_upper_limit=1e5,
 )
-mru.write_fit_results(fit_out_file, "LEGUS + M31", fit, fit_history, mass_total)
+mru.write_fit_results(
+    fit_out_file, "LEGUS + External Galaxies", fit, fit_history, mass_total
+)
 
 # finalize output file
 fit_out_file.close()

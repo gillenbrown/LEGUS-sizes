@@ -63,8 +63,8 @@ mass_radius_legus_young_script = $(mass_radius_dir)mass_radius_legus_young.py
 mass_radius_legus_agesplit_script = $(mass_radius_dir)mass_radius_legus_agesplit.py
 mass_radius_legus_ssfrsplit_script = $(mass_radius_dir)mass_radius_legus_ssfrsplit.py
 mass_radius_legus_mw_script = $(mass_radius_dir)mass_radius_legus_mw.py
-mass_radius_legus_m31_script = $(mass_radius_dir)mass_radius_legus_m31.py
-mass_radius_legus_mw_m31_script = $(mass_radius_dir)mass_radius_legus_mw_m31.py
+mass_radius_legus_external_script = $(mass_radius_dir)mass_radius_legus_external.py
+mass_radius_legus_mw_external_script = $(mass_radius_dir)mass_radius_legus_mw_external.py
 mass_radius_final_table_script = $(mass_radius_dir)mass_radius_final_table.py
 
 # ------------------------------------------------------------------------------
@@ -150,9 +150,9 @@ mass_radius_legus_agesplit_txt = $(mass_size_tables_dir)legus_agesplit_table.txt
 mass_radius_legus_ssfrsplit_plot = $(local_plots_dir)mass_radius_legus_ssfrsplit.pdf
 mass_radius_legus_ssfrsplit_txt = $(mass_size_tables_dir)legus_ssfrsplit_table.txt
 mass_radius_legus_mw_txt = $(mass_size_tables_dir)legus_mw_table.txt
-mass_radius_legus_m31_txt = $(mass_size_tables_dir)legus_m31_table.txt
-mass_radius_legus_mw_m31_plot = $(local_plots_dir)mass_radius_legus_mw_m31.pdf
-mass_radius_legus_mw_m31_txt = $(mass_size_tables_dir)legus_mw_m31_table.txt
+mass_radius_legus_external_txt = $(mass_size_tables_dir)legus_external_table.txt
+mass_radius_legus_mw_external_plot = $(local_plots_dir)mass_radius_legus_mw_external.pdf
+mass_radius_legus_mw_external_txt = $(mass_size_tables_dir)legus_mw_external_table.txt
 # the mass size tables get combined together into one final table
 mass_radius_table = $(local_plots_dir)mass_radius_fits_table.txt
 # then combine everything together
@@ -164,8 +164,8 @@ outputs = $(galaxy_table) $(psf_demo_image) $(psf_comp_plots) \
           $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_agesplit_txt) \
           $(mass_radius_legus_ssfrsplit_plot) $(mass_radius_legus_ssfrsplit_txt) \
           $(mass_radius_legus_mw_txt) \
-          $(mass_radius_legus_m31_txt) \
-          $(mass_radius_legus_mw_m31_plot) $(mass_radius_legus_mw_m31_txt) \
+          $(mass_radius_legus_external_txt) \
+          $(mass_radius_legus_mw_external_plot) $(mass_radius_legus_mw_external_txt) \
           $(mass_radius_table)
 
 experiments_sentinel = ./testing/experiments_done.txt
@@ -313,12 +313,12 @@ $(mass_radius_legus_ssfrsplit_plot) $(mass_radius_legus_ssfrsplit_txt) &: $(fina
 $(mass_radius_legus_mw_txt) &: $(final_cats) $(mass_radius_legus_mw_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_external_data)
 	python $(mass_radius_legus_mw_script) $(mass_radius_legus_mw_txt) $(final_cats)
 
-$(mass_radius_legus_m31_txt) &: $(final_cats) $(mass_radius_legus_m31_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_external_data)
-	python $(mass_radius_legus_m31_script) $(mass_radius_legus_m31_txt) $(final_cats)
+$(mass_radius_legus_external_txt) &: $(final_cats) $(mass_radius_legus_external_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_external_data)
+	python $(mass_radius_legus_external_script) $(mass_radius_legus_external_txt) $(final_cats)
 
-$(mass_radius_legus_mw_m31_plot) $(mass_radius_legus_mw_m31_txt) &: $(final_cats) $(mass_radius_legus_mw_m31_script) $(mass_radius_utils) $(mass_radius_utils_plotting) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_external_data)
-	python $(mass_radius_legus_mw_m31_script) $(mass_radius_legus_mw_m31_plot) $(mass_radius_legus_mw_m31_txt) $(final_cats)
+$(mass_radius_legus_mw_external_plot) $(mass_radius_legus_mw_external_txt) &: $(final_cats) $(mass_radius_legus_mw_external_script) $(mass_radius_utils) $(mass_radius_utils_plotting) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_external_data)
+	python $(mass_radius_legus_mw_external_script) $(mass_radius_legus_mw_external_plot) $(mass_radius_legus_mw_external_txt) $(final_cats)
 
 # combine all tables into the final one
-$(mass_radius_table): $(mass_radius_final_table_script) $(mass_radius_legus_full_txt) $(mass_radius_legus_young_txt) $(mass_radius_legus_agesplit_txt) $(mass_radius_legus_ssfrsplit_txt) $(mass_radius_legus_mw_txt)  $(mass_radius_legus_m31_txt)  $(mass_radius_legus_mw_m31_txt)
-	python $(mass_radius_final_table_script) $(mass_radius_table) $(mass_radius_legus_full_txt) $(mass_radius_legus_young_txt) $(mass_radius_legus_agesplit_txt) $(mass_radius_legus_ssfrsplit_txt) $(mass_radius_legus_mw_txt)  $(mass_radius_legus_m31_txt)  $(mass_radius_legus_mw_m31_txt)
+$(mass_radius_table): $(mass_radius_final_table_script) $(mass_radius_legus_full_txt) $(mass_radius_legus_young_txt) $(mass_radius_legus_agesplit_txt) $(mass_radius_legus_ssfrsplit_txt) $(mass_radius_legus_mw_txt)  $(mass_radius_legus_external_txt)  $(mass_radius_legus_mw_external_txt)
+	python $(mass_radius_final_table_script) $(mass_radius_table) $(mass_radius_legus_full_txt) $(mass_radius_legus_young_txt) $(mass_radius_legus_agesplit_txt) $(mass_radius_legus_ssfrsplit_txt) $(mass_radius_legus_mw_txt)  $(mass_radius_legus_external_txt)  $(mass_radius_legus_mw_external_txt)
