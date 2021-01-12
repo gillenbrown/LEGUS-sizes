@@ -32,7 +32,13 @@ def dummy_legus():
     return mass, mass_err_lo, mass_err_hi, r_eff, r_eff_err_lo, r_eff_err_hi
 
 
-funcs = [dummy_legus, mru_d.get_m31_open_clusters]
+funcs = [
+    dummy_legus,
+    mru_d.get_m31_open_clusters,
+    mru_d.get_m83_clusters,
+    mru_d.get_m82_sscs,
+    mru_d.get_ngc253_sscs,
+]
 
 mass_total = np.concatenate([func()[0] for func in funcs])
 mass_err_lo_total = np.concatenate([func()[1] for func in funcs])

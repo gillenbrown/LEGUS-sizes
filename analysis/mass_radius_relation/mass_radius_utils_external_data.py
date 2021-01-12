@@ -1,3 +1,17 @@
+"""
+Get external data sets as used in Krumholz et al 15, ARAA, 57, 227
+
+I essentially copy the code used by Krumholz, which is publicly available
+
+Each of these functions get the data from one source, and returns the following
+quantities:
+- mass
+- mass error low
+- mass error high
+- radius
+- radius error low
+- radius error high
+"""
 from pathlib import Path
 import sys
 
@@ -145,26 +159,87 @@ def get_mw_open_clusters():
 
 
 # ======================================================================================
-# Then the MW Globular Clusters
+# Then the Ryon et al 15 M83 clusters
 # ======================================================================================
-def get_mw_globular_clusters():
-    # Read Baumgardt & Hilker 2018 table for MW globulars
-    mw_gc_table = table.Table.read(
-        data_path / "baumgardt2018.txt",
-        format="ascii.fixed_width",
-        # fmt: off
-        col_starts=[
-            0, 9, 20, 31, 38, 46, 52, 61, 70, 81, 92, 100, 107, 114,
-            121, 128, 136, 145, 153, 161, 169, 176, 183, 190, 198
-        ],
-        # fmt: on
-        header_start=0,
-        data_start=2,
-    )
-    mass = mw_gc_table["Mass"]
-    mass_errs = mw_gc_table["DM"]
-    r_eff = mw_gc_table["rh,l"]
-    # no r_eff errors
-    r_eff_err = np.zeros(r_eff.shape)
+def get_m83_clusters():
+    hdulist = fits.open(data_path / "ryon2015_m83.fits")
+    data = hdulist[1].data
+    # Restrict to the clusters for which r_h is reliable
+    mask = data["eta"] > 1.3
+    r_eff_log = data["logReff"][mask]
+    r_eff_logerr = data["e_logReff"][mask]
 
-    return mass, mass_errs, mass_errs, r_eff, r_eff_err, r_eff_err
+    mass = 10 ** data["logMass"][mask]
+    mass_min = 10 ** data["b_logMass"][mask]
+    mass_max = 10 ** data["b_logmass_lc"][mask]
+
+    # then convert the errors the linear min and max
+    r_eff = 10 ** r_eff_log
+    r_eff_err_hi = 10 ** (r_eff_log + r_eff_logerr) - r_eff
+    r_eff_err_lo = r_eff - 10 ** (r_eff_log - r_eff_logerr)
+
+    mass_err_hi = mass_max - mass
+    mass_err_lo = mass - mass_min
+
+    return mass, mass_err_lo, mass_err_hi, r_eff, r_eff_err_lo, r_eff_err_hi
+
+
+# ======================================================================================
+# Then young massive clusters from a few sources
+# ======================================================================================
+def get_mw_ymc_krumholz_19_clusters():
+    # Young massive clusters in the Milky Way from our compilation
+    data = table.Table.read(
+        data_path / "mw_ymc_compilation.txt", format="ascii.basic", delimiter="\s"
+    )
+    mass_log = data["log_M"]
+    r_eff = data["rh"]
+
+    # errors need to be parsed, as not all clusters have them and the values are
+    # strings. I convert to lists so I can edit the data type as I go
+    mass_log_err = list(data["log_Merr"])
+    r_eff_err = list(data["rh_err"])
+
+    for col in [mass_log_err, r_eff_err]:
+        for idx in range(len(col)):
+            raw_value = col[idx]
+            if raw_value == "--":
+                value = 0
+            else:
+                value = float(raw_value)
+            col[idx] = value
+
+    # convert the log mass errors into regular errors
+    mass = 10 ** mass_log
+    mass_err_hi = 10 ** (mass_log + mass_log_err) - mass
+    mass_err_lo = mass - 10 ** (mass_log - mass_log_err)
+
+    return mass, mass_err_lo, mass_err_hi, r_eff, r_eff_err, r_eff_err
+
+
+def get_m82_sscs():
+    mass = (
+        np.array(
+            [40, 5.5, 3.9, 23, 4.0, 22, 2.7, 5.7, 7.3, 2.8, 2.7, 8.6, 5.2, 3.0, 2.5]
+        )
+        * 1e5
+    )
+    r_eff = np.array(
+        [1.4, 1.5, 1.1, 2.5, 1.6, 2.7, 1.4, 3.0, 1.4, 1.9, 1.5, 2.1, 1.5, 1.7, 1.7]
+    )
+    # Errors are not present.
+    all_err = np.zeros(len(mass))
+    return mass, all_err, all_err, r_eff, all_err, all_err
+
+
+def get_ngc253_sscs():
+    mass = 10 ** np.array(
+        [4.3, 4.3, 4.1, 5.0, 5.4, 5.3, 4.5, 4.8, 5.5, 5.3, 5.6, 6.0, 4.8, 5.5]
+    )
+    r_eff = (
+        np.array([2.7, 1.2, 2.6, 2.5, 2.1, 2.1, 2.9, 1.9, 2.6, 3.5, 2.9, 4.3, 1.6, 1.9])
+        / 2
+    )
+    # Errors are not present.
+    all_err = np.zeros(len(mass))
+    return mass, all_err, all_err, r_eff, all_err, all_err

@@ -222,6 +222,7 @@ def plot_best_fit_line(
     color=bpl.color_cycle[1],
     fill=True,
     label=None,
+    label_intrinsic_scatter=False,
 ):
     # first convert the pivot point value into the intercept
     pivot_point_x = 4
@@ -249,6 +250,10 @@ def plot_best_fit_line(
         label=label,
     )
     if fill:
+        if label_intrinsic_scatter:
+            label_sigma = "$\sigma_{int}$" + f" = {best_fit_params[2]:.2f} dex"
+        else:
+            label_sigma = None
         ax.fill_between(
             x=10 ** plot_log_masses,
             y1=10 ** (plot_log_radii - best_fit_params[2]),
@@ -256,7 +261,7 @@ def plot_best_fit_line(
             color=color,
             alpha=0.5,
             zorder=0,
-            label="$\sigma_{int}$" + f" = {best_fit_params[2]:.2f} dex",
+            label=label_sigma,
         )
 
     # Filled in bootstrap interval is currently turned off because the itnerval is smaller

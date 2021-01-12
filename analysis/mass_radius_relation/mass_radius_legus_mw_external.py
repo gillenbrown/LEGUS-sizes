@@ -42,12 +42,29 @@ r_eff_err_lo_total = np.array([])
 r_eff_err_hi_total = np.array([])
 fig, ax = bpl.subplots()
 for func, label, color in zip(
-    [dummy_legus, mru_d.get_mw_open_clusters, mru_d.get_m31_open_clusters],
-    ["LEGUS", "MW", "M31"],
-    [bpl.color_cycle[0], bpl.color_cycle[3], bpl.color_cycle[4]],
+    [
+        dummy_legus,
+        mru_d.get_mw_open_clusters,
+        mru_d.get_m31_open_clusters,
+        mru_d.get_m83_clusters,
+        mru_d.get_mw_ymc_krumholz_19_clusters,
+        mru_d.get_m82_sscs,
+        mru_d.get_ngc253_sscs,
+    ],
+    ["LEGUS", "MW OCs", "M31 OCs", "M83", "MW YMCs", "M82 SSCs", "NGC 253 SSCs"],
+    [
+        bpl.color_cycle[0],
+        bpl.color_cycle[2],
+        bpl.color_cycle[3],
+        bpl.color_cycle[4],
+        bpl.color_cycle[5],
+        bpl.color_cycle[6],
+        bpl.color_cycle[7],
+    ],
 ):
     # get the data from this function
     m, m_el, m_eh, r, r_el, r_eh = func()
+    print(f"Including {len(m)} clusters from {label}")
     # and plot it
     mru_p.plot_mass_size_dataset_scatter(ax, m, m_el, m_eh, r, r_el, r_eh, color, label)
     # and add the data to the total
@@ -71,7 +88,7 @@ fit, fit_history = mru_mle.fit_mass_size_relation(
 )
 
 mru_p.add_percentile_lines(ax, mass_total, r_eff_total)
-mru_p.plot_best_fit_line(ax, fit, 1, 1e5)
+mru_p.plot_best_fit_line(ax, fit, 1, 1e5, label_intrinsic_scatter=False)
 mru_p.format_mass_size_plot(ax, xmin=1, xmax=1e7)
 fig.savefig(plot_name)
 mru.write_fit_results(
