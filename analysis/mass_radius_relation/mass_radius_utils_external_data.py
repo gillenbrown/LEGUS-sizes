@@ -95,16 +95,20 @@ def get_m31_open_clusters(max_age=1e9):
 # ======================================================================================
 # Then the MW Open Clusters
 # ======================================================================================
-def get_mw_open_clusters():
+def get_mw_open_clusters(max_age=1e9):
     kharchenko_13_table = fits.open(data_path / "kharchenko2013_mw.fits")
     kharchenko_13_mw_obj_type = kharchenko_13_table[1].data["Type"]
     kharchenko_mw_dist = kharchenko_13_table[1].data["d"]
+    kharchenko_mw_log_age = kharchenko_13_table[1].data["logt"]
     # restrict to solar neighborhood, not sure what the type does, but
     # Krumholz uses it
-    kharchenko_good_idx = np.logical_and(
-        [str(o_type) != "g" for o_type in kharchenko_13_mw_obj_type],
-        kharchenko_mw_dist <= 2e3,
-    )
+    mask_1 = [str(o_type) != "g" for o_type in kharchenko_13_mw_obj_type]
+    # also restrict on distance and age
+    mask_2 = kharchenko_mw_dist <= 2e3
+    mask_3 = kharchenko_mw_log_age < np.log10(max_age)
+    kharchenko_good_idx = np.logical_and(mask_1, mask_2)
+    kharchenko_good_idx = np.logical_and(kharchenko_good_idx, mask_3)
+
     kharchenko_mw_Sigma = kharchenko_13_table[1].data["k"][kharchenko_good_idx]
     kharchenko_mw_rt = kharchenko_13_table[1].data["rt"][kharchenko_good_idx]
     kharchenko_mw_rc = kharchenko_13_table[1].data["rc"][kharchenko_good_idx]
