@@ -23,7 +23,7 @@ fit_out_file.write(
     "Slope ($\\beta$) & "
     "$\\reff$(pc) at $10^4\Msun (R_4)$ & "
     "Intrinsic Scatter & "
-    "Cluster $\log(M)$ Percentiles: 10---90 \\\\ \n"
+    "Cluster $\log(M)$ Percentiles: 1---99 \\\\ \n"
 )
 fit_out_file.write("\t\t\midrule\n")
 
