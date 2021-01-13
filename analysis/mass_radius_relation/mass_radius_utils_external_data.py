@@ -225,6 +225,7 @@ def get_mw_ymc_krumholz_19_clusters():
 
 
 def get_m82_sscs():
+    # M82 super star clusters from McCrady & Graham (2007, ApJ, 663, 844);
     # Note that these have high masses (all above 1e5), so none of these are included
     # in the fit
     mass = (
@@ -242,6 +243,8 @@ def get_m82_sscs():
 
 
 def get_ngc253_sscs():
+    # NGC 253 SSCs from Leroy et al. (2018, ApJ, submitted, arXiv:1804.02083)
+    # just typed in because it's a small list
     mass = 10 ** np.array(
         [4.3, 4.3, 4.1, 5.0, 5.4, 5.3, 4.5, 4.8, 5.5, 5.3, 5.6, 6.0, 4.8, 5.5]
     )
@@ -249,6 +252,7 @@ def get_ngc253_sscs():
         np.array([2.7, 1.2, 2.6, 2.5, 2.1, 2.1, 2.9, 1.9, 2.6, 3.5, 2.9, 4.3, 1.6, 1.9])
         / 2
     )
-    # Errors are not present.
-    all_err = np.zeros(len(mass))
-    return mass, all_err, all_err, r_eff, all_err, all_err
+    # Errors are 0.3 pc for all radii, no mass errors
+    r_eff_err = 0.3 * np.ones(len(mass))
+    mass_err = np.zeros(len(mass))
+    return mass, mass_err, mass_err, r_eff, r_eff_err, r_eff_err

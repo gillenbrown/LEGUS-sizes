@@ -47,16 +47,14 @@ for func, label, color in zip(
         mru_d.get_mw_open_clusters,
         mru_d.get_mw_ymc_krumholz_19_clusters,
         mru_d.get_m31_open_clusters,
-        mru_d.get_ngc253_sscs,
         mru_d.get_m83_clusters,
     ],
-    ["LEGUS", "MW OCs", "MW YMCs", "M31 OCs", "NGC 253 SSCs", "M83"],
+    ["LEGUS", "MW OCs", "MW YMCs", "M31", "M83"],
     [
         bpl.color_cycle[0],
         bpl.color_cycle[2],
         bpl.color_cycle[3],
         bpl.color_cycle[4],
-        bpl.color_cycle[5],
         bpl.color_cycle[6],
     ],
 ):
@@ -65,7 +63,7 @@ for func, label, color in zip(
 
     # in the case of the M31 OCs, the masses are binned. I want to add some scatter to
     # them for plotting purposes.
-    if label == "M31 OCs":
+    if label == "M31":
         # add a lognormal scatter of 0.2 dex. I want to keep the error range the same,
         # so I need to keep track of how much I adjusted the center, then adjust
         # the error range appropriately
@@ -109,7 +107,7 @@ fit, fit_history = mru_mle.fit_mass_size_relation(
 
 mru_p.add_percentile_lines(ax, mass_total, r_eff_total)
 mru_p.plot_best_fit_line(ax, fit, 0.1, 1e5)
-mru_p.format_mass_size_plot(ax, xmin=1, xmax=1e7, legend_fontsize=13)
+mru_p.format_mass_size_plot(ax, xmin=1, xmax=1e7, legend_fontsize=15.5)
 fig.savefig(plot_name)
 mru.write_fit_results(
     fit_out_file, "LEGUS + MW + External Galaxies", fit, fit_history, mass_total

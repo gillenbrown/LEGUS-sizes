@@ -36,7 +36,6 @@ funcs = [
     dummy_legus,
     mru_d.get_m31_open_clusters,
     mru_d.get_m83_clusters,
-    mru_d.get_ngc253_sscs,
 ]
 
 mass_total = np.concatenate([func()[0] for func in funcs])
