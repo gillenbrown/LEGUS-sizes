@@ -32,6 +32,7 @@ fit, fit_history = mru_mle.fit_mass_size_relation(
     r_eff,
     r_eff_err_lo,
     r_eff_err_hi,
+    fit_mass_upper_limit=1e5,
 )
 # then plot the dataset
 fig, ax = bpl.subplots()
@@ -46,7 +47,7 @@ mru_p.plot_mass_size_dataset_scatter(
     bpl.color_cycle[0],
 )
 mru_p.add_percentile_lines(ax, mass, r_eff)
-mru_p.plot_best_fit_line(ax, fit, 1e2, 1e6, color=bpl.color_cycle[1])
+mru_p.plot_best_fit_line(ax, fit, 1e2, 1e5, color=bpl.color_cycle[1])
 mru_p.format_mass_size_plot(ax)
 fig.savefig(plot_name)
 
