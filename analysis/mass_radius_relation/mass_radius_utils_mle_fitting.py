@@ -44,7 +44,7 @@ def project_data_differences(xs, ys, slope, intercept):
     # theta = np.arctan(slope)
     # return dot_term - intercept * np.cos(theta)
 
-    return np.cos(np.arctan(slope)) * (ys - (slope * xs + intercept))
+    return (ys - (slope * xs + intercept)) / np.sqrt(1 + slope ** 2)
 
 
 def project_data_variance(x_err, y_err, slope):

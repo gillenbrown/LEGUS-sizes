@@ -67,7 +67,7 @@ for func, label, color in zip(
         # add a lognormal scatter of 0.2 dex. I want to keep the error range the same,
         # so I need to keep track of how much I adjusted the center, then adjust
         # the error range appropriately
-        m_plot = m * 10 ** np.random.normal(0, 0.05, len(m))
+        m_plot = m * 10 ** np.random.normal(0, 0.03, len(m))
         m_diff = m - m_plot
         m_el_plot = m_el - m_diff
         m_eh_plot = m_eh + m_diff
