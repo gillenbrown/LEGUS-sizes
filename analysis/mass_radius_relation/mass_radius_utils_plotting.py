@@ -73,8 +73,8 @@ def get_r_percentiles_hybrid(radii, masses, percentile, d_log_M):
         mask_good = np.logical_and(mask_above, mask_below)
 
         good_radii = radii[mask_good]
-        # if there are no points at all, move both lo and hi up
-        if len(good_radii) == 0:
+        # if there are very few points, move both lo and hi up
+        if len(good_radii) < 5:
             idx_lo = idx_hi
             idx_hi = idx_lo + 1
         # if there aren't too many, just move the top limit to get more

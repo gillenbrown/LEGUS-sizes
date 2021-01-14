@@ -144,6 +144,7 @@ fit_quality_plot = $(local_plots_dir)fit_quality.pdf
 # lots of mass size versions, all done separately
 mass_radius_legus_full_plot = $(local_plots_dir)mass_radius_legus_full.pdf
 mass_radius_legus_full_txt = $(mass_size_tables_dir)legus_full_table.txt
+mass_radius_legus_young_plot = $(local_plots_dir)mass_radius_legus_young.pdf
 mass_radius_legus_young_txt = $(mass_size_tables_dir)legus_young_table.txt
 mass_radius_legus_agesplit_plot = $(local_plots_dir)mass_radius_legus_agesplit.pdf
 mass_radius_legus_agesplit_txt = $(mass_size_tables_dir)legus_agesplit_table.txt
@@ -160,7 +161,7 @@ outputs = $(galaxy_table) $(psf_demo_image) $(psf_comp_plots) \
           $(comparison_plot_ryon) $(comparison_plot_full) \
           $(param_dist_plot) $(all_fields_hist_plot) $(fit_quality_plot) \
           $(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) \
-          $(mass_radius_legus_young_txt) \
+          $(mass_radius_legus_young_plot) $(mass_radius_legus_young_txt) \
           $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_agesplit_txt) \
           $(mass_radius_legus_ssfrsplit_plot) $(mass_radius_legus_ssfrsplit_txt) \
           $(mass_radius_legus_mw_txt) \
@@ -301,8 +302,8 @@ $(experiments_sentinel): $(final_cats) $(experiment_script)
 $(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) &: $(final_cats) $(mass_radius_legus_full_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_plotting)
 	python $(mass_radius_legus_full_script) $(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) $(final_cats)
 
-$(mass_radius_legus_young_txt) &: $(final_cats) $(mass_radius_legus_young_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting)
-	python $(mass_radius_legus_young_script) $(mass_radius_legus_young_txt) $(final_cats)
+$(mass_radius_legus_young_plot) $(mass_radius_legus_young_txt) &: $(final_cats) $(mass_radius_legus_young_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_plotting)
+	python $(mass_radius_legus_young_script) $(mass_radius_legus_young_plot) $(mass_radius_legus_young_txt) $(final_cats)
 
 $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_agesplit_txt) &: $(final_cats) $(mass_radius_legus_agesplit_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_plotting)
 	python $(mass_radius_legus_agesplit_script) $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_agesplit_txt) $(final_cats)
