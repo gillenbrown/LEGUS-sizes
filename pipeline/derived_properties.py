@@ -11,8 +11,9 @@ This takes two comand line arguments
 import sys
 from pathlib import Path
 
-from astropy import table, coordinates
+from astropy import table
 from astropy import units as u
+from astropy import constants as c
 from astropy.io import fits
 import numpy as np
 from tqdm import tqdm
@@ -277,6 +278,7 @@ fits_catalog["r_eff_arcsec_rmax_15pix_e-"] = -99.9
 fits_catalog["r_eff_pc_rmax_15pix_best"] = -99.9
 fits_catalog["r_eff_pc_rmax_15pix_e+"] = -99.9
 fits_catalog["r_eff_pc_rmax_15pix_e-"] = -99.9
+fits_catalog["crossing_time_yr"] = -99.9
 
 # first calculate the best fit value
 fits_catalog["r_eff_pixels_rmax_15pix_best"] = r_eff_func(
@@ -326,6 +328,13 @@ for row in fits_catalog:
     row["r_eff_pc_rmax_15pix_e+"] = high_e
     row["r_eff_pc_rmax_15pix_e-"] = low_e
 
+    # also calculate the crossing time, from
+    # Gieles, Portegies Zwart 2011, MNRAS, 410, L6
+    # zhttps://ui.adsabs.harvard.edu/abs/2011MNRAS.410L...6G/abstract
+    term_a = (row["r_eff_pc_rmax_15pix_best"] * u.pc) ** 3
+    term_b = c.G * row["mass_msun"] * u.Msun
+    crossing_time = 10 * np.sqrt(term_a / term_b).to(u.year)
+    row["crossing_time_yr"] = crossing_time.value
 
 # ======================================================================================
 #

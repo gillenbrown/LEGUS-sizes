@@ -53,6 +53,7 @@ all_fields_script = $(analysis_dir)all_fields_hist.py
 all_galaxies_script = $(analysis_dir)all_galaxies_hist.py
 all_galaxies_iso_script = $(analysis_dir)all_galaxies_hist_isolate.py
 example_plot_script = $(analysis_dir)example_fit.py
+dynamical_age_script = $(analysis_dir)dynamical_age.py
 fit_quality_script = $(analysis_dir)fit_quality.py
 galaxy_table_script = $(analysis_dir)galaxy_table.py
 experiment_script = ./testing/experiments.py
@@ -143,6 +144,7 @@ param_dist_plot = $(local_plots_dir)parameter_distribution_size.pdf
 all_fields_hist_plot = $(local_plots_dir)all_fields.pdf
 all_galaxies_plot = $(local_plots_dir)all_galaxies.pdf
 all_galaxies_iso_plot = $(local_plots_dir)all_galaxies_isolate.pdf
+dynamical_age_plot = $(local_plots_dir)dynamical_age.pdf
 example_fit_plot = $(local_plots_dir)example_fit.pdf
 fit_quality_plot = $(local_plots_dir)fit_quality.pdf
 # lots of mass size versions, all done separately
@@ -164,7 +166,7 @@ mass_radius_table = $(local_plots_dir)mass_radius_fits_table.txt
 outputs = $(galaxy_table) $(psf_demo_image) $(psf_comp_plots) \
           $(comparison_plot_ryon) $(comparison_plot_full) \
           $(param_dist_plot) $(all_fields_hist_plot) $(all_galaxies_plot) \
-          $(all_galaxies_iso_plot) $(fit_quality_plot) \
+          $(all_galaxies_iso_plot) $(dynamical_age_plot) $(fit_quality_plot) \
           $(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) \
           $(mass_radius_legus_young_plot) $(mass_radius_legus_young_txt) \
           $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_agesplit_txt) \
@@ -295,6 +297,9 @@ $(all_galaxies_plot): $(final_cats) $(all_galaxies_script)
 
 $(all_galaxies_iso_plot): $(final_cats) $(all_galaxies_iso_script)
 	python $(all_galaxies_iso_script) $@ $(final_cats)
+
+$(dynamical_age_plot): $(final_cats) $(dynamical_age_script)
+	python $(dynamical_age_script) $@ $(final_cats)
 
 $(example_fit_plot): $(final_cats) $(example_plot_script)
 	python $(example_plot_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) $(fit_region_size)
