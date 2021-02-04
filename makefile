@@ -50,6 +50,7 @@ comparison_script = $(analysis_dir)ryon_comparison.py
 radii_def_plot_script = $(analysis_dir)radii_def_comp_plot.py
 parameters_dist_script = $(analysis_dir)parameter_distribution.py
 all_fields_script = $(analysis_dir)all_fields_hist.py
+all_galaxies_script = $(analysis_dir)all_galaxies_hist.py
 example_plot_script = $(analysis_dir)example_fit.py
 fit_quality_script = $(analysis_dir)fit_quality.py
 galaxy_table_script = $(analysis_dir)galaxy_table.py
@@ -139,6 +140,7 @@ comparison_plot_ryon = $(local_plots_dir)comparison_plot_ryon_size.pdf
 comparison_plot_full = $(local_plots_dir)comparison_plot_full_size.pdf
 param_dist_plot = $(local_plots_dir)parameter_distribution_size.pdf
 all_fields_hist_plot = $(local_plots_dir)all_fields.pdf
+all_galaxies_plot = $(local_plots_dir)all_galaxies.pdf
 example_fit_plot = $(local_plots_dir)example_fit.pdf
 fit_quality_plot = $(local_plots_dir)fit_quality.pdf
 # lots of mass size versions, all done separately
@@ -159,7 +161,8 @@ mass_radius_table = $(local_plots_dir)mass_radius_fits_table.txt
 # then combine everything together
 outputs = $(galaxy_table) $(psf_demo_image) $(psf_comp_plots) \
           $(comparison_plot_ryon) $(comparison_plot_full) \
-          $(param_dist_plot) $(all_fields_hist_plot) $(fit_quality_plot) \
+          $(param_dist_plot) $(all_fields_hist_plot) $(all_galaxies_plot) \
+          $(fit_quality_plot) \
           $(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) \
           $(mass_radius_legus_young_plot) $(mass_radius_legus_young_txt) \
           $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_agesplit_txt) \
@@ -284,6 +287,9 @@ $(param_dist_plot): $(parameters_dist_script) $(final_cats)
 
 $(all_fields_hist_plot): $(final_cats) $(all_fields_script)
 	python $(all_fields_script) $@ $(final_cats)
+
+$(all_galaxies_plot): $(final_cats) $(all_galaxies_script)
+	python $(all_galaxies_script) $@ $(final_cats)
 
 $(example_fit_plot): $(final_cats) $(example_plot_script)
 	python $(example_plot_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) $(fit_region_size)
