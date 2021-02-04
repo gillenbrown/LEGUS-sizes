@@ -77,9 +77,23 @@ for mask_ssfr, name, color in zip(
         r_eff[mask_ssfr],
         color,
     )
-    # add_percentile_lines(ax, mass_legus[mask], r_eff_legus[mask], color=color)
+    mru_p.add_percentile_lines(
+        ax,
+        mass[mask_ssfr],
+        r_eff[mask_ssfr],
+        color=color,
+        percentiles=[50],
+        label=False,
+    )
     mru_p.plot_best_fit_line(
-        ax, fit, 1, 1e5, color, fill=False, label=f"{name}, N={np.sum(mask_ssfr)}"
+        ax,
+        fit,
+        1,
+        1e5,
+        color,
+        fill=False,
+        label=f"{name}, N={np.sum(mask_ssfr)}",
+        ls=":",
     )
     mru.write_fit_results(fit_out_file, name, fit, fit_history, mass[mask_ssfr])
 mru_p.format_mass_size_plot(ax)

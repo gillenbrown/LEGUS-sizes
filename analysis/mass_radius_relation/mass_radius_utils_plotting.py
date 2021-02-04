@@ -104,9 +104,20 @@ def get_r_percentiles_unique_values(radii, ages, percentile):
     return unique_ages, radii_percentiles
 
 
-def add_percentile_lines(ax, mass, r_eff, style="hybrid", color=bpl.almost_black):
+def add_percentile_lines(
+    ax,
+    mass,
+    r_eff,
+    style="hybrid",
+    color=bpl.almost_black,
+    percentiles=None,
+    label=True,
+):
+    # set the percentiles to choose
+    if percentiles is None:
+        percentiles = [5, 25, 50, 75, 95]
     # plot the median and the IQR
-    for percentile in [5, 25, 50, 75, 95]:
+    for percentile in percentiles:
         if style == "moving":
             mass_bins, radii_percentile = get_r_percentiles_moving(
                 r_eff, mass, percentile, 200, 200
@@ -132,15 +143,16 @@ def add_percentile_lines(ax, mass, r_eff, style="hybrid", color=bpl.almost_black
             lw=3 * (1 - (abs(percentile - 50) / 50)) + 0.5,
             zorder=9,
         )
-        ax.text(
-            x=mass_bins[0],
-            y=radii_percentile[0],
-            ha="right",
-            va="center",
-            s=percentile,
-            fontsize=16,
-            zorder=100,
-        )
+        if label:
+            ax.text(
+                x=mass_bins[0],
+                y=radii_percentile[0],
+                ha="right",
+                va="center",
+                s=percentile,
+                fontsize=16,
+                zorder=100,
+            )
 
 
 # ======================================================================================
@@ -223,6 +235,7 @@ def plot_best_fit_line(
     fill=True,
     label=None,
     label_intrinsic_scatter=False,
+    ls="-",
 ):
     # first convert the pivot point value into the intercept
     pivot_point_x = 4
@@ -246,6 +259,7 @@ def plot_best_fit_line(
         10 ** plot_log_radii,
         c=color,
         lw=4,
+        ls=ls,
         zorder=8,
         label=label,
     )

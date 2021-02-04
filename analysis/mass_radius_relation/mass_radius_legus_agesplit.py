@@ -51,9 +51,18 @@ for age_mask, name, color, zorder in zip(
     mru_p.plot_mass_size_dataset_contour(
         ax, mass[age_mask], r_eff[age_mask], color, zorder=zorder
     )
-    # add_percentile_lines(ax, mass_legus[mask], r_eff_legus[mask], color=color)
+    mru_p.add_percentile_lines(
+        ax, mass[age_mask], r_eff[age_mask], color=color, percentiles=[50], label=False
+    )
     mru_p.plot_best_fit_line(
-        ax, fit, 1, 1e5, color, fill=False, label=f"{name}, N={np.sum(age_mask)}"
+        ax,
+        fit,
+        1,
+        1e5,
+        color,
+        fill=False,
+        label=f"{name}, N={np.sum(age_mask)}",
+        ls=":",
     )
     mru.write_fit_results(fit_out_file, name, fit, fit_history, mass[age_mask])
 mru_p.format_mass_size_plot(ax)
