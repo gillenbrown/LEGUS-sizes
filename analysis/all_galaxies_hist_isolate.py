@@ -63,30 +63,28 @@ for item in sys.argv[2:]:
         else:
             galaxy_catalogs[galaxy] = galaxy_table
 
+# I individually plot the larger galaxies. I'll throw all other galaxies into one
+# "other" category. When plotting, I'll show all as grey lines, other than two to
+# individually highlight
 # Then figure out which galaxies to independently plot, and which to throw in an
 # "other" category
 long_catalogs = dict()
+labeled_catalogs = dict()
 short_catalogs = []
 all_catalogs = []
 for galaxy, cat in galaxy_catalogs.items():
     all_catalogs.append(cat)
-    if len(cat) > 180:
-        long_catalogs[cat["galaxy"][0]] = cat
+    if len(cat) > 50:
+        if galaxy in ["ngc1566", "ngc7793"]:
+            labeled_catalogs[galaxy] = cat
+        else:
+            long_catalogs[galaxy] = cat
+
     else:
         short_catalogs.append(cat)
 
 big_catalog = table.vstack(all_catalogs, join_type="inner")
 all_short_catalog = table.vstack(short_catalogs, join_type="inner")
-
-# for those which are plotted individually, sort them by the number of clusters
-numbers = []
-individual_galaxies = []
-for galaxy, cat in long_catalogs.items():
-    individual_galaxies.append(galaxy)
-    numbers.append(len(cat))
-
-idx_sort = np.argsort(numbers)[::-1]  # largest first
-sorted_galaxies = np.array(individual_galaxies)[idx_sort]
 
 
 def gaussian(x, mean, variance):
@@ -118,30 +116,15 @@ def kde(r_eff_grid, log_r_eff, log_r_eff_err):
     return ys
 
 
-# change the color cycle used to emphasize certain clusters
-color_cycle = [
-    bpl.color_cycle[0],
-    bpl.color_cycle[1],
-    bpl.color_cycle[3],
-    bpl.color_cycle[2],
-    bpl.color_cycle[5],
-    bpl.color_cycle[6],
-    bpl.color_cycle[4],
-]
-
-fig, ax = bpl.subplots(figsize=[7, 7])
+fig, ax = bpl.subplots(figsize=[8, 7])
 radii_plot = np.logspace(-1, 1.5, 300)
-for idx, galaxy in enumerate(sorted_galaxies):
-    cat = long_catalogs[galaxy]
-
-    # I want to add an extra space in the legend for NGC628
-    label = f"NGC {galaxy[3:]}, "
-    if len(galaxy) == 6:
-        # chose spaces fine tuned to align in the legend:
-        # https://www.overleaf.com/learn/latex/Spacing_in_math_mode
-        label += "$\  \ $"
-    label += f"N={len(cat)}"
-
+# plot the ones that are not labeled
+for idx, cat in enumerate(long_catalogs.values()):
+    print(cat["galaxy"][0])
+    if idx == 0:
+        label = "Galaxies with N>50"
+    else:
+        label = None
     ax.plot(
         radii_plot,
         kde(
@@ -149,11 +132,26 @@ for idx, galaxy in enumerate(sorted_galaxies):
             cat["r_eff_log"],
             cat["r_eff_log_smooth"],
         ),
-        c=color_cycle[idx],
-        lw=3,
+        lw=1.5,
+        zorder=1,
+        c="0.5",
         label=label,
-        zorder=10 - idx,
     )
+# plot the ones with individual labels
+for galaxy, cat in labeled_catalogs.items():
+    label = galaxy.replace("ngc", "NGC ") + f", N={len(cat)}"
+    ax.plot(
+        radii_plot,
+        kde(
+            radii_plot,
+            cat["r_eff_log"],
+            cat["r_eff_log_smooth"],
+        ),
+        lw=4,
+        label=label,
+        zorder=4,
+    )
+# then plot the ones in black
 ax.plot(
     radii_plot,
     kde(
@@ -161,9 +159,9 @@ ax.plot(
         all_short_catalog["r_eff_log"],
         all_short_catalog["r_eff_log_smooth"],
     ),
-    lw=3,
-    c=bpl.color_cycle[7],
-    zorder=15,
+    lw=4,
+    c=bpl.color_cycle[3],
+    zorder=3,
     label=f"All Other Galaxies, N={len(all_short_catalog)}",
 )
 ax.plot(
@@ -175,14 +173,14 @@ ax.plot(
     ),
     lw=6,
     c=bpl.almost_black,
-    zorder=20,
+    zorder=2,
     label=f"Total, N={len(big_catalog)}",
 )
 
 ax.set_xscale("log")
-ax.set_limits(0.1, 20, 0, 1.3)
+ax.set_limits(0.1, 25, 0)
 ax.set_xticks([0.1, 1, 10])
 ax.set_xticklabels(["0.1", "1", "10"])
 ax.add_labels("$R_{eff}$ [pc]", "Normalized KDE Density")
-ax.legend(frameon=False, fontsize=12)
+ax.legend(frameon=False, fontsize=14)
 fig.savefig(plot_name)
