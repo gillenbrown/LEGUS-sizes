@@ -330,7 +330,7 @@ for row in fits_catalog:
 
     # also calculate the crossing time, from
     # Gieles, Portegies Zwart 2011, MNRAS, 410, L6
-    # zhttps://ui.adsabs.harvard.edu/abs/2011MNRAS.410L...6G/abstract
+    # https://ui.adsabs.harvard.edu/abs/2011MNRAS.410L...6G/abstract
     term_a = (row["r_eff_pc_rmax_15pix_best"] * u.pc) ** 3
     term_b = c.G * row["mass_msun"] * u.Msun
     crossing_time = 10 * np.sqrt(term_a / term_b).to(u.year)
