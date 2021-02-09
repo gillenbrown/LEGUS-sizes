@@ -424,6 +424,7 @@ def format_mass_size_plot(ax, xmin=1e2, xmax=1e6, legend_fontsize=18):
     ax.xaxis.set_ticks_position("both")
     ax.yaxis.set_ticks_position("both")
     ax.xaxis.set_major_formatter(nice_log_formatter)
+    ax.yaxis.set_major_formatter(nice_log_formatter)
     # determine where to put the legend
     legend = ax.legend(loc=2, frameon=False, fontsize=legend_fontsize)
     # make the points in the legend larger

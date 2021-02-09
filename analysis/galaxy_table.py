@@ -269,7 +269,7 @@ with open(output_name, "w") as out_file:
     out_file.write(
         "\t\tLEGUS Field & "
         "N & "
-        "log(sSFR) [yr$^{-1}$] & "
+        "log sSFR (yr$^{-1}$) & "
         "Distance (Mpc) & "
         "PSF size (pc) & "
         "Cluster $\\reff$: 25---50---75th percentiles \\\\ \n"

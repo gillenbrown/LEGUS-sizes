@@ -13,6 +13,11 @@ from astropy import table
 import numpy as np
 import betterplotlib as bpl
 
+# need to add the correct path to import utils
+code_home_dir = Path(__file__).resolve().parent.parent
+sys.path.append(str(code_home_dir / "pipeline"))
+import utils
+
 bpl.set_style()
 
 # Here I put each galaxy into its own table. This is a bit tricky since some are split
@@ -70,7 +75,9 @@ short_catalogs = []
 all_catalogs = []
 for galaxy, cat in galaxy_catalogs.items():
     all_catalogs.append(cat)
-    if len(cat) > 180:
+    # pick galaxies with the most clusters. But I exclude NGC 3344, so that I can plot
+    # less galaxies total and still include NGC7793
+    if len(cat) > 180 and galaxy not in ["ngc3344", "ngc4449"]:
         long_catalogs[cat["galaxy"][0]] = cat
     else:
         short_catalogs.append(cat)
@@ -124,8 +131,6 @@ color_cycle = [
     bpl.color_cycle[1],
     bpl.color_cycle[3],
     bpl.color_cycle[2],
-    bpl.color_cycle[5],
-    bpl.color_cycle[6],
     bpl.color_cycle[4],
 ]
 
@@ -162,22 +167,22 @@ ax.plot(
         all_short_catalog["r_eff_log_smooth"],
     ),
     lw=3,
-    c=bpl.color_cycle[7],
+    c=bpl.color_cycle[6],
     zorder=15,
     label=f"All Other Galaxies, N={len(all_short_catalog)}",
 )
-ax.plot(
-    radii_plot,
-    kde(
-        radii_plot,
-        big_catalog["r_eff_log"],
-        big_catalog["r_eff_log_smooth"],
-    ),
-    lw=6,
-    c=bpl.almost_black,
-    zorder=20,
-    label=f"Total, N={len(big_catalog)}",
-)
+# ax.plot(
+#     radii_plot,
+#     kde(
+#         radii_plot,
+#         big_catalog["r_eff_log"],
+#         big_catalog["r_eff_log_smooth"],
+#     ),
+#     lw=6,
+#     c=bpl.almost_black,
+#     zorder=20,
+#     label=f"Total, N={len(big_catalog)}",
+# )
 
 ax.set_xscale("log")
 ax.set_limits(0.1, 20, 0, 1.3)
@@ -185,4 +190,29 @@ ax.set_xticks([0.1, 1, 10])
 ax.set_xticklabels(["0.1", "1", "10"])
 ax.add_labels("$R_{eff}$ [pc]", "Normalized KDE Density")
 ax.legend(frameon=False, fontsize=12)
+
+# then add all the pixel sizes
+# have to get the real directories
+data_dir = code_home_dir / "data"
+# first set the defaults, then override some key ones. The field doesn't matter if there
+# are multiple, since the pixel size will be the same for both.
+galaxy_dirs = {galaxy: data_dir / galaxy for galaxy in sorted_galaxies}
+galaxy_dirs["ngc5194"] = data_dir / "ngc5194-ngc5195-mosaic"
+galaxy_dirs["ngc628"] = data_dir / "ngc628-c"
+galaxy_dirs["ngc1313"] = data_dir / "ngc1313-e"
+galaxy_dirs["ngc7793"] = data_dir / "ngc7793-e"
+# then do what we need to do
+for idx, galaxy in enumerate(sorted_galaxies):
+    pixel_size_arcsec = utils.pixels_to_arcsec(1, galaxy_dirs[galaxy])
+    pixel_size_pc = utils.arcsec_to_pc_with_errors(
+        galaxy_dirs[galaxy], pixel_size_arcsec, 0, 0, False
+    )[0]
+    ax.plot(
+        [pixel_size_pc, pixel_size_pc],
+        [0, 0.07],
+        lw=3,
+        c=color_cycle[idx],
+        zorder=0,
+    )
+
 fig.savefig(plot_name)
