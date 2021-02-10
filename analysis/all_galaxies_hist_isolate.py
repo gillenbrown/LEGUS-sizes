@@ -63,28 +63,18 @@ for item in sys.argv[2:]:
         else:
             galaxy_catalogs[galaxy] = galaxy_table
 
-# I individually plot the larger galaxies. I'll throw all other galaxies into one
-# "other" category. When plotting, I'll show all as grey lines, other than two to
-# individually highlight
-# Then figure out which galaxies to independently plot, and which to throw in an
-# "other" category
-long_catalogs = dict()
-labeled_catalogs = dict()
-short_catalogs = []
-all_catalogs = []
+# I individually plot all galaxies, but also have the total
+big_catalog = table.vstack(list(galaxy_catalogs.values()), join_type="inner")
+
+# Sort them by the number of clusters
+numbers = []
+individual_galaxies = []
 for galaxy, cat in galaxy_catalogs.items():
-    all_catalogs.append(cat)
-    if len(cat) > 50:
-        if galaxy in ["ngc1566", "ngc7793"]:
-            labeled_catalogs[galaxy] = cat
-        else:
-            long_catalogs[galaxy] = cat
+    individual_galaxies.append(galaxy)
+    numbers.append(len(cat))
 
-    else:
-        short_catalogs.append(cat)
-
-big_catalog = table.vstack(all_catalogs, join_type="inner")
-all_short_catalog = table.vstack(short_catalogs, join_type="inner")
+idx_sort = np.argsort(numbers)[::-1]  # largest first
+sorted_galaxies = np.array(individual_galaxies)[idx_sort]
 
 
 def gaussian(x, mean, variance):
@@ -112,34 +102,30 @@ def kde(r_eff_grid, log_r_eff, log_r_eff_err):
 
     # # normalize the y value
     ys = np.array(ys)
-    ys = 70 * ys / np.sum(ys)
+    ys = 50 * ys / np.sum(ys)
     return ys
 
 
-fig, ax = bpl.subplots(figsize=[8, 7])
+nrows = 4
+ncols = 8
+fig, axs = bpl.subplots(nrows=nrows, ncols=ncols, figsize=[5 * ncols, 5 * nrows])
+axs = axs.flatten()
+
 radii_plot = np.logspace(-1, 1.5, 300)
-# plot the ones that are not labeled
-for idx, cat in enumerate(long_catalogs.values()):
-    print(cat["galaxy"][0])
-    if idx == 0:
-        label = "Galaxies with N>50"
-    else:
-        label = None
+for idx, galaxy in enumerate(sorted_galaxies):
+    ax = axs[idx]
+    cat = galaxy_catalogs[galaxy]
     ax.plot(
         radii_plot,
         kde(
             radii_plot,
-            cat["r_eff_log"],
-            cat["r_eff_log_smooth"],
+            big_catalog["r_eff_log"],
+            big_catalog["r_eff_log_smooth"],
         ),
-        lw=1.5,
-        zorder=1,
-        c="0.5",
-        label=label,
+        lw=2,
+        zorder=2,
+        c=bpl.color_cycle[2],
     )
-# plot the ones with individual labels
-for galaxy, cat in labeled_catalogs.items():
-    label = galaxy.replace("ngc", "NGC ") + f", N={len(cat)}"
     ax.plot(
         radii_plot,
         kde(
@@ -148,39 +134,16 @@ for galaxy, cat in labeled_catalogs.items():
             cat["r_eff_log_smooth"],
         ),
         lw=4,
-        label=label,
         zorder=4,
+        c=bpl.color_cycle[0],
     )
-# then plot the ones in black
-ax.plot(
-    radii_plot,
-    kde(
-        radii_plot,
-        all_short_catalog["r_eff_log"],
-        all_short_catalog["r_eff_log_smooth"],
-    ),
-    lw=4,
-    c=bpl.color_cycle[3],
-    zorder=3,
-    label=f"All Other Galaxies, N={len(all_short_catalog)}",
-)
-ax.plot(
-    radii_plot,
-    kde(
-        radii_plot,
-        big_catalog["r_eff_log"],
-        big_catalog["r_eff_log_smooth"],
-    ),
-    lw=6,
-    c=bpl.almost_black,
-    zorder=2,
-    label=f"Total, N={len(big_catalog)}",
-)
+    ax.set_xscale("log")
+    ax.set_limits(0.1, 25, 0, 1.0)
+    ax.set_xticks([0.1, 1, 10])
+    ax.set_xticklabels(["0.1", "1", "10"])
+    ax.add_labels("$R_{eff}$ [pc]", "Normalized KDE Density")
+    ax.easy_add_text(f"{galaxy.upper()}\nN={len(cat)}", "upper left")
+# last axis isn't needed, we only have 31 galaxies
+axs[-1].axis("off")
 
-ax.set_xscale("log")
-ax.set_limits(0.1, 25, 0)
-ax.set_xticks([0.1, 1, 10])
-ax.set_xticklabels(["0.1", "1", "10"])
-ax.add_labels("$R_{eff}$ [pc]", "Normalized KDE Density")
-ax.legend(frameon=False, fontsize=14)
 fig.savefig(plot_name)
