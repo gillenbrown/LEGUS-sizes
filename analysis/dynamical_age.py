@@ -65,9 +65,9 @@ print(
 # ======================================================================================
 fig, ax = bpl.subplots()
 # make the colormap for masses
-cmap = cm.get_cmap("gist_earth")
+cmap = cm.get_cmap("gist_earth_r")
 # cmap = cmocean.cm.thermal_r
-cmap = cmocean.tools.crop_by_percent(cmap, 10, "max")
+cmap = cmocean.tools.crop_by_percent(cmap, 20, "min")
 norm = colors.LogNorm(vmin=1e3, vmax=1e5)
 mappable = cm.ScalarMappable(cmap=cmap, norm=norm)
 mass_colors = mappable.to_rgba(big_catalog["mass_msun"])
@@ -76,7 +76,7 @@ plot_ages = big_catalog["age_yr"]
 plot_ages *= np.random.normal(1, 0.1, len(plot_ages))
 
 # then plot and set some limits
-ax.scatter(plot_ages, big_catalog["crossing_time_yr"], s=5, alpha=1, c=mass_colors)
+ax.scatter(plot_ages, big_catalog["crossing_time_yr"], s=7, alpha=1, c=mass_colors)
 ax.add_labels("Age [yr]", "Crossing time [yr]")
 ax.set_xscale("log")
 ax.set_yscale("log")
