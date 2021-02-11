@@ -857,7 +857,6 @@ del fits_catalog["fractional_err+"]
 # Then we determine which clusters are good. First we do simple checks based on the
 # parameter values
 fits_catalog["not_failure"] = True
-fits_catalog["good"] = True
 masks = []
 masks.append(fits_catalog["axis_ratio_best"] > 0.3)
 masks.append(fits_catalog["scale_radius_pixels_best"] > 0.1)
@@ -875,7 +874,25 @@ for mask in masks:
 # Then we use the boundaries for the quality measure of the cumulative distribution
 mask_pass_cut = fits_catalog["profile_diff_reff"] < 0.06421443429077568
 # then combine them all together
-fits_catalog["good"] = np.logical_and(fits_catalog["not_failure"], mask_pass_cut)
+fits_catalog["good_radius"] = np.logical_and(fits_catalog["not_failure"], mask_pass_cut)
+
+# also add a flag indicating which ones have reliable masses
+# I did investigate some weird errors that are present. There are clusters with a
+# a fitted mass but zeros for the min and max. Throw those out. Also throw out ones
+# where the error range is improper (i.e. the min is higher than the best fit). I also
+# require the age to be nonzero. I don't ever use the age errors, so I don't require
+# the same proper error intervals.
+fits_catalog["good_fit"] = np.logical_and.reduce(
+    [
+        fits_catalog["mass_msun"] > 0,
+        fits_catalog["age_yr"] > 0,
+        fits_catalog["mass_msun_max"] > 0,
+        fits_catalog["mass_msun_min"] > 0,
+        fits_catalog["mass_msun_min"] <= fits_catalog["mass_msun"],
+        fits_catalog["mass_msun_max"] >= fits_catalog["mass_msun"],
+        fits_catalog["Q_probability"] > 1e-3,
+    ]
+)
 
 # Then add one back to the output catalog to be comparable to LEGUS results. This is
 # because of Python being zero indexed

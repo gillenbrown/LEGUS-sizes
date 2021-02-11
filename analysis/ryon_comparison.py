@@ -120,7 +120,7 @@ for field, cat in matches.items():
     # NGC628-e: 27
     # using print statements here I get the same thing
     # if we're using my full method, I don't need to do my restriction on slope
-    my_mask_good = cat["good"]
+    my_mask_good = cat["good_radius"]
     if full_ryon:
         my_mask_good = np.logical_and(cat["power_law_slope_best"] >= 1.3, my_mask_good)
 

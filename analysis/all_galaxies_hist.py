@@ -28,19 +28,8 @@ galaxy_catalogs = dict()
 for item in sys.argv[2:]:
     cat = table.Table.read(item, format="ascii.ecsv")
 
-    # throw out some clusters. - same ones as MRR does
-    mask = np.logical_and.reduce(
-        [
-            cat["good"],
-            # cat["mass_msun"] > 0,
-            # cat["mass_msun_max"] > 0,
-            # cat["mass_msun_min"] > 0,
-            # cat["mass_msun_min"] <= cat["mass_msun"],
-            # cat["mass_msun_max"] >= cat["mass_msun"],
-            # cat["Q_probability"] > 1e-3,
-        ]
-    )
-    cat = cat[mask]
+    # restrict to the clusters with reliable radii
+    cat = cat[cat["good_radius"]]
 
     # calculate the mean error in log space, will be used for the KDE smothing
     r_eff = cat["r_eff_pc_rmax_15pix_best"]

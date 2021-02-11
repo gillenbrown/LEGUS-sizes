@@ -58,7 +58,7 @@ def get_r_percentiles_unique_values(radii, ages, percentile):
     return unique_ages, radii_percentiles
 
 
-mask = big_catalog["good"]
+mask = big_catalog["good_radius"]
 
 print(f"Clusters with good fits: {np.sum(mask)}")
 

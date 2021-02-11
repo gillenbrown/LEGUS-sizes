@@ -186,7 +186,7 @@ psf_sizes = {home_dir: measure_psf_reff(home_dir) for home_dir in catalogs}
 #
 # ======================================================================================
 def get_iqr_string(cat):
-    mask = cat["good"]
+    mask = cat["good_radius"]
     r_eff = cat["r_eff_pc_rmax_15pix_best"][mask]
     values = np.percentile(r_eff, [25, 50, 75])
     return f"{values[0]:.2f} --- {values[1]:.2f} --- {values[2]:.2f}"

@@ -27,7 +27,10 @@ for item in sys.argv[2:]:
     cat["r_eff_min"] = cat["r_eff_pc_rmax_15pix_best"] - cat["r_eff_pc_rmax_15pix_e-"]
     cat["r_eff_max"] = cat["r_eff_pc_rmax_15pix_best"] + cat["r_eff_pc_rmax_15pix_e+"]
 
-    if np.sum(cat["good"]) > 200:
+    # restrict to only clusters with good radii
+    cat = cat[cat["good_radius"]]
+
+    if len(cat) > 200:
         long_catalogs[galaxy_name] = cat
     else:
         short_catalogs.append(cat)
@@ -57,18 +60,18 @@ fig, ax = bpl.subplots()
 for galaxy in long_catalogs:
     cat = long_catalogs[galaxy]
     ax.plot(
-        *error_hist(cat["r_eff_min"][cat["good"]], cat["r_eff_max"][cat["good"]]),
+        *error_hist(cat["r_eff_min"], cat["r_eff_max"]),
         lw=2,
-        label=f"{galaxy.upper()}, N={np.sum(cat['good'])}",
+        label=f"{galaxy.upper()}, N={len(cat)}",
     )
 ax.plot(
     *error_hist(
-        all_short_catalog["r_eff_min"][all_short_catalog["good"]],
-        all_short_catalog["r_eff_max"][all_short_catalog["good"]],
+        all_short_catalog["r_eff_min"],
+        all_short_catalog["r_eff_max"],
     ),
     lw=2,
     c=bpl.color_cycle[6],
-    label=f"All Other Fields, N={np.sum(all_short_catalog['good'])}",
+    label=f"All Other Fields, N={len(all_short_catalog)}",
 )
 # ax.plot(
 #     *error_hist(

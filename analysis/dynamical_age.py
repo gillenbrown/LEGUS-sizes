@@ -29,18 +29,8 @@ catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[2:]
 # then stack them together in one master catalog
 big_catalog = table.vstack(catalogs, join_type="inner")
 
-# throw out some clusters. - same ones as MRR does
-mask = np.logical_and.reduce(
-    [
-        big_catalog["good"],
-        big_catalog["mass_msun"] > 0,
-        big_catalog["mass_msun_max"] > 0,
-        big_catalog["mass_msun_min"] > 0,
-        big_catalog["mass_msun_min"] <= big_catalog["mass_msun"],
-        big_catalog["mass_msun_max"] >= big_catalog["mass_msun"],
-        big_catalog["Q_probability"] > 1e-3,
-    ]
-)
+# restrict to clusters with good masses and radii
+mask = np.logical_and(big_catalog["good_radius"], big_catalog["good_fit"])
 big_catalog = big_catalog[mask]
 
 # then calculate the dynamical age
