@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 from astropy import table
 import numpy as np
+from scipy import stats
 import betterplotlib as bpl
 
 bpl.set_style()
@@ -137,12 +138,19 @@ for idx, galaxy in enumerate(sorted_galaxies):
         zorder=4,
         c=bpl.color_cycle[0],
     )
+    # calculate the KS test value. Compare them to NGC5194 each time
+    pvalue = stats.ks_2samp(
+        cat["r_eff_pc_rmax_15pix_best"],
+        galaxy_catalogs["ngc5194"]["r_eff_pc_rmax_15pix_best"],
+        alternative="two-sided",
+    )[1]
+
     ax.set_xscale("log")
     ax.set_limits(0.1, 25, 0, 1.0)
     ax.set_xticks([0.1, 1, 10])
     ax.set_xticklabels(["0.1", "1", "10"])
     ax.add_labels("$R_{eff}$ [pc]", "Normalized KDE Density")
-    ax.easy_add_text(f"{galaxy.upper()}\nN={len(cat)}", "upper left")
+    ax.easy_add_text(f"{galaxy.upper()}\nN={len(cat)}\nP={pvalue:.3g}", "upper left")
 # last axis isn't needed, we only have 31 galaxies
 axs[-1].axis("off")
 
