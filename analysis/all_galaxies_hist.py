@@ -57,32 +57,33 @@ for item in sys.argv[2:]:
         else:
             galaxy_catalogs[galaxy] = galaxy_table
 
-# Then figure out which galaxies to independently plot, and which to throw in an
-# "other" category
-long_catalogs = dict()
-short_catalogs = []
+# I will have two panels. One will show galaxies with similar radius distributions, the
+# other will show ones that deviate. Each panel will have an "other galaxies" category,
+# but this "other galaxies" category must be different between the two panels, as the
+# sample is different. I have the galaxies manually listed here, but this includes all
+# galaxies with more than 180 clusters with well-measured radii. They are also listed
+# in order of decreasing cluster number, making them easier to plot
+galaxies_1 = ["ngc5194", "ngc628", "ngc1313", "ngc4449"]  # , "ngc3344"]
+galaxies_2 = ["ngc1566", "ngc7793"]
+
+individual_cats = dict()
+other_cats_1 = []
+other_cats_2 = []
 all_catalogs = []
 for galaxy, cat in galaxy_catalogs.items():
     all_catalogs.append(cat)
-    # pick galaxies with the most clusters. But I exclude NGC 3344, so that I can plot
-    # less galaxies total and still include NGC7793
-    if len(cat) > 180 and galaxy not in ["ngc3344", "ngc4449"]:
-        long_catalogs[cat["galaxy"][0]] = cat
-    else:
-        short_catalogs.append(cat)
+    # if it's one of the ones to save, save it
+    if galaxy in galaxies_1 or galaxy in galaxies_2:
+        individual_cats[cat["galaxy"][0]] = cat
+    # separately determine the "other" category
+    if galaxy not in galaxies_1 and galaxy not in galaxies_2:
+        other_cats_1.append(cat)
+    if galaxy not in galaxies_2:
+        other_cats_2.append(cat)
 
 big_catalog = table.vstack(all_catalogs, join_type="inner")
-all_short_catalog = table.vstack(short_catalogs, join_type="inner")
-
-# for those which are plotted individually, sort them by the number of clusters
-numbers = []
-individual_galaxies = []
-for galaxy, cat in long_catalogs.items():
-    individual_galaxies.append(galaxy)
-    numbers.append(len(cat))
-
-idx_sort = np.argsort(numbers)[::-1]  # largest first
-sorted_galaxies = np.array(individual_galaxies)[idx_sort]
+other_cat_1 = table.vstack(other_cats_1, join_type="inner")
+other_cat_2 = table.vstack(other_cats_2, join_type="inner")
 
 
 def gaussian(x, mean, variance):
@@ -114,19 +115,27 @@ def kde(r_eff_grid, log_r_eff, log_r_eff_err):
     return ys
 
 
-# change the color cycle used to emphasize certain clusters
-color_cycle = [
-    bpl.color_cycle[0],
-    bpl.color_cycle[1],
-    bpl.color_cycle[3],
-    bpl.color_cycle[2],
-    bpl.color_cycle[4],
-]
+# set the colors to be used on the plots
+colors = {
+    "ngc5194": bpl.color_cycle[0],
+    "ngc628": bpl.color_cycle[1],
+    "ngc1313": bpl.color_cycle[3],
+    "ngc4449": bpl.color_cycle[4],
+    "other_1": bpl.color_cycle[5],
+    "ngc1566": bpl.color_cycle[7],
+    "ngc7793": bpl.color_cycle[6],
+    "other_2": bpl.almost_black,
+}
 
-fig, ax = bpl.subplots(figsize=[7, 7])
+fig, axs = bpl.subplots(ncols=2, figsize=[14, 7])
 radii_plot = np.logspace(-1, 1.5, 300)
-for idx, galaxy in enumerate(sorted_galaxies):
-    cat = long_catalogs[galaxy]
+for idx, galaxy in enumerate(galaxies_1 + galaxies_2):
+    if galaxy in galaxies_1:
+        ax = axs[0]
+    else:
+        ax = axs[1]
+
+    cat = individual_cats[galaxy]
 
     # I want to add an extra space in the legend for NGC628
     label = f"NGC {galaxy[3:]}, "
@@ -143,55 +152,63 @@ for idx, galaxy in enumerate(sorted_galaxies):
             cat["r_eff_log"],
             cat["r_eff_log_smooth"],
         ),
-        c=color_cycle[idx],
+        c=colors[galaxy],
         lw=3,
         label=label,
         zorder=10 - idx,
     )
-ax.plot(
+# plot all other galaxies on both
+axs[0].plot(
     radii_plot,
     kde(
         radii_plot,
-        all_short_catalog["r_eff_log"],
-        all_short_catalog["r_eff_log_smooth"],
+        other_cat_1["r_eff_log"],
+        other_cat_1["r_eff_log_smooth"],
     ),
     lw=3,
-    c=bpl.color_cycle[6],
+    c=colors["other_1"],
     zorder=15,
-    label=f"All Other Galaxies, N={len(all_short_catalog)}",
+    label=f"Other Galaxies, N={len(other_cat_1)}",
 )
-# ax.plot(
-#     radii_plot,
-#     kde(
-#         radii_plot,
-#         big_catalog["r_eff_log"],
-#         big_catalog["r_eff_log_smooth"],
-#     ),
-#     lw=6,
-#     c=bpl.almost_black,
-#     zorder=20,
-#     label=f"Total, N={len(big_catalog)}",
-# )
+axs[1].plot(
+    radii_plot,
+    kde(
+        radii_plot,
+        other_cat_2["r_eff_log"],
+        other_cat_2["r_eff_log_smooth"],
+    ),
+    lw=3,
+    c=colors["other_2"],
+    zorder=15,
+    label=f"All Other Galaxies, N={len(other_cat_2)}",
+)
 
-ax.set_xscale("log")
-ax.set_limits(0.1, 20, 0, 1.3)
-ax.set_xticks([0.1, 1, 10])
-ax.set_xticklabels(["0.1", "1", "10"])
-ax.add_labels("$R_{eff}$ [pc]", "Normalized KDE Density")
-ax.legend(frameon=False, fontsize=12)
+
+for ax in axs:
+    ax.set_xscale("log")
+    ax.set_limits(0.1, 20, 0, 1.3)
+    ax.set_xticks([0.1, 1, 10])
+    ax.set_xticklabels(["0.1", "1", "10"])
+    ax.add_labels("$R_{eff}$ [pc]", "Normalized KDE Density")
+    ax.legend(frameon=False, fontsize=14, loc=2)
 
 # then add all the pixel sizes
 # have to get the real directories
 data_dir = code_home_dir / "data"
 # first set the defaults, then override some key ones. The field doesn't matter if there
 # are multiple, since the pixel size will be the same for both.
-galaxy_dirs = {galaxy: data_dir / galaxy for galaxy in sorted_galaxies}
+galaxy_dirs = {galaxy: data_dir / galaxy for galaxy in galaxies_1 + galaxies_2}
 galaxy_dirs["ngc5194"] = data_dir / "ngc5194-ngc5195-mosaic"
 galaxy_dirs["ngc628"] = data_dir / "ngc628-c"
 galaxy_dirs["ngc1313"] = data_dir / "ngc1313-e"
 galaxy_dirs["ngc7793"] = data_dir / "ngc7793-e"
 # then do what we need to do
-for idx, galaxy in enumerate(sorted_galaxies):
+for galaxy in galaxies_1 + galaxies_2:
+    if galaxy in galaxies_1:
+        ax = axs[0]
+    else:
+        ax = axs[1]
+
     pixel_size_arcsec = utils.pixels_to_arcsec(1, galaxy_dirs[galaxy])
     pixel_size_pc = utils.arcsec_to_pc_with_errors(
         galaxy_dirs[galaxy], pixel_size_arcsec, 0, 0, False
@@ -200,7 +217,7 @@ for idx, galaxy in enumerate(sorted_galaxies):
         [pixel_size_pc, pixel_size_pc],
         [0, 0.07],
         lw=3,
-        c=color_cycle[idx],
+        c=colors[galaxy],
         zorder=0,
     )
 
