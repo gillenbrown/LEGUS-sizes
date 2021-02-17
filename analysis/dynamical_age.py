@@ -58,9 +58,9 @@ fig, ax = bpl.subplots()
 # cmap = cm.get_cmap("gist_earth_r")
 # cmap = cmocean.cm.thermal_r
 # cmap = cmocean.tools.crop_by_percent(cmap, 20, "min")
-# make a custom colormap based on two colormaps
-# https://colorbrewer2.org/#type=diverging&scheme=RdBu&n=4
-cmap_colors = ["#762a83", "#af8dc3", "#7fbf7b", "#1b7837"][::-1]
+# make a custom colormap madee manually by taking colors from
+# https://sashamaps.net/docs/resources/20-colors/ and fading them
+cmap_colors = ["#f58231", "#FFAC71", "#8BA4FD", "#4363d8"]
 cmap = colors.ListedColormap(colors=cmap_colors, name="")
 norm = colors.LogNorm(vmin=1e3, vmax=1e5)
 mappable = cm.ScalarMappable(cmap=cmap, norm=norm)
