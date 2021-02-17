@@ -55,15 +55,19 @@ print(
 # ======================================================================================
 fig, ax = bpl.subplots()
 # make the colormap for masses
-cmap = cm.get_cmap("gist_earth_r")
+# cmap = cm.get_cmap("gist_earth_r")
 # cmap = cmocean.cm.thermal_r
-cmap = cmocean.tools.crop_by_percent(cmap, 20, "min")
+# cmap = cmocean.tools.crop_by_percent(cmap, 20, "min")
+# make a custom colormap based on two colormaps
+# https://colorbrewer2.org/#type=diverging&scheme=RdBu&n=4
+cmap_colors = ["#762a83", "#af8dc3", "#7fbf7b", "#1b7837"][::-1]
+cmap = colors.ListedColormap(colors=cmap_colors, name="")
 norm = colors.LogNorm(vmin=1e3, vmax=1e5)
 mappable = cm.ScalarMappable(cmap=cmap, norm=norm)
 mass_colors = mappable.to_rgba(big_catalog["mass_msun"])
 # perturb the ages slightly for plotting purposes
 plot_ages = big_catalog["age_yr"]
-plot_ages *= np.random.normal(1, 0.1, len(plot_ages))
+plot_ages *= np.random.normal(1, 0.15, len(plot_ages))
 
 # then plot and set some limits
 ax.scatter(plot_ages, big_catalog["crossing_time_yr"], s=7, alpha=1, c=mass_colors)
@@ -76,10 +80,10 @@ cbar.set_label("Mass [$M_\odot$]")
 
 # add the line for boundedness and label it. Have to use the limits to determine the
 # proper rotation of the labels
-ax.plot([1, 1e12], [1, 1e12], ls="--", lw=2, c=bpl.almost_black, zorder=0)
+ax.plot([1, 1e12], [1, 1e12], lw=2, c=bpl.almost_black, zorder=0)
 frac = 1.2
-center = 3e5
-shared = {"ha": "center", "va": "center", "rotation": 51, "fontsize": 16}
+center = 4e5
+shared = {"ha": "center", "va": "center", "rotation": 51, "fontsize": 20}
 ax.add_text(x=center * frac, y=center / frac, text="Bound", **shared)
 ax.add_text(x=center / frac, y=center * frac, text="Unbound", **shared)
 
