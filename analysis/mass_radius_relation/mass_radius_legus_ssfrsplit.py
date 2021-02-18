@@ -56,8 +56,8 @@ fig, ax = bpl.subplots()
 for mask_ssfr, name, color in zip(
     [mask_lo_ssfr, mask_hi_ssfr],
     [
-        "sSFR $< 3 \\times 10^{-10} {\\rm yr}^{-1}$",
-        "sSFR $\geq 3 \\times 10^{-10} {\\rm yr}^{-1}$",
+        "sSFR $< 3 \\times 10^{-10}\,{\\rm yr}^{-1}$",
+        "sSFR $\geq 3 \\times 10^{-10}\,{\\rm yr}^{-1}$",
     ],
     [bpl.color_cycle[3], bpl.color_cycle[0]],
 ):

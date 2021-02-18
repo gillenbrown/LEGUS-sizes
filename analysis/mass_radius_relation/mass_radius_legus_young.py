@@ -51,7 +51,7 @@ mru_p.plot_best_fit_line(ax, fit, 1e2, 1e5, color=bpl.color_cycle[1])
 mru_p.format_mass_size_plot(ax)
 fig.savefig(plot_name)
 
-mru.write_fit_results(fit_out_file, "1 Myr - 1 Gyr", fit, fit_history, mass)
+mru.write_fit_results(fit_out_file, "1 Myr -- 1 Gyr", fit, fit_history, mass)
 
 # finalize output file
 fit_out_file.close()

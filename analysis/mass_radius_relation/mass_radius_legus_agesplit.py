@@ -34,7 +34,7 @@ mask_old = np.logical_and(age >= 1e8, age < 1e9)
 fig, ax = bpl.subplots()
 for age_mask, name, color, zorder in zip(
     [mask_young, mask_med, mask_old],
-    ["Age: 1-10 Myr", "Age: 10-100 Myr", "Age: 100 Myr - 1 Gyr"],
+    ["Age: 1--10 Myr", "Age: 10--100 Myr", "Age: 100 Myr -- 1 Gyr"],
     [bpl.color_cycle[0], bpl.color_cycle[5], bpl.color_cycle[3]],
     [1, 3, 2],
 ):
@@ -61,7 +61,7 @@ for age_mask, name, color, zorder in zip(
         1e5,
         color,
         fill=False,
-        label=f"{name}, N={np.sum(age_mask)}",
+        label=f"{name.replace('--', '-')}, N={np.sum(age_mask)}",
         ls=":",
     )
     mru.write_fit_results(fit_out_file, name, fit, fit_history, mass[age_mask])
