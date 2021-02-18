@@ -12,6 +12,7 @@ import numpy as np
 from scipy import optimize
 from astropy import constants as c
 from astropy import units as u
+from astropy import table
 
 import betterplotlib as bpl
 
@@ -20,11 +21,30 @@ bpl.set_style()
 # import some utils from the mass radius relation
 mrr_dir = Path(__file__).resolve().parent / "mass_radius_relation"
 sys.path.append(str(mrr_dir))
+import mass_radius_utils as mru
 import mass_radius_utils_plotting as mru_p
 
 # Get the input arguments
 plot_name = Path(sys.argv[1])
 fit_table_loc = Path(sys.argv[2])
+
+# ======================================================================================
+#
+# handle catalogs
+#
+# ======================================================================================
+big_catalog = mru.make_big_table(sys.argv[3:])
+# Filter out clusters older than 1 Gyr
+mask = big_catalog["age_yr"] < 1e9
+mass_obs = mru.get_my_masses(big_catalog, mask)[0] * u.Msun
+r_eff_obs = mru.get_my_radii(big_catalog, mask)[0] * u.pc
+age_obs = mru.get_my_ages(big_catalog, mask)[0] * u.yr
+
+# Then do several splits by age
+mask_young = age_obs < 1e7 * u.yr
+mask_med = np.logical_and(age_obs >= 1e7 * u.yr, age_obs < 1e8 * u.yr)
+mask_old = np.logical_and(age_obs >= 1e8 * u.yr, age_obs < 1e9 * u.yr)
+mask_medold = np.logical_or(mask_med, mask_old)
 
 # ======================================================================================
 #
@@ -54,9 +74,9 @@ with open(fit_table_loc, "r") as in_file:
         if is_fit_line(line):
             name, beta, r_4 = get_fit_from_line(line)
             if "Age: " in name:
-                if "1-10" in name:
+                if "1--10" in name:
                     name = "age1"
-                elif "10-100" in name:
+                elif "10--100" in name:
                     name = "age2"
                 elif "100 Myr" in name:
                     name = "age3"
@@ -131,6 +151,27 @@ def gieles_etal_10_evolution(initial_radius, initial_mass, time):
     m_final = m0 * (t / t_star) ** (-delta)
     return m_final.to(u.Msun), r_final.to(u.pc)
 
+
+# ======================================================================================
+# duplicate plot from paper to validate this prescription
+# ======================================================================================
+test_mass_initial = np.logspace(3, 10, 100) * u.Msun
+test_r_initial = 10 ** (-3.560 + 0.615 * np.log10(test_mass_initial.to("Msun").value))
+test_r_initial *= u.pc
+
+fig, ax = bpl.subplots(figsize=[7, 7])
+ax.plot(test_mass_initial, test_r_initial, label="Initial")
+# then  go through the different ages
+for age in [10 * u.Myr, 100 * u.Myr, 1 * u.Gyr, 10 * u.Gyr]:
+    this_m, this_r = gieles_etal_10_evolution(test_r_initial, test_mass_initial, age)
+    ax.plot(this_m, this_r, label=age)
+
+ax.add_labels("Mass", "Radius")
+ax.set_xscale("log")
+ax.set_yscale("log")
+ax.set_limits(1e3, 3e8, 0.1, 300)
+ax.legend()
+fig.savefig("test_g10.png")
 
 # ======================================================================================
 #
@@ -302,42 +343,82 @@ ax.plot(
     zorder=0,
 )
 
-ax.add_labels("logM", "log rho")
+ax.add_labels("Mass [$M_\odot$]", "Density [$M_\odot / pc^3$]")
 ax.set_xscale("log")
 ax.set_yscale("log")
 ax.set_limits(1e2, 1e6, 0.1, 1e4)
 ax.legend()
-fig.savefig("test_gieles.png")
+fig.savefig("test_g16.png")
 
 # ======================================================================================
 #
-# Run clusters through this evolution
+# Run clusters through this evolution - for both mean relation and full clusters
 #
 # ======================================================================================
-mass_initial = np.logspace(3, 5, 100) * u.Msun
-reff_observed_bin1 = mass_size_relation(mass_initial, *fits["age1"])
-reff_observed_bin2 = mass_size_relation(mass_initial, *fits["age2"])
-reff_observed_bin3 = mass_size_relation(mass_initial, *fits["age3"])
+mass_toy = np.logspace(2.5, 5, 100) * u.Msun
+reff_bin1_toy = mass_size_relation(mass_toy, *fits["age1"])
+reff_bin2_toy = mass_size_relation(mass_toy, *fits["age2"])
+reff_bin3_toy = mass_size_relation(mass_toy, *fits["age3"])
 
-m_g10_30myr, r_g10_30myr = gieles_etal_10_evolution(
-    reff_observed_bin1, mass_initial, 30 * u.Myr
+
+# 2010 model
+m_g10_300myr_toy, r_g10_300myr_toy = gieles_etal_10_evolution(
+    reff_bin1_toy, mass_toy, 300 * u.Myr
 )
-m_g10_300myr, r_g10_300myr = gieles_etal_10_evolution(
-    reff_observed_bin1, mass_initial, 300 * u.Myr
+m_g10_300myr_obs, r_g10_300myr_obs = gieles_etal_10_evolution(
+    r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr
 )
 
-t_history, M_history, rho_history, r_history = gieles_etal_16_evolution(
-    reff_observed_bin1, mass_initial, 300 * u.Myr
-)
-idx_30 = np.where(t_history == 30 * u.Myr)[0]
-idx_300 = np.where(t_history == 300 * u.Myr)[0]
 
+# then the 2016 model
+t_history_toy, M_history_toy, rho_history_toy, r_history_toy = gieles_etal_16_evolution(
+    reff_bin1_toy, mass_toy, 300 * u.Myr
+)
+idx_300 = np.where(t_history_toy == 300 * u.Myr)[0]
 # not sure why this extra index is needed
-m_g16_30myr = M_history[idx_30][0]
-m_g16_300myr = M_history[idx_300][0]
-r_g16_30myr = r_history[idx_30][0]
-r_g16_300myr = r_history[idx_300][0]
+m_g16_300myr_toy = M_history_toy[idx_300][0]
+r_g16_300myr_toy = r_history_toy[idx_300][0]
 
+# then do the same for the full clusters
+t_history_obs, M_history_obs, rho_history_obs, r_history_obs = gieles_etal_16_evolution(
+    r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr
+)
+idx_300 = np.where(t_history_obs == 300 * u.Myr)[0]
+# not sure why this extra index is needed
+m_g16_300myr_obs = M_history_obs[idx_300][0]
+r_g16_300myr_obs = r_history_obs[idx_300][0]
+
+# ======================================================================================
+#
+# Have an initial mass-radius relation that gets fed through G10 to reproduce 1-10Myr
+#
+# ======================================================================================
+# put these through G10 to 10 Myr - the oldest possible in the first bin, to get the
+# most evolution (since it's quite small)
+initial_age = 10 * u.Myr
+
+
+def diff_initial_relation(params):
+    r_4, beta = params
+    r_initial_toy = mass_size_relation(mass_toy, r_4, beta)
+    m_g10_evolved_toy, r_g10_evolved_toy = gieles_etal_10_evolution(
+        r_initial_toy, mass_toy, initial_age
+    )
+    # put these masses through the initial relation to compare
+    r_comparison = mass_size_relation(m_g10_evolved_toy, *fits["age1"])
+
+    log_r = np.log10(r_g10_evolved_toy.to("pc").value)
+    log_r_comp = np.log10(r_comparison.to("pc").value)
+    return np.sum((log_r - log_r_comp) ** 2)
+
+
+initial_r_4, initial_beta = optimize.minimize(diff_initial_relation, x0=(1, 0.2)).x
+# make a line from this
+r_initial = mass_size_relation(mass_toy, initial_r_4, initial_beta)
+# and the evolved relation
+m_initial_to_10, r_initial_to_10 = gieles_etal_10_evolution(
+    r_initial, mass_toy, initial_age
+)
 # ======================================================================================
 #
 # Simple fitting routine to get the parameters of resulting relations
@@ -387,68 +468,94 @@ def format_params(base_label, beta, r_4):
     return f"{base_label} - $\\beta={beta:.3f}, r_4={r_4:.3f}$"
 
 
-fig, ax = bpl.subplots()
-ax.plot(
-    mass_initial,
-    reff_observed_bin1,
-    c=bpl.color_cycle[0],
-    label=format_params("Age: 1-10 Myr Observed", *fits["age1"]),
+fig, axs = bpl.subplots(ncols=2, figsize=[20, 7])
+# plot the contours and the mean relation evolution for each model.
+# Start with observed young data set
+mru_p.plot_mass_size_dataset_contour(
+    axs[1],
+    mass_obs[mask_young].to("Msun").value,
+    r_eff_obs[mask_young].to("pc").value,
+    bpl.fade_color(bpl.color_cycle[0]),
+    zorder=0,
 )
-# ax.plot(
-#     mass_initial,
-#     reff_observed_bin2,
-#     c=colors["med"],
-#     label=format_params("Age: 10-100 Myr Observed", *fits["age2"]),
-# )
-ax.plot(
-    mass_initial,
-    reff_observed_bin3,
+for ax in axs:
+    ax.plot(
+        mass_toy,
+        reff_bin1_toy,
+        c=bpl.color_cycle[0],
+        lw=5,
+        label=format_params("Age: 1-10 Myr Observed", *fits["age1"]),
+    )
+# then observed old data set
+mru_p.plot_mass_size_dataset_contour(
+    axs[1],
+    mass_obs[mask_old].to("Msun").value,
+    r_eff_obs[mask_old].to("pc").value,
+    bpl.fade_color(bpl.color_cycle[3]),
+    zorder=0,
+)
+axs[1].plot(
+    mass_toy,
+    reff_bin3_toy,
     c=bpl.color_cycle[3],
+    lw=5,
     label=format_params("Age: 100 Myr - 1 Gyr Observed", *fits["age3"]),
 )
 
-# ax.plot(
-#     m_g10_30myr,
-#     r_g10_30myr,
-#     c=colors["med"],
-#     ls=":",
-#     label=format_params(
-#         "Gieles+ 2010 - 30 Myr",
-#         *fit_mass_size_relation(m_g10_30myr, r_g10_30myr),
-#     ),
-# )
-
-ax.plot(
-    m_g10_300myr,
-    r_g10_300myr,
-    c=bpl.color_cycle[2],
+# then the Gieles+2010 model
+mru_p.plot_mass_size_dataset_contour(
+    axs[1],
+    m_g10_300myr_obs.to("Msun").value,
+    r_g10_300myr_obs.to("pc").value,
+    bpl.fade_color(bpl.color_cycle[5]),
+    zorder=0,
+)
+axs[1].plot(
+    m_g10_300myr_toy,
+    r_g10_300myr_toy,
+    c=bpl.color_cycle[5],
+    lw=5,
     label=format_params(
         "Gieles+ 2010 - 300 Myr",
-        *fit_mass_size_relation(m_g10_300myr, r_g10_300myr),
+        *fit_mass_size_relation(m_g10_300myr_toy, r_g10_300myr_toy),
     ),
 )
-
-# ax.plot(
-#     m_g16_30myr,
-#     r_g16_30myr,
-#     c=colors["med"],
-#     ls="--",
-#     label=format_params(
-#         "Gieles+ 2016 - 30 Myr",
-#         *fit_mass_size_relation(m_g16_30myr, r_g16_30myr),
-#     ),
-# )
-
-ax.plot(
-    m_g16_300myr,
-    r_g16_300myr,
+# Then the Gieles+2016 model
+mru_p.plot_mass_size_dataset_contour(
+    axs[1],
+    m_g16_300myr_obs.to("Msun").value,
+    r_g16_300myr_obs.to("pc").value,
+    bpl.fade_color(bpl.color_cycle[4]),
+    zorder=0,
+)
+axs[1].plot(
+    m_g16_300myr_toy,
+    r_g16_300myr_toy,
     c=bpl.color_cycle[4],
+    lw=5,
     label=format_params(
         "Gieles+ 2016 - 300 Myr",
-        *fit_mass_size_relation(m_g16_300myr, r_g16_300myr),
+        *fit_mass_size_relation(m_g16_300myr_toy, r_g16_300myr_toy),
     ),
 )
+# plot the determined initial values
+axs[0].plot(
+    mass_toy,
+    r_initial,
+    c=bpl.color_cycle[1],
+    lw=5,
+    label=format_params("Initial Relation", initial_r_4, initial_beta),
+)
+axs[0].plot(
+    m_initial_to_10,
+    r_initial_to_10,
+    c=bpl.color_cycle[2],
+    lw=5,
+    label="Initial Relation Evolved to 10 Myr",
+)
 
-mru_p.format_mass_size_plot(ax)
-ax.legend(loc=3, fontsize=12)
+for ax in axs:
+    mru_p.format_mass_size_plot(ax)
+axs[0].legend(loc=2, fontsize=16)
+axs[1].legend(loc=4, fontsize=14)
 fig.savefig(plot_name)

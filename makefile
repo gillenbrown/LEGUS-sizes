@@ -146,7 +146,7 @@ all_fields_hist_plot = $(local_plots_dir)all_fields.pdf
 all_galaxies_plot = $(local_plots_dir)all_galaxies.pdf
 all_galaxies_iso_plot = $(local_plots_dir)all_galaxies_isolate.pdf
 dynamical_age_plot = $(local_plots_dir)dynamical_age.pdf
-toy_model_plot = $(local_plots_dir)age_toy_model.pdf
+toy_model_plot = $(local_plots_dir)age_toy_model.png
 example_fit_plot = $(local_plots_dir)example_fit.pdf
 fit_quality_plot = $(local_plots_dir)fit_quality.pdf
 # lots of mass size versions, all done separately
@@ -305,7 +305,7 @@ $(dynamical_age_plot): $(final_cats) $(dynamical_age_script)
 	python $(dynamical_age_script) $@ $(final_cats)
 
 $(toy_model_plot): $(toy_model_script) $(mass_radius_table)
-	python $(toy_model_script) $@ $(mass_radius_table)
+	python $(toy_model_script) $@ $(mass_radius_table) $(final_cats)
 
 $(example_fit_plot): $(final_cats) $(example_plot_script)
 	python $(example_plot_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) $(fit_region_size)
