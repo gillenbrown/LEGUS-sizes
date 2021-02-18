@@ -11,13 +11,18 @@ import sys
 from pathlib import Path
 from astropy import table
 import numpy as np
-from scipy import stats
+from scipy import stats, interpolate
 import betterplotlib as bpl
 
 bpl.set_style()
 
-# Here I put each galaxy into its own table. This is a bit tricky since some are split
-# between fields, and one field is a mosaic with multiple galaxies.
+# ======================================================================================
+#
+# Here I put each galaxy into its own table.
+#
+# ======================================================================================
+# This is a bit tricky since some are split between fields, and one field is a
+# mosaic with multiple galaxies.
 plot_name = Path(sys.argv[1])
 galaxy_catalogs = dict()
 
@@ -53,10 +58,41 @@ for item in sys.argv[2:]:
         else:
             galaxy_catalogs[galaxy] = galaxy_table
 
-# I individually plot all galaxies, but also have the total
-big_catalog = table.vstack(list(galaxy_catalogs.values()), join_type="inner")
+# ======================================================================================
+#
+# Make the stacked table and it's CDF for use in the KS test later
+#
+# ======================================================================================
+# I individually plot all galaxies, but also have the "normal" population, which is the
+# sum of all galaxies other than NGC7793 and NGC1566
+normal_cats = [
+    cat
+    for galaxy, cat in galaxy_catalogs.items()
+    if galaxy not in ["ngc7793", "ngc1566", "ngc4395"]
+    # if galaxy in ["ngc5194"]
+]
+stacked_catalog = table.vstack(normal_cats, join_type="inner")
 
-# Sort them by the number of clusters
+# With this stacked catalog, create the cumulative distribution function, which can
+# be used to calculate the KS test for individual galaxies
+def make_cumulative_histogram(values):
+    sorted_values = np.sort(values)
+    ys = np.arange(1, 1 + len(sorted_values), 1)
+    assert len(ys) == len(sorted_values)
+    return sorted_values, ys / np.max(ys)
+
+
+r_values, cdf = make_cumulative_histogram(stacked_catalog["r_eff_pc_rmax_15pix_best"])
+cdf_func = interpolate.interp1d(
+    r_values, cdf, kind="linear", bounds_error=False, fill_value=(0, 1)
+)
+
+# ======================================================================================
+#
+# Make the plot
+#
+# ======================================================================================
+# Sort the individual catalogs by the number of clusters
 numbers = []
 individual_galaxies = []
 for galaxy, cat in galaxy_catalogs.items():
@@ -109,8 +145,8 @@ for idx, galaxy in enumerate(sorted_galaxies):
         radii_plot,
         kde(
             radii_plot,
-            big_catalog["r_eff_log"],
-            big_catalog["r_eff_log_smooth"],
+            stacked_catalog["r_eff_log"],
+            stacked_catalog["r_eff_log_smooth"],
         ),
         lw=2,
         zorder=2,
@@ -127,10 +163,10 @@ for idx, galaxy in enumerate(sorted_galaxies):
         zorder=4,
         c=bpl.color_cycle[0],
     )
-    # calculate the KS test value. Compare them to NGC5194 each time
-    pvalue = stats.ks_2samp(
+    # calculate the KS test value. Compare to our base CDF each time.
+    pvalue = stats.ks_1samp(
         cat["r_eff_pc_rmax_15pix_best"],
-        galaxy_catalogs["ngc5194"]["r_eff_pc_rmax_15pix_best"],
+        cdf_func,
         alternative="two-sided",
     )[1]
 
