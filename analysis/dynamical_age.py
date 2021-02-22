@@ -34,18 +34,17 @@ mask = np.logical_and(big_catalog["good_radius"], big_catalog["good_fit"])
 big_catalog = big_catalog[mask]
 
 # then calculate the dynamical age
-big_catalog["dynamical_age"] = big_catalog["age_yr"] / big_catalog["crossing_time_yr"]
-print("bound fraction all", np.sum(big_catalog["dynamical_age"] > 1) / len(big_catalog))
+big_catalog["bound"] = big_catalog["age_yr"] > big_catalog["crossing_time_yr"]
+print("bound fraction all", np.sum(big_catalog["bound"]) / len(big_catalog))
 massive_mask = big_catalog["mass_msun"] > 5000
 print(
     "bound fraction M > 5000",
-    np.sum(big_catalog["dynamical_age"][massive_mask] > 1)
-    / len(big_catalog[massive_mask]),
+    np.sum(big_catalog["bound"][massive_mask]) / len(big_catalog[massive_mask]),
 )
 old_mask = big_catalog["age_yr"] >= 1e7
 print(
     "bound fraction age > 1e7",
-    np.sum(big_catalog["dynamical_age"][old_mask] > 1) / len(big_catalog[old_mask]),
+    np.sum(big_catalog["bound"][old_mask]) / len(big_catalog[old_mask]),
 )
 
 # ======================================================================================
@@ -88,3 +87,58 @@ ax.add_text(x=center * frac, y=center / frac, text="Bound", **shared)
 ax.add_text(x=center / frac, y=center * frac, text="Unbound", **shared)
 
 fig.savefig(plot_name)
+
+# ======================================================================================
+#
+# plot bound fraction vs mass
+#
+# ======================================================================================
+mask_all = big_catalog["age_yr"] > 0
+mask_young = big_catalog["age_yr"] < 1e7
+mask_med = np.logical_and(big_catalog["age_yr"] >= 1e7, big_catalog["age_yr"] < 1e8)
+mask_old = np.logical_and(big_catalog["age_yr"] >= 1e8, big_catalog["age_yr"] < 1e9)
+
+
+def bound_fraction(mask):
+    this_subset = big_catalog[mask]
+    mass_bins = np.logspace(2, 6, 21)
+    # then figure out which clusters are in the mass bins
+    bound_fractions = []
+    mass_centers = []
+    for idx_low in range(len(mass_bins) - 1):
+        m_lo = mass_bins[idx_low]
+        m_hi = mass_bins[idx_low + 1]
+
+        mask_lo = this_subset["mass_msun"] > m_lo
+        mask_hi = this_subset["mass_msun"] <= m_hi
+
+        this_mass_subset = this_subset[np.logical_and(mask_lo, mask_hi)]
+
+        if len(this_mass_subset) == 0:
+            continue
+
+        this_bound_fraction = np.sum(this_mass_subset["bound"]) / len(this_mass_subset)
+        bound_fractions.append(this_bound_fraction)
+
+        mass_centers.append(10 ** np.mean([np.log10(m_lo), np.log10(m_hi)]))
+
+    return mass_centers, bound_fractions
+
+
+fig, ax = bpl.subplots()
+
+for mask, name in zip(
+    [mask_all, mask_young, mask_med, mask_old],
+    ["All", "Age: 1-10 Myr", "Age: 10-100 Myr", "Age: 100 Myr - 1 Gyr"],
+):
+    plot_mass, plot_frac = bound_fraction(mask)
+    ax.plot(plot_mass, plot_frac, lw=4, label=name)
+
+# then plot and set some limits
+ax.add_labels("Mass [$M_\odot$]", "Bound Fraction")
+ax.set_xscale("log")
+ax.set_limits(1e2, 1e6, 0, 1.05)
+ax.legend()
+
+new_name = plot_name.parent / "bound_fraction.png"
+fig.savefig(new_name)
