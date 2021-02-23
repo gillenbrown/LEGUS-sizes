@@ -13,7 +13,6 @@ from astropy import table
 import numpy as np
 from matplotlib import colors
 from matplotlib import cm
-import cmocean
 import betterplotlib as bpl
 
 bpl.set_style()
@@ -23,9 +22,10 @@ bpl.set_style()
 # Load the catalogs that were passed in
 #
 # ======================================================================================
-plot_name = Path(sys.argv[1]).resolve()
+time_comp_plot_name = Path(sys.argv[1]).resolve()
+mass_dependence_plot_name = Path(sys.argv[2]).resolve()
 
-catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[2:]]
+catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[3:]]
 # then stack them together in one master catalog
 big_catalog = table.vstack(catalogs, join_type="inner")
 
@@ -33,7 +33,7 @@ big_catalog = table.vstack(catalogs, join_type="inner")
 mask = np.logical_and(big_catalog["good_radius"], big_catalog["good_fit"])
 big_catalog = big_catalog[mask]
 
-# then calculate the dynamical age
+# then determine which clusters are bound
 big_catalog["bound"] = big_catalog["age_yr"] > big_catalog["crossing_time_yr"]
 print("bound fraction all", np.sum(big_catalog["bound"]) / len(big_catalog))
 massive_mask = big_catalog["mass_msun"] > 5000
@@ -64,13 +64,14 @@ cmap = colors.ListedColormap(colors=cmap_colors, name="")
 norm = colors.LogNorm(vmin=1e3, vmax=1e5)
 mappable = cm.ScalarMappable(cmap=cmap, norm=norm)
 mass_colors = mappable.to_rgba(big_catalog["mass_msun"])
-# perturb the ages slightly for plotting purposes
-plot_ages = big_catalog["age_yr"]
+# perturb the ages slightly for plotting purposes. Copy them to avoid messing up
+# later analysis
+plot_ages = big_catalog["age_yr"].copy()
 plot_ages *= np.random.normal(1, 0.15, len(plot_ages))
 
 # then plot and set some limits
 ax.scatter(plot_ages, big_catalog["crossing_time_yr"], s=7, alpha=1, c=mass_colors)
-ax.add_labels("Age [yr]", "Crossing time [yr]")
+ax.add_labels("Age [yr]", "Crossing Time [yr]")
 ax.set_xscale("log")
 ax.set_yscale("log")
 ax.set_limits(1e5, 2e10, 1e5, 3e8)
@@ -86,7 +87,7 @@ shared = {"ha": "center", "va": "center", "rotation": 51, "fontsize": 20}
 ax.add_text(x=center * frac, y=center / frac, text="Bound", **shared)
 ax.add_text(x=center / frac, y=center * frac, text="Unbound", **shared)
 
-fig.savefig(plot_name)
+fig.savefig(time_comp_plot_name)
 
 # ======================================================================================
 #
@@ -101,7 +102,7 @@ mask_old = np.logical_and(big_catalog["age_yr"] >= 1e8, big_catalog["age_yr"] < 
 
 def bound_fraction(mask):
     this_subset = big_catalog[mask]
-    mass_bins = np.logspace(2, 6, 21)
+    mass_bins = np.logspace(2, 6, 13)
     # then figure out which clusters are in the mass bins
     bound_fractions = []
     mass_centers = []
@@ -114,7 +115,7 @@ def bound_fraction(mask):
 
         this_mass_subset = this_subset[np.logical_and(mask_lo, mask_hi)]
 
-        if len(this_mass_subset) == 0:
+        if len(this_mass_subset) < 10:
             continue
 
         this_bound_fraction = np.sum(this_mass_subset["bound"]) / len(this_mass_subset)
@@ -127,18 +128,20 @@ def bound_fraction(mask):
 
 fig, ax = bpl.subplots()
 
-for mask, name in zip(
+for mask, name, color, zorder in zip(
     [mask_all, mask_young, mask_med, mask_old],
     ["All", "Age: 1-10 Myr", "Age: 10-100 Myr", "Age: 100 Myr - 1 Gyr"],
+    [bpl.color_cycle[2], bpl.color_cycle[0], bpl.color_cycle[5], bpl.color_cycle[3]],
+    [10, 5, 6, 7],
 ):
     plot_mass, plot_frac = bound_fraction(mask)
-    ax.plot(plot_mass, plot_frac, lw=4, label=name)
+    ax.plot(plot_mass, plot_frac, lw=5, c=color, label=name, zorder=zorder)
 
-# then plot and set some limits
-ax.add_labels("Mass [$M_\odot$]", "Bound Fraction")
+    # then plot and set some limits
+    ax.add_labels("Mass [$M_\odot$]", "Fraction of Bound Clusters")
 ax.set_xscale("log")
 ax.set_limits(1e2, 1e6, 0, 1.05)
 ax.legend()
+ax.axhline(1.0, ls=":", lw=1, zorder=0)
 
-new_name = plot_name.parent / "bound_fraction.png"
-fig.savefig(new_name)
+fig.savefig(mass_dependence_plot_name)

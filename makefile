@@ -146,6 +146,7 @@ all_fields_hist_plot = $(local_plots_dir)all_fields.pdf
 all_galaxies_plot = $(local_plots_dir)all_galaxies.pdf
 all_galaxies_iso_plot = $(local_plots_dir)all_galaxies_isolate.pdf
 dynamical_age_plot = $(local_plots_dir)dynamical_age.pdf
+bound_fraction_plot = $(local_plots_dir)bound_fraction.pdf
 toy_model_plot = $(local_plots_dir)age_toy_model.png
 example_fit_plot = $(local_plots_dir)example_fit.pdf
 fit_quality_plot = $(local_plots_dir)fit_quality.pdf
@@ -168,8 +169,8 @@ mass_radius_table = $(local_plots_dir)mass_radius_fits_table.txt
 outputs = $(galaxy_table) $(psf_demo_image) $(psf_comp_plots) \
           $(comparison_plot_ryon) $(comparison_plot_full) \
           $(param_dist_plot) $(all_fields_hist_plot) $(all_galaxies_plot) \
-          $(all_galaxies_iso_plot) $(dynamical_age_plot) $(fit_quality_plot) \
-          $(toy_model_plot) \
+          $(all_galaxies_iso_plot) $(dynamical_age_plot) $(bound_fraction_plot) \
+          $(fit_quality_plot) $(toy_model_plot) \
           $(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) \
           $(mass_radius_legus_young_plot) $(mass_radius_legus_young_txt) \
           $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_agesplit_txt) \
@@ -301,8 +302,8 @@ $(all_galaxies_plot): $(final_cats) $(all_galaxies_script)
 $(all_galaxies_iso_plot): $(final_cats) $(all_galaxies_iso_script)
 	python $(all_galaxies_iso_script) $@ $(final_cats)
 
-$(dynamical_age_plot): $(final_cats) $(dynamical_age_script)
-	python $(dynamical_age_script) $@ $(final_cats)
+$(dynamical_age_plot) $(bound_fraction_plot) &: $(final_cats) $(dynamical_age_script)
+	python $(dynamical_age_script) $(dynamical_age_plot) $(bound_fraction_plot) $(final_cats)
 
 $(toy_model_plot): $(toy_model_script) $(mass_radius_table)
 	python $(toy_model_script) $@ $(mass_radius_table) $(final_cats)
