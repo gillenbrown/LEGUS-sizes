@@ -407,7 +407,7 @@ def gieles_etal_16_evolution_no_mass_loss(initial_radius, mass, end_time):
 # function of time. I then can assume the effective radius is proportional to the
 # tidal radius. This gives:
 # dM / M = -dt (f_sh / tau_sh + f_rlx * zeta / tau_rh)
-def gieles_etal_16_evolution_tidal_prop(initial_radius, initial_mass, end_time):
+def gieles_etal_16_evolution_tidal_prop(initial_radius, initial_mass, end_time, f_rlx):
     # use shorthands for the initial values
     r_i = initial_radius
     M_i = initial_mass
@@ -415,7 +415,6 @@ def gieles_etal_16_evolution_tidal_prop(initial_radius, initial_mass, end_time):
 
     # assume some values for mass loss
     f_sh = 3
-    f_rlx = 0.5
 
     dt = 1 * u.Myr
     t_now = 0 * u.Myr
@@ -442,6 +441,61 @@ def gieles_etal_16_evolution_tidal_prop(initial_radius, initial_mass, end_time):
 
         # assume radius is proportional to tidal radius
         r_now = r_i * (M_now / M_i) ** (1 / 3)
+        t_now += dt
+
+    return r_now, M_now
+
+
+# ======================================================================================
+#
+# Functions defining the evolution according to Gieles etal 2016 modified by me
+# to include mass loss by both tides and two body relation, with no assumption
+# that the radius is proportional to tidal radius
+#
+# ======================================================================================
+# I derived these equations in my notebook. The basic idea is to start with equation 1,
+# assume a f_rlx like the last model, but then work everthing through equation 1.
+# this gives:
+# dr = (r / d) dt [(1 - 8f_sh / 3) / t_sh + zeta(1 - 8 f_rlx / 3) / (tau_rh)]
+def gieles_etal_16_evolution_rlx_loss(initial_radius, initial_mass, end_time, f_rlx):
+    # use shorthands for the initial values
+    r_i = initial_radius
+    M_i = initial_mass
+    t_end = end_time
+
+    # assume some values for mass loss
+    f_sh = 3
+
+    dt = 0.1 * u.Myr
+    t_now = 0 * u.Myr
+    r_now = r_i.copy()
+    M_now = M_i.copy()
+
+    while t_now < t_end:
+        # calculate the timescales needed
+        rho_now = calculate_density(M_now, r_now)
+        tau_sh = gieles_t_sh(rho_now)
+        # zeta is chosen to be 0.5 by G16 right at the end of section 3.2
+        zeta = 0.5
+        # kappa is needed for t_rh, G16 use the value for equal mass systems
+        kappa = 142 * u.Myr
+        tau_rh = (
+            kappa
+            * (M_now / (1e4 * u.Msun))
+            * (rho_now / (1e2 * u.Msun * u.pc ** (-3))) ** (-1 / 2)
+        )
+        # then calculate and apply the changed value
+        # mass loss is the same as the previous prescription
+        dM = -dt * M_now * (f_sh / tau_sh + zeta * f_rlx / tau_rh)
+        # but radius is more complicated
+        dr_term_1 = (1 - (8 / 3) * f_sh) / tau_sh
+        dr_term_2 = (1 - (8 / 3) * f_rlx) * zeta / tau_rh
+        dr = dt * (r_now / 3) * (dr_term_1 + dr_term_2)
+
+        # apply the changes, but don't let them go to crazy values
+        M_now = np.maximum(0.1 * u.Msun, M_now + dM)
+        r_now = np.maximum(0.01 * u.pc, r_now + dr)
+
         t_now += dt
 
     return r_now, M_now
@@ -507,20 +561,39 @@ r_g16m_300_obs = gieles_etal_16_evolution_no_mass_loss(
 # ======================================================================================
 # modified G16 such that r is proportional to tidal radius
 # ======================================================================================
+f_rlx = 0.5
 r_g16t_30_toy, m_g16t_30_toy = gieles_etal_16_evolution_tidal_prop(
-    reff_bin1_toy, mass_toy, 30 * u.Myr
+    reff_bin1_toy, mass_toy, 30 * u.Myr, f_rlx
 )
 r_g16t_30_obs, m_g16t_30_obs = gieles_etal_16_evolution_tidal_prop(
-    r_eff_obs[mask_young], mass_obs[mask_young], 30 * u.Myr
+    r_eff_obs[mask_young], mass_obs[mask_young], 30 * u.Myr, f_rlx
 )
 
 r_g16t_300_toy, m_g16t_300_toy = gieles_etal_16_evolution_tidal_prop(
-    reff_bin1_toy, mass_toy, 300 * u.Myr
+    reff_bin1_toy, mass_toy, 300 * u.Myr, f_rlx
 )
 r_g16t_300_obs, m_g16t_300_obs = gieles_etal_16_evolution_tidal_prop(
-    r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr
+    r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr, f_rlx
 )
 
+# ======================================================================================
+# modified G16 such that relaxation causes mass loss, no tidal proportionality
+# ======================================================================================
+r_g16r_30_toy, m_g16r_30_toy = gieles_etal_16_evolution_rlx_loss(
+    reff_bin1_toy, mass_toy, 300 * u.Myr, f_rlx
+)
+r_g16r_30_obs, m_g16r_30_obs = gieles_etal_16_evolution_rlx_loss(
+    r_eff_obs[mask_young], mass_obs[mask_young], 30 * u.Myr, f_rlx
+)
+
+r_g16r_300_toy, m_g16r_300_toy = gieles_etal_16_evolution_rlx_loss(
+    reff_bin1_toy, mass_toy, 300 * u.Myr, f_rlx
+)
+r_g16r_300_obs, m_g16r_300_obs = gieles_etal_16_evolution_rlx_loss(
+    r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr, f_rlx
+)
+
+print(m_g16r_300_toy - m_g16_300myr_toy)
 # ======================================================================================
 #
 # Have an initial mass-radius relation that gets fed through G10 to reproduce 1-10Myr
@@ -703,10 +776,29 @@ axs[1].plot(
     c=bpl.color_cycle[7],
     lw=5,
     label=format_params(
-        "G16 $r_{eff} \propto r_{tid}$ - 300 Myr",
+        "G16 $r_{eff} \propto r_{tid}$ - $f_{rlx}$=" + str(f_rlx) + " - 300 Myr",
         *fit_mass_size_relation(m_g16t_300_toy, r_g16t_300_toy),
     ),
 )
+# Then the Gieles+2016 modified model that's not proportional to tidal radius
+mru_p.plot_mass_size_dataset_contour(
+    axs[1],
+    m_g16r_300_obs.to("Msun").value,
+    r_g16r_300_obs.to("pc").value,
+    bpl.fade_color(bpl.color_cycle[1]),
+    zorder=0,
+)
+axs[1].plot(
+    m_g16r_300_toy,
+    r_g16r_300_toy,
+    c=bpl.color_cycle[1],
+    lw=5,
+    label=format_params(
+        "G16 $r_{eff} \\not \propto r_{tid}$ - $f_{rlx}$=" + str(f_rlx) + " - 300 Myr",
+        *fit_mass_size_relation(m_g16r_300_toy, r_g16r_300_toy),
+    ),
+)
+
 # plot the determined initial values
 axs[0].plot(
     mass_toy,
