@@ -600,30 +600,44 @@ r_g16r_300_obs, m_g16r_300_obs = gieles_etal_16_evolution_rlx_loss(
 # ======================================================================================
 # put these through G10 to 10 Myr - the oldest possible in the first bin, to get the
 # most evolution (since it's quite small)
-initial_age = 10 * u.Myr
+initial_age = np.median(age_obs[mask_young])
+print(initial_age)
 
 
 def diff_initial_relation(params):
     r_4, beta = params
-    r_initial_toy = mass_size_relation(mass_toy, r_4, beta)
-    m_g10_evolved_toy, r_g10_evolved_toy = gieles_etal_10_evolution(
-        r_initial_toy, mass_toy, initial_age
+    mass_i_fit = np.logspace(1, 6, 1000) * u.Msun
+    r_i_fit = mass_size_relation(mass_i_fit, beta, r_4)
+    # do the model for this age
+    m_g10_fit_evolved, r_g10_fit_evolved = gieles_etal_10_evolution(
+        r_i_fit, mass_i_fit, initial_age
     )
-    # put these masses through the initial relation to compare
-    r_comparison = mass_size_relation(m_g10_evolved_toy, *fits["age1"])
 
-    log_r = np.log10(r_g10_evolved_toy.to("pc").value)
-    log_r_comp = np.log10(r_comparison.to("pc").value)
-    return np.sum((log_r - log_r_comp) ** 2)
+    m_g10_fit_evolved = m_g10_fit_evolved.to("Msun").value
+    log_r_g10_fit_evolved = np.log10(r_g10_fit_evolved.to("pc").value)
+
+    # then go through each mass and radius to see the difference based on the
+    # predicted value
+    diffs = 0
+    for m_o, r_o in zip(mass_obs[mask_young], r_eff_obs[mask_young]):
+        log_r_o = np.log10(r_o.to("pc").value)
+        m_o = m_o.to("Msun").value
+
+        # find the radius that's the best fit
+        idx = np.argmin(np.abs(m_g10_fit_evolved - m_o))
+        diffs += (log_r_o - log_r_g10_fit_evolved[idx]) ** 2
+
+    return diffs
 
 
-initial_r_4, initial_beta = optimize.minimize(diff_initial_relation, x0=(1, 0.2)).x
+initial_r_4, initial_beta = optimize.minimize(diff_initial_relation, x0=(2, 0.2)).x
 # make a line from this
-r_initial = mass_size_relation(mass_toy, initial_r_4, initial_beta)
+r_initial = mass_size_relation(mass_toy, initial_beta, initial_r_4)
 # and the evolved relation
 m_initial_to_10, r_initial_to_10 = gieles_etal_10_evolution(
     r_initial, mass_toy, initial_age
 )
+print("done with fitting")
 # ======================================================================================
 #
 # Simple fitting routine to get the parameters of resulting relations
@@ -680,13 +694,13 @@ def format_params(base_label, beta, r_4):
 fig, axs = bpl.subplots(ncols=2, figsize=[20, 7])
 # plot the contours and the mean relation evolution for each model.
 # Start with observed young data set
-# mru_p.plot_mass_size_dataset_contour(
-#     axs[1],
-#     mass_obs[mask_young].to("Msun").value,
-#     r_eff_obs[mask_young].to("pc").value,
-#     bpl.fade_color(bpl.color_cycle[0]),
-#     zorder=0,
-# )
+mru_p.plot_mass_size_dataset_contour(
+    axs[0],
+    mass_obs[mask_young].to("Msun").value,
+    r_eff_obs[mask_young].to("pc").value,
+    bpl.fade_color(bpl.color_cycle[0]),
+    zorder=0,
+)
 for ax in axs:
     ax.plot(
         mass_toy,
@@ -808,14 +822,14 @@ axs[0].plot(
     r_initial,
     c=bpl.color_cycle[1],
     lw=5,
-    label=format_params("Initial Relation", initial_r_4, initial_beta),
+    label=format_params("Initial Relation", initial_beta, initial_r_4),
 )
 axs[0].plot(
     m_initial_to_10,
     r_initial_to_10,
     c=bpl.color_cycle[2],
     lw=5,
-    label="Initial Relation Evolved to 10 Myr",
+    label=f"Initial Relation Evolved to {initial_age.to('Myr'):.1f}",
 )
 
 for ax in axs:
