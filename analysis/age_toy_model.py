@@ -123,6 +123,9 @@ def tidal_radius(m_old, m_new, r_old):
 # https://ui.adsabs.harvard.edu/abs/2010MNRAS.408L..16G/abstract
 # Equation 6 is the key
 # this includes stellar evolution and two-body relaxation. No tidal evolution
+print("fix Coulomb logarithm in G10, look at citations")
+
+
 def gieles_etal_10_evolution(initial_radius, initial_mass, time):
     # all quantities must have units
     # Equation 6 defines the main thing, but also grabs a few things from elsewhere
@@ -137,7 +140,6 @@ def gieles_etal_10_evolution(initial_radius, initial_mass, time):
     chi_t = 3 * (t / t_star) ** (-0.3)  # equation 7
 
     # equation 1 gives t_rh0
-    print("fix Coulomb logarithm, look at citations")
     m_bar = 0.5 * u.Msun
     N = m0 / m_bar
     t_rh0 = 0.138 * np.sqrt(N * r0 ** 3 / (c.G * m_bar * np.log(0.4 * N) ** 2))
@@ -182,7 +184,8 @@ fig.savefig("test_g10.png")
 # Equation 12 is essentially the answer here.
 # this model is two body relaxation plus tidal shocks. No stellar evolution.
 # note their notation uses i for initial rather than 0, and I keep that in my code
-print("make sure I'm doing 2-3D transition correctly")
+print("make sure I'm doing 2-3D transition correctly in G16")
+g16_f = 3
 
 
 def gieles_t_dis_equilibrium(mass):
@@ -242,14 +245,13 @@ def gieles_etal_16_evolution(initial_radius, initial_mass, end_time):
     t_history = [t_now.copy()]
     M_history = [M_now.copy()]
     rho_history = [rho_now.copy()]
-    f = 3  # default value
     while t_now < t_end:
         # calculate the shock timescale. Mass evolution only comes from shocks,
         # not two-body relaxation
         tau_sh = gieles_t_sh(rho_now)
         # we then use this to determine the mass loss
         dE_E = -dt / tau_sh
-        dM = M_now * f * dE_E
+        dM = M_now * g16_f * dE_E
         # don't let the mass go negative
         M_now = np.maximum(0.1 * u.Msun, M_now + dM)
         rho_now = gieles_etal_16_density(M_i, M_now, rho_i)
@@ -280,13 +282,11 @@ def gieles_etal_16_density(initial_mass, current_mass, initial_density):
 
     # use the A value used in Figure 3, see text right before section 4.2
     A = 0.02 * u.pc ** (-9 / 2) * u.Msun ** (1 / 2)
-    # f is set to 3 near the end of section 2.1, also mentioned right after equation 12
-    f = 3
 
     # then equation 12 can simply be calculated
     numerator = A * M
     denom_term_1 = A * M_i / (rho_i ** (3 / 2))
-    denom_term_2 = (M / M_i) ** (17 / 2 - 9 / (2 * f))
+    denom_term_2 = (M / M_i) ** (17 / 2 - 9 / (2 * g16_f))
     denominator = 1 + (denom_term_1 - 1) * denom_term_2
     rho = (numerator / denominator) ** (2 / 3)
     return rho
@@ -352,6 +352,50 @@ fig.savefig("test_g16.png")
 
 # ======================================================================================
 #
+# Functions defining the evolution according to Gieles etal 2016 modified by me
+# to not include any mass loss
+#
+# ======================================================================================
+# I derived these equations in my notebook. The basic idea is to take equation 1 of G16,
+# assume no mass loss, plug in equation 10 to split the total energy, use equations
+# 4 and 7 to get those energies, then turn the density derivative into a radius
+# derivative, since we already assumed to mass loss.
+# The final equation is:
+# dr = r (1 / t_sh + zeta / t_rh) dt
+def gieles_etal_16_evolution_modified(initial_radius, mass, end_time):
+    # use shorthands for the initial values
+    r_i = initial_radius
+    t_end = end_time
+    M = mass
+
+    dt = 1 * u.Myr
+    t_now = 0 * u.Myr
+    r_now = r_i.copy()
+
+    while t_now < t_end:
+        # calculate the timescales needed
+        rho_now = calculate_density(M, r_now)
+        tau_sh = gieles_t_sh(rho_now)
+        # zeta is chosen to be 0.5 by G16 right at the end of section 3.2
+        zeta = 0.5
+        # kappa is needed for t_rh, G16 use the value for equal mass systems
+        kappa = 142 * u.Myr
+        tau_rh = (
+            kappa
+            * (M / (1e4 * u.Msun))
+            * (rho_now / (1e2 * u.Msun * u.pc ** (-3))) ** (-1 / 2)
+        )
+        # then calculate and apply the changed value
+        dr = r_now * (1 / tau_sh + zeta / tau_rh) * dt
+        # don't let the radius go to infinity
+        r_now = np.minimum(100 * u.pc, r_now + dr)
+        t_now += dt
+
+    return r_now
+
+
+# ======================================================================================
+#
 # Run clusters through this evolution - for both mean relation and full clusters
 #
 # ======================================================================================
@@ -360,8 +404,9 @@ reff_bin1_toy = mass_size_relation(mass_toy, *fits["age1"])
 reff_bin2_toy = mass_size_relation(mass_toy, *fits["age2"])
 reff_bin3_toy = mass_size_relation(mass_toy, *fits["age3"])
 
-
+# ======================================================================================
 # 2010 model
+# ======================================================================================
 m_g10_300myr_toy, r_g10_300myr_toy = gieles_etal_10_evolution(
     reff_bin1_toy, mass_toy, 300 * u.Myr
 )
@@ -369,8 +414,9 @@ m_g10_300myr_obs, r_g10_300myr_obs = gieles_etal_10_evolution(
     r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr
 )
 
-
-# then the 2016 model
+# ======================================================================================
+# 2016 model
+# ======================================================================================
 t_history_toy, M_history_toy, rho_history_toy, r_history_toy = gieles_etal_16_evolution(
     reff_bin1_toy, mass_toy, 300 * u.Myr
 )
@@ -387,6 +433,19 @@ idx_300 = np.where(t_history_obs == 300 * u.Myr)[0]
 # not sure why this extra index is needed
 m_g16_300myr_obs = M_history_obs[idx_300][0]
 r_g16_300myr_obs = r_history_obs[idx_300][0]
+
+# ======================================================================================
+# modified G16 with no mass loss
+# ======================================================================================
+r_g16m_30_toy = gieles_etal_16_evolution_modified(reff_bin1_toy, mass_toy, 30 * u.Myr)
+r_g16m_30_obs = gieles_etal_16_evolution_modified(
+    r_eff_obs[mask_young], mass_obs[mask_young], 30 * u.Myr
+)
+
+r_g16m_300_toy = gieles_etal_16_evolution_modified(reff_bin1_toy, mass_toy, 300 * u.Myr)
+r_g16m_300_obs = gieles_etal_16_evolution_modified(
+    r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr
+)
 
 # ======================================================================================
 #
@@ -535,6 +594,24 @@ axs[1].plot(
     lw=5,
     label=format_params(
         "Gieles+ 2016 - 300 Myr",
+        *fit_mass_size_relation(m_g16_300myr_toy, r_g16_300myr_toy),
+    ),
+)
+# Then the Gieles+2016 modified model
+mru_p.plot_mass_size_dataset_contour(
+    axs[1],
+    mass_obs[mask_young].to("Msun").value,
+    r_g16m_300_obs.to("pc").value,
+    bpl.fade_color(bpl.color_cycle[6]),
+    zorder=0,
+)
+axs[1].plot(
+    mass_toy,
+    r_g16m_300_toy,
+    c=bpl.color_cycle[6],
+    lw=5,
+    label=format_params(
+        "Gieles+ 2016 no mass loss - 300 Myr",
         *fit_mass_size_relation(m_g16_300myr_toy, r_g16_300myr_toy),
     ),
 )
