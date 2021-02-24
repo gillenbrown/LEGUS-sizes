@@ -362,7 +362,7 @@ fig.savefig("test_g16.png")
 # derivative, since we already assumed to mass loss.
 # The final equation is:
 # dr = r (1 / t_sh + zeta / t_rh) dt
-def gieles_etal_16_evolution_modified(initial_radius, mass, end_time):
+def gieles_etal_16_evolution_no_mass_loss(initial_radius, mass, end_time):
     # use shorthands for the initial values
     r_i = initial_radius
     t_end = end_time
@@ -392,6 +392,59 @@ def gieles_etal_16_evolution_modified(initial_radius, mass, end_time):
         t_now += dt
 
     return r_now
+
+
+# ======================================================================================
+#
+# Functions defining the evolution according to Gieles etal 2016 modified by me
+# to include mass loss by both tides and two body relation, but with radius assumed
+# to be proportional to tidal radius
+#
+# ======================================================================================
+# I derived these equations in my notebook. The basic idea is to take equation 2 of G16,
+# have an analogous one for two body relaxation (to give it mass loss, as it would if
+# clusters are tidally limited), then plus in the timescales to get mass loss as a
+# function of time. I then can assume the effective radius is proportional to the
+# tidal radius. This gives:
+# dM / M = -dt (f_sh / tau_sh + f_rlx * zeta / tau_rh)
+def gieles_etal_16_evolution_tidal_prop(initial_radius, initial_mass, end_time):
+    # use shorthands for the initial values
+    r_i = initial_radius
+    M_i = initial_mass
+    t_end = end_time
+
+    # assume some values for mass loss
+    f_sh = 3
+    f_rlx = 0.5
+
+    dt = 1 * u.Myr
+    t_now = 0 * u.Myr
+    r_now = r_i.copy()
+    M_now = M_i.copy()
+
+    while t_now < t_end:
+        # calculate the timescales needed
+        rho_now = calculate_density(M_now, r_now)
+        tau_sh = gieles_t_sh(rho_now)
+        # zeta is chosen to be 0.5 by G16 right at the end of section 3.2
+        zeta = 0.5
+        # kappa is needed for t_rh, G16 use the value for equal mass systems
+        kappa = 142 * u.Myr
+        tau_rh = (
+            kappa
+            * (M_now / (1e4 * u.Msun))
+            * (rho_now / (1e2 * u.Msun * u.pc ** (-3))) ** (-1 / 2)
+        )
+        # then calculate and apply the changed value
+        dM = -dt * M_now * (f_sh / tau_sh + zeta * f_rlx / tau_rh)
+        # don't let the mass go negative
+        M_now = np.maximum(0.1 * u.Msun, M_now + dM)
+
+        # assume radius is proportional to tidal radius
+        r_now = r_i * (M_now / M_i) ** (1 / 3)
+        t_now += dt
+
+    return r_now, M_now
 
 
 # ======================================================================================
@@ -437,13 +490,34 @@ r_g16_300myr_obs = r_history_obs[idx_300][0]
 # ======================================================================================
 # modified G16 with no mass loss
 # ======================================================================================
-r_g16m_30_toy = gieles_etal_16_evolution_modified(reff_bin1_toy, mass_toy, 30 * u.Myr)
-r_g16m_30_obs = gieles_etal_16_evolution_modified(
+r_g16m_30_toy = gieles_etal_16_evolution_no_mass_loss(
+    reff_bin1_toy, mass_toy, 30 * u.Myr
+)
+r_g16m_30_obs = gieles_etal_16_evolution_no_mass_loss(
     r_eff_obs[mask_young], mass_obs[mask_young], 30 * u.Myr
 )
 
-r_g16m_300_toy = gieles_etal_16_evolution_modified(reff_bin1_toy, mass_toy, 300 * u.Myr)
-r_g16m_300_obs = gieles_etal_16_evolution_modified(
+r_g16m_300_toy = gieles_etal_16_evolution_no_mass_loss(
+    reff_bin1_toy, mass_toy, 300 * u.Myr
+)
+r_g16m_300_obs = gieles_etal_16_evolution_no_mass_loss(
+    r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr
+)
+
+# ======================================================================================
+# modified G16 such that r is proportional to tidal radius
+# ======================================================================================
+r_g16t_30_toy, m_g16t_30_toy = gieles_etal_16_evolution_tidal_prop(
+    reff_bin1_toy, mass_toy, 30 * u.Myr
+)
+r_g16t_30_obs, m_g16t_30_obs = gieles_etal_16_evolution_tidal_prop(
+    r_eff_obs[mask_young], mass_obs[mask_young], 30 * u.Myr
+)
+
+r_g16t_300_toy, m_g16t_300_toy = gieles_etal_16_evolution_tidal_prop(
+    reff_bin1_toy, mass_toy, 300 * u.Myr
+)
+r_g16t_300_obs, m_g16t_300_obs = gieles_etal_16_evolution_tidal_prop(
     r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr
 )
 
@@ -575,7 +649,7 @@ axs[1].plot(
     c=bpl.color_cycle[5],
     lw=5,
     label=format_params(
-        "Gieles+ 2010 - 300 Myr",
+        "G10 - 300 Myr",
         *fit_mass_size_relation(m_g10_300myr_toy, r_g10_300myr_toy),
     ),
 )
@@ -593,11 +667,11 @@ axs[1].plot(
     c=bpl.color_cycle[4],
     lw=5,
     label=format_params(
-        "Gieles+ 2016 - 300 Myr",
+        "G16 - 300 Myr",
         *fit_mass_size_relation(m_g16_300myr_toy, r_g16_300myr_toy),
     ),
 )
-# Then the Gieles+2016 modified model
+# Then the Gieles+2016 modified model with no mass loss
 mru_p.plot_mass_size_dataset_contour(
     axs[1],
     mass_obs[mask_young].to("Msun").value,
@@ -611,8 +685,26 @@ axs[1].plot(
     c=bpl.color_cycle[6],
     lw=5,
     label=format_params(
-        "Gieles+ 2016 no mass loss - 300 Myr",
-        *fit_mass_size_relation(m_g16_300myr_toy, r_g16_300myr_toy),
+        "G16 no mass loss - 300 Myr",
+        *fit_mass_size_relation(mass_toy, r_g16m_300_toy),
+    ),
+)
+# Then the Gieles+2016 modified model that's proportional to tidal radius
+mru_p.plot_mass_size_dataset_contour(
+    axs[1],
+    m_g16t_300_obs.to("Msun").value,
+    r_g16t_300_obs.to("pc").value,
+    bpl.fade_color(bpl.color_cycle[7]),
+    zorder=0,
+)
+axs[1].plot(
+    m_g16t_300_toy,
+    r_g16t_300_toy,
+    c=bpl.color_cycle[7],
+    lw=5,
+    label=format_params(
+        "G16 $r_{eff} \propto r_{tid}$ - 300 Myr",
+        *fit_mass_size_relation(m_g16t_300_toy, r_g16t_300_toy),
     ),
 )
 # plot the determined initial values
