@@ -682,42 +682,174 @@ def fit_mass_size_relation(mass, r_eff):
     return beta, r_4
 
 
+# # ======================================================================================
+# #
+# # Make the plot
+# #
+# # ======================================================================================
+# def format_params(base_label, beta, r_4):
+#     return f"{base_label} - $\\beta={beta:.3f}, r_4={r_4:.3f}$"
+#
+#
+# fig, axs = bpl.subplots(ncols=2, figsize=[20, 7])
+# # plot the contours and the mean relation evolution for each model.
+# # Start with observed young data set
+# mru_p.plot_mass_size_dataset_contour(
+#     axs[0],
+#     mass_obs[mask_young].to("Msun").value,
+#     r_eff_obs[mask_young].to("pc").value,
+#     bpl.fade_color(bpl.color_cycle[0]),
+#     zorder=0,
+# )
+# for ax in axs:
+#     ax.plot(
+#         mass_toy,
+#         reff_bin1_toy,
+#         c=bpl.color_cycle[0],
+#         lw=5,
+#         label="Age: 1-10 Myr Observed",
+#     )
+# # then observed old data set
+# # mru_p.plot_mass_size_dataset_contour(
+# #     axs[1],
+# #     mass_obs[mask_old].to("Msun").value,
+# #     r_eff_obs[mask_old].to("pc").value,
+# #     bpl.fade_color(bpl.color_cycle[3]),
+# #     zorder=0,
+# # )
+# axs[1].plot(
+#     mass_toy,
+#     reff_bin3_toy,
+#     c=bpl.color_cycle[3],
+#     lw=5,
+#     label="Age: 100 Myr - 1 Gyr Observed",
+# )
+#
+# # then the Gieles+2010 model
+# # mru_p.plot_mass_size_dataset_contour(
+# #     axs[1],
+# #     m_g10_300myr_obs.to("Msun").value,
+# #     r_g10_300myr_obs.to("pc").value,
+# #     bpl.fade_color(bpl.color_cycle[5]),
+# #     zorder=0,
+# # )
+# # axs[1].plot(
+# #     m_g10_300myr_toy,
+# #     r_g10_300myr_toy,
+# #     c=bpl.color_cycle[5],
+# #     lw=5,
+# #     label=format_params(
+# #         "G10 - 300 Myr",
+# #         *fit_mass_size_relation(m_g10_300myr_toy, r_g10_300myr_toy),
+# #     ),
+# # )
+# # Then the Gieles+2016 model
+# # mru_p.plot_mass_size_dataset_contour(
+# #     axs[1],
+# #     m_g16_300myr_obs.to("Msun").value,
+# #     r_g16_300myr_obs.to("pc").value,
+# #     bpl.fade_color(bpl.color_cycle[4]),
+# #     zorder=0,
+# # )
+# # axs[1].plot(
+# #     m_g16_300myr_toy,
+# #     r_g16_300myr_toy,
+# #     c=bpl.color_cycle[4],
+# #     lw=5,
+# #     label=format_params(
+# #         "G16 - 300 Myr",
+# #         *fit_mass_size_relation(m_g16_300myr_toy, r_g16_300myr_toy),
+# #     ),
+# # )
+# # Then the Gieles+2016 modified model with no mass loss
+# # mru_p.plot_mass_size_dataset_contour(
+# #     axs[1],
+# #     mass_obs[mask_young].to("Msun").value,
+# #     r_g16m_300_obs.to("pc").value,
+# #     bpl.fade_color(bpl.color_cycle[6]),
+# #     zorder=0,
+# # )
+# axs[1].plot(
+#     mass_toy,
+#     r_g16m_300_toy,
+#     c=bpl.color_cycle[6],
+#     lw=5,
+#     label="G16 no mass loss - 300 Myr",
+# )
+# # Then the Gieles+2016 modified model that's not proportional to tidal radius
+# # mru_p.plot_mass_size_dataset_contour(
+# #     axs[1],
+# #     m_g16r_300_obs.to("Msun").value,
+# #     r_g16r_300_obs.to("pc").value,
+# #     bpl.fade_color(bpl.color_cycle[1]),
+# #     zorder=0,
+# # )
+# axs[1].plot(
+#     m_g16r_300_toy,
+#     r_g16r_300_toy,
+#     c=bpl.color_cycle[4],
+#     lw=5,
+#     label="G16 - $f_{rlx}$=" + str(f_rlx) + " - 300 Myr",
+# )
+# # Then the Gieles+2016 modified model that's proportional to tidal radius
+# # mru_p.plot_mass_size_dataset_contour(
+# #     axs[1],
+# #     m_g16t_300_obs.to("Msun").value,
+# #     r_g16t_300_obs.to("pc").value,
+# #     bpl.fade_color(bpl.color_cycle[7]),
+# #     zorder=0,
+# # )
+# axs[1].plot(
+#     m_g16t_300_toy,
+#     r_g16t_300_toy,
+#     c=bpl.color_cycle[5],
+#     lw=5,
+#     label="G16 $r_{eff} \propto r_{tid}$ - $f_{rlx}$=" + str(f_rlx) + " - 300 Myr",
+# )
+#
+# # plot the determined initial values
+# axs[0].plot(
+#     mass_toy,
+#     r_initial,
+#     c=bpl.color_cycle[1],
+#     lw=5,
+#     label=format_params("Initial Relation", initial_beta, initial_r_4),
+# )
+# axs[0].plot(
+#     m_initial_to_10,
+#     r_initial_to_10,
+#     c=bpl.color_cycle[2],
+#     lw=5,
+#     label=f"Initial Relation Evolved by G10 to {initial_age.to('Myr'):.1f}",
+# )
+#
+# for ax in axs:
+#     mru_p.format_mass_size_plot(ax)
+# axs[0].legend(loc=2, fontsize=16)
+# axs[1].legend(loc=4, fontsize=14)
+# fig.savefig(plot_name)
+
 # ======================================================================================
 #
-# Make the plot
+# Make a version of this plot showing toy arrows
 #
 # ======================================================================================
 def format_params(base_label, beta, r_4):
     return f"{base_label} - $\\beta={beta:.3f}, r_4={r_4:.3f}$"
 
 
-fig, axs = bpl.subplots(ncols=2, figsize=[20, 7])
-# plot the contours and the mean relation evolution for each model.
+fig, ax = bpl.subplots()
+# plot the mean relation evolution for each model.
 # Start with observed young data set
-mru_p.plot_mass_size_dataset_contour(
-    axs[0],
-    mass_obs[mask_young].to("Msun").value,
-    r_eff_obs[mask_young].to("pc").value,
-    bpl.fade_color(bpl.color_cycle[0]),
-    zorder=0,
+ax.plot(
+    mass_toy,
+    reff_bin1_toy,
+    c=bpl.color_cycle[0],
+    lw=5,
+    zorder=100,
+    label="Age: 1-10 Myr Observed",
 )
-for ax in axs:
-    ax.plot(
-        mass_toy,
-        reff_bin1_toy,
-        c=bpl.color_cycle[0],
-        lw=5,
-        label="Age: 1-10 Myr Observed",
-    )
-# then observed old data set
-# mru_p.plot_mass_size_dataset_contour(
-#     axs[1],
-#     mass_obs[mask_old].to("Msun").value,
-#     r_eff_obs[mask_old].to("pc").value,
-#     bpl.fade_color(bpl.color_cycle[3]),
-#     zorder=0,
-# )
-axs[1].plot(
+ax.plot(
     mass_toy,
     reff_bin3_toy,
     c=bpl.color_cycle[3],
@@ -725,106 +857,53 @@ axs[1].plot(
     label="Age: 100 Myr - 1 Gyr Observed",
 )
 
-# then the Gieles+2010 model
-# mru_p.plot_mass_size_dataset_contour(
-#     axs[1],
-#     m_g10_300myr_obs.to("Msun").value,
-#     r_g10_300myr_obs.to("pc").value,
-#     bpl.fade_color(bpl.color_cycle[5]),
-#     zorder=0,
-# )
-# axs[1].plot(
-#     m_g10_300myr_toy,
-#     r_g10_300myr_toy,
-#     c=bpl.color_cycle[5],
-#     lw=5,
-#     label=format_params(
-#         "G10 - 300 Myr",
-#         *fit_mass_size_relation(m_g10_300myr_toy, r_g10_300myr_toy),
-#     ),
-# )
-# Then the Gieles+2016 model
-# mru_p.plot_mass_size_dataset_contour(
-#     axs[1],
-#     m_g16_300myr_obs.to("Msun").value,
-#     r_g16_300myr_obs.to("pc").value,
-#     bpl.fade_color(bpl.color_cycle[4]),
-#     zorder=0,
-# )
-# axs[1].plot(
-#     m_g16_300myr_toy,
-#     r_g16_300myr_toy,
-#     c=bpl.color_cycle[4],
-#     lw=5,
-#     label=format_params(
-#         "G16 - 300 Myr",
-#         *fit_mass_size_relation(m_g16_300myr_toy, r_g16_300myr_toy),
-#     ),
-# )
-# Then the Gieles+2016 modified model with no mass loss
-# mru_p.plot_mass_size_dataset_contour(
-#     axs[1],
-#     mass_obs[mask_young].to("Msun").value,
-#     r_g16m_300_obs.to("pc").value,
-#     bpl.fade_color(bpl.color_cycle[6]),
-#     zorder=0,
-# )
-axs[1].plot(
-    mass_toy,
-    r_g16m_300_toy,
-    c=bpl.color_cycle[6],
+# Then the Gieles+2016 modified model with no mass loss. Just plot dummy lines
+# to include in legend, then some arrows
+ax.plot(
+    [1, 1],
+    [1, 1],
     lw=5,
-    label="G16 no mass loss - 300 Myr",
+    c=bpl.color_cycle[6],
+    label="G16 No Mass Loss",
 )
 # Then the Gieles+2016 modified model that's not proportional to tidal radius
-# mru_p.plot_mass_size_dataset_contour(
-#     axs[1],
-#     m_g16r_300_obs.to("Msun").value,
-#     r_g16r_300_obs.to("pc").value,
-#     bpl.fade_color(bpl.color_cycle[1]),
-#     zorder=0,
-# )
-axs[1].plot(
-    m_g16r_300_toy,
-    r_g16r_300_toy,
-    c=bpl.color_cycle[4],
+ax.plot(
+    [1, 1],
+    [1, 1],
     lw=5,
-    label="G16 - $f_{rlx}$=" + str(f_rlx) + " - 300 Myr",
+    c=bpl.color_cycle[4],
+    label="G16 - $f_{rlx}$=" + str(f_rlx),
 )
 # Then the Gieles+2016 modified model that's proportional to tidal radius
-# mru_p.plot_mass_size_dataset_contour(
-#     axs[1],
-#     m_g16t_300_obs.to("Msun").value,
-#     r_g16t_300_obs.to("pc").value,
-#     bpl.fade_color(bpl.color_cycle[7]),
-#     zorder=0,
-# )
-axs[1].plot(
-    m_g16t_300_toy,
-    r_g16t_300_toy,
+ax.plot(
+    [1, 1],
+    [1, 1],
+    lw=5,
     c=bpl.color_cycle[5],
-    lw=5,
-    label="G16 $r_{eff} \propto r_{tid}$ - $f_{rlx}$=" + str(f_rlx) + " - 300 Myr",
+    label="G16 $r_{eff} \propto r_{tid}$, $f_{rlx}$=" + str(f_rlx),
 )
 
-# plot the determined initial values
-axs[0].plot(
-    mass_toy,
-    r_initial,
-    c=bpl.color_cycle[1],
-    lw=5,
-    label=format_params("Initial Relation", initial_beta, initial_r_4),
-)
-axs[0].plot(
-    m_initial_to_10,
-    r_initial_to_10,
-    c=bpl.color_cycle[2],
-    lw=5,
-    label=f"Initial Relation Evolved by G10 to {initial_age.to('Myr'):.1f}",
-)
 
-for ax in axs:
-    mru_p.format_mass_size_plot(ax)
-axs[0].legend(loc=2, fontsize=16)
-axs[1].legend(loc=4, fontsize=14)
+for m_model, r_model, color, fs in zip(
+    [mass_toy, m_g16r_300_toy, m_g16t_300_toy],
+    [r_g16m_300_toy, r_g16r_300_toy, r_g16t_300_toy],
+    [bpl.color_cycle[6], bpl.color_cycle[4], bpl.color_cycle[5]],
+    [
+        [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99],
+        [0.3, 0.4, 0.5, 0.6],
+        [0.3, 0.4, 0.5, 0.6],
+    ],
+):
+    ax.plot(m_model, r_model, lw=2, c=color)
+    idxs = [int(f * len(mass_toy)) for f in fs]
+    for idx in idxs:
+        ax.annotate(
+            "",
+            xy=(m_model[idx].to("Msun").value, r_model[idx].to("pc").value),
+            xytext=(mass_toy[idx].to("Msun").value, reff_bin1_toy[idx].to("pc").value),
+            arrowprops={"edgecolor": "none", "facecolor": color},
+        )
+
+mru_p.format_mass_size_plot(ax)
+ax.legend(loc=4, fontsize=14)
 fig.savefig(plot_name)
