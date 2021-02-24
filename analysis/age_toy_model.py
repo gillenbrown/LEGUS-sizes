@@ -637,7 +637,7 @@ r_initial = mass_size_relation(mass_toy, initial_beta, initial_r_4)
 m_initial_to_10, r_initial_to_10 = gieles_etal_10_evolution(
     r_initial, mass_toy, initial_age
 )
-print("done with fitting")
+
 # ======================================================================================
 #
 # Simple fitting routine to get the parameters of resulting relations
@@ -707,7 +707,7 @@ for ax in axs:
         reff_bin1_toy,
         c=bpl.color_cycle[0],
         lw=5,
-        label=format_params("Age: 1-10 Myr Observed", *fits["age1"]),
+        label="Age: 1-10 Myr Observed",
     )
 # then observed old data set
 # mru_p.plot_mass_size_dataset_contour(
@@ -722,7 +722,7 @@ axs[1].plot(
     reff_bin3_toy,
     c=bpl.color_cycle[3],
     lw=5,
-    label=format_params("Age: 100 Myr - 1 Gyr Observed", *fits["age3"]),
+    label="Age: 100 Myr - 1 Gyr Observed",
 )
 
 # then the Gieles+2010 model
@@ -774,10 +774,7 @@ axs[1].plot(
     r_g16m_300_toy,
     c=bpl.color_cycle[6],
     lw=5,
-    label=format_params(
-        "G16 no mass loss - 300 Myr",
-        *fit_mass_size_relation(mass_toy, r_g16m_300_toy),
-    ),
+    label="G16 no mass loss - 300 Myr",
 )
 # Then the Gieles+2016 modified model that's not proportional to tidal radius
 # mru_p.plot_mass_size_dataset_contour(
@@ -792,10 +789,7 @@ axs[1].plot(
     r_g16r_300_toy,
     c=bpl.color_cycle[4],
     lw=5,
-    label=format_params(
-        "G16 - $f_{rlx}$=" + str(f_rlx) + " - 300 Myr",
-        *fit_mass_size_relation(m_g16r_300_toy, r_g16r_300_toy),
-    ),
+    label="G16 - $f_{rlx}$=" + str(f_rlx) + " - 300 Myr",
 )
 # Then the Gieles+2016 modified model that's proportional to tidal radius
 # mru_p.plot_mass_size_dataset_contour(
@@ -810,10 +804,7 @@ axs[1].plot(
     r_g16t_300_toy,
     c=bpl.color_cycle[5],
     lw=5,
-    label=format_params(
-        "G16 $r_{eff} \propto r_{tid}$ - $f_{rlx}$=" + str(f_rlx) + " - 300 Myr",
-        *fit_mass_size_relation(m_g16t_300_toy, r_g16t_300_toy),
-    ),
+    label="G16 $r_{eff} \propto r_{tid}$ - $f_{rlx}$=" + str(f_rlx) + " - 300 Myr",
 )
 
 # plot the determined initial values
@@ -829,7 +820,7 @@ axs[0].plot(
     r_initial_to_10,
     c=bpl.color_cycle[2],
     lw=5,
-    label=f"Initial Relation Evolved to {initial_age.to('Myr'):.1f}",
+    label=f"Initial Relation Evolved by G10 to {initial_age.to('Myr'):.1f}",
 )
 
 for ax in axs:
