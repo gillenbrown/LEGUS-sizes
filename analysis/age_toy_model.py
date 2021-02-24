@@ -561,7 +561,7 @@ r_g16m_300_obs = gieles_etal_16_evolution_no_mass_loss(
 # ======================================================================================
 # modified G16 such that r is proportional to tidal radius
 # ======================================================================================
-f_rlx = 0.5
+f_rlx = 0.2
 r_g16t_30_toy, m_g16t_30_toy = gieles_etal_16_evolution_tidal_prop(
     reff_bin1_toy, mass_toy, 30 * u.Myr, f_rlx
 )
@@ -593,7 +593,6 @@ r_g16r_300_obs, m_g16r_300_obs = gieles_etal_16_evolution_rlx_loss(
     r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr, f_rlx
 )
 
-print(m_g16r_300_toy - m_g16_300myr_toy)
 # ======================================================================================
 #
 # Have an initial mass-radius relation that gets fed through G10 to reproduce 1-10Myr
@@ -649,6 +648,10 @@ def fit_mass_size_relation(mass, r_eff):
     log_mass = np.log10(mass.to("Msun").value)
     log_r_eff = np.log10(r_eff.to("pc").value)
 
+    mask = log_mass > 2
+    log_mass = log_mass[mask]
+    log_r_eff = log_r_eff[mask]
+
     # Then try the fitting
     best_fit_result = optimize.minimize(
         negative_log_likelihood,
@@ -677,13 +680,13 @@ def format_params(base_label, beta, r_4):
 fig, axs = bpl.subplots(ncols=2, figsize=[20, 7])
 # plot the contours and the mean relation evolution for each model.
 # Start with observed young data set
-mru_p.plot_mass_size_dataset_contour(
-    axs[1],
-    mass_obs[mask_young].to("Msun").value,
-    r_eff_obs[mask_young].to("pc").value,
-    bpl.fade_color(bpl.color_cycle[0]),
-    zorder=0,
-)
+# mru_p.plot_mass_size_dataset_contour(
+#     axs[1],
+#     mass_obs[mask_young].to("Msun").value,
+#     r_eff_obs[mask_young].to("pc").value,
+#     bpl.fade_color(bpl.color_cycle[0]),
+#     zorder=0,
+# )
 for ax in axs:
     ax.plot(
         mass_toy,
@@ -693,13 +696,13 @@ for ax in axs:
         label=format_params("Age: 1-10 Myr Observed", *fits["age1"]),
     )
 # then observed old data set
-mru_p.plot_mass_size_dataset_contour(
-    axs[1],
-    mass_obs[mask_old].to("Msun").value,
-    r_eff_obs[mask_old].to("pc").value,
-    bpl.fade_color(bpl.color_cycle[3]),
-    zorder=0,
-)
+# mru_p.plot_mass_size_dataset_contour(
+#     axs[1],
+#     mass_obs[mask_old].to("Msun").value,
+#     r_eff_obs[mask_old].to("pc").value,
+#     bpl.fade_color(bpl.color_cycle[3]),
+#     zorder=0,
+# )
 axs[1].plot(
     mass_toy,
     reff_bin3_toy,
@@ -709,49 +712,49 @@ axs[1].plot(
 )
 
 # then the Gieles+2010 model
-mru_p.plot_mass_size_dataset_contour(
-    axs[1],
-    m_g10_300myr_obs.to("Msun").value,
-    r_g10_300myr_obs.to("pc").value,
-    bpl.fade_color(bpl.color_cycle[5]),
-    zorder=0,
-)
-axs[1].plot(
-    m_g10_300myr_toy,
-    r_g10_300myr_toy,
-    c=bpl.color_cycle[5],
-    lw=5,
-    label=format_params(
-        "G10 - 300 Myr",
-        *fit_mass_size_relation(m_g10_300myr_toy, r_g10_300myr_toy),
-    ),
-)
+# mru_p.plot_mass_size_dataset_contour(
+#     axs[1],
+#     m_g10_300myr_obs.to("Msun").value,
+#     r_g10_300myr_obs.to("pc").value,
+#     bpl.fade_color(bpl.color_cycle[5]),
+#     zorder=0,
+# )
+# axs[1].plot(
+#     m_g10_300myr_toy,
+#     r_g10_300myr_toy,
+#     c=bpl.color_cycle[5],
+#     lw=5,
+#     label=format_params(
+#         "G10 - 300 Myr",
+#         *fit_mass_size_relation(m_g10_300myr_toy, r_g10_300myr_toy),
+#     ),
+# )
 # Then the Gieles+2016 model
-mru_p.plot_mass_size_dataset_contour(
-    axs[1],
-    m_g16_300myr_obs.to("Msun").value,
-    r_g16_300myr_obs.to("pc").value,
-    bpl.fade_color(bpl.color_cycle[4]),
-    zorder=0,
-)
-axs[1].plot(
-    m_g16_300myr_toy,
-    r_g16_300myr_toy,
-    c=bpl.color_cycle[4],
-    lw=5,
-    label=format_params(
-        "G16 - 300 Myr",
-        *fit_mass_size_relation(m_g16_300myr_toy, r_g16_300myr_toy),
-    ),
-)
+# mru_p.plot_mass_size_dataset_contour(
+#     axs[1],
+#     m_g16_300myr_obs.to("Msun").value,
+#     r_g16_300myr_obs.to("pc").value,
+#     bpl.fade_color(bpl.color_cycle[4]),
+#     zorder=0,
+# )
+# axs[1].plot(
+#     m_g16_300myr_toy,
+#     r_g16_300myr_toy,
+#     c=bpl.color_cycle[4],
+#     lw=5,
+#     label=format_params(
+#         "G16 - 300 Myr",
+#         *fit_mass_size_relation(m_g16_300myr_toy, r_g16_300myr_toy),
+#     ),
+# )
 # Then the Gieles+2016 modified model with no mass loss
-mru_p.plot_mass_size_dataset_contour(
-    axs[1],
-    mass_obs[mask_young].to("Msun").value,
-    r_g16m_300_obs.to("pc").value,
-    bpl.fade_color(bpl.color_cycle[6]),
-    zorder=0,
-)
+# mru_p.plot_mass_size_dataset_contour(
+#     axs[1],
+#     mass_obs[mask_young].to("Msun").value,
+#     r_g16m_300_obs.to("pc").value,
+#     bpl.fade_color(bpl.color_cycle[6]),
+#     zorder=0,
+# )
 axs[1].plot(
     mass_toy,
     r_g16m_300_toy,
@@ -762,40 +765,40 @@ axs[1].plot(
         *fit_mass_size_relation(mass_toy, r_g16m_300_toy),
     ),
 )
-# Then the Gieles+2016 modified model that's proportional to tidal radius
-mru_p.plot_mass_size_dataset_contour(
-    axs[1],
-    m_g16t_300_obs.to("Msun").value,
-    r_g16t_300_obs.to("pc").value,
-    bpl.fade_color(bpl.color_cycle[7]),
-    zorder=0,
+# Then the Gieles+2016 modified model that's not proportional to tidal radius
+# mru_p.plot_mass_size_dataset_contour(
+#     axs[1],
+#     m_g16r_300_obs.to("Msun").value,
+#     r_g16r_300_obs.to("pc").value,
+#     bpl.fade_color(bpl.color_cycle[1]),
+#     zorder=0,
+# )
+axs[1].plot(
+    m_g16r_300_toy,
+    r_g16r_300_toy,
+    c=bpl.color_cycle[4],
+    lw=5,
+    label=format_params(
+        "G16 - $f_{rlx}$=" + str(f_rlx) + " - 300 Myr",
+        *fit_mass_size_relation(m_g16r_300_toy, r_g16r_300_toy),
+    ),
 )
+# Then the Gieles+2016 modified model that's proportional to tidal radius
+# mru_p.plot_mass_size_dataset_contour(
+#     axs[1],
+#     m_g16t_300_obs.to("Msun").value,
+#     r_g16t_300_obs.to("pc").value,
+#     bpl.fade_color(bpl.color_cycle[7]),
+#     zorder=0,
+# )
 axs[1].plot(
     m_g16t_300_toy,
     r_g16t_300_toy,
-    c=bpl.color_cycle[7],
+    c=bpl.color_cycle[5],
     lw=5,
     label=format_params(
         "G16 $r_{eff} \propto r_{tid}$ - $f_{rlx}$=" + str(f_rlx) + " - 300 Myr",
         *fit_mass_size_relation(m_g16t_300_toy, r_g16t_300_toy),
-    ),
-)
-# Then the Gieles+2016 modified model that's not proportional to tidal radius
-mru_p.plot_mass_size_dataset_contour(
-    axs[1],
-    m_g16r_300_obs.to("Msun").value,
-    r_g16r_300_obs.to("pc").value,
-    bpl.fade_color(bpl.color_cycle[1]),
-    zorder=0,
-)
-axs[1].plot(
-    m_g16r_300_toy,
-    r_g16r_300_toy,
-    c=bpl.color_cycle[1],
-    lw=5,
-    label=format_params(
-        "G16 $r_{eff} \\not \propto r_{tid}$ - $f_{rlx}$=" + str(f_rlx) + " - 300 Myr",
-        *fit_mass_size_relation(m_g16r_300_toy, r_g16r_300_toy),
     ),
 )
 
