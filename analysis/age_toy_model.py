@@ -506,6 +506,7 @@ def gieles_etal_16_evolution_rlx_loss(initial_radius, initial_mass, end_time, f_
 #
 # ======================================================================================
 mass_toy = np.logspace(2.5, 5, 1000) * u.Msun
+reff_t0 = mass_size_relation(mass_toy, 0.15, 2)
 reff_bin1_toy = mass_size_relation(mass_toy, *fits["age1"])
 reff_bin2_toy = mass_size_relation(mass_toy, *fits["age2"])
 reff_bin3_toy = mass_size_relation(mass_toy, *fits["age3"])
@@ -514,7 +515,7 @@ reff_bin3_toy = mass_size_relation(mass_toy, *fits["age3"])
 # 2010 model
 # ======================================================================================
 m_g10_300myr_toy, r_g10_300myr_toy = gieles_etal_10_evolution(
-    reff_bin1_toy, mass_toy, 300 * u.Myr
+    reff_t0, mass_toy, 300 * u.Myr
 )
 m_g10_300myr_obs, r_g10_300myr_obs = gieles_etal_10_evolution(
     r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr
@@ -524,7 +525,7 @@ m_g10_300myr_obs, r_g10_300myr_obs = gieles_etal_10_evolution(
 # 2016 model
 # ======================================================================================
 t_history_toy, M_history_toy, rho_history_toy, r_history_toy = gieles_etal_16_evolution(
-    reff_bin1_toy, mass_toy, 300 * u.Myr
+    reff_t0, mass_toy, 300 * u.Myr
 )
 idx_300 = np.where(t_history_toy == 300 * u.Myr)[0]
 # not sure why this extra index is needed
@@ -543,16 +544,12 @@ r_g16_300myr_obs = r_history_obs[idx_300][0]
 # ======================================================================================
 # modified G16 with no mass loss
 # ======================================================================================
-r_g16m_30_toy = gieles_etal_16_evolution_no_mass_loss(
-    reff_bin1_toy, mass_toy, 30 * u.Myr
-)
+r_g16m_30_toy = gieles_etal_16_evolution_no_mass_loss(reff_t0, mass_toy, 30 * u.Myr)
 r_g16m_30_obs = gieles_etal_16_evolution_no_mass_loss(
     r_eff_obs[mask_young], mass_obs[mask_young], 30 * u.Myr
 )
 
-r_g16m_300_toy = gieles_etal_16_evolution_no_mass_loss(
-    reff_bin1_toy, mass_toy, 300 * u.Myr
-)
+r_g16m_300_toy = gieles_etal_16_evolution_no_mass_loss(reff_t0, mass_toy, 300 * u.Myr)
 r_g16m_300_obs = gieles_etal_16_evolution_no_mass_loss(
     r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr
 )
@@ -562,14 +559,14 @@ r_g16m_300_obs = gieles_etal_16_evolution_no_mass_loss(
 # ======================================================================================
 f_rlx = 0.2
 r_g16t_30_toy, m_g16t_30_toy = gieles_etal_16_evolution_tidal_prop(
-    reff_bin1_toy, mass_toy, 30 * u.Myr, f_rlx
+    reff_t0, mass_toy, 30 * u.Myr, f_rlx
 )
 r_g16t_30_obs, m_g16t_30_obs = gieles_etal_16_evolution_tidal_prop(
     r_eff_obs[mask_young], mass_obs[mask_young], 30 * u.Myr, f_rlx
 )
 
 r_g16t_300_toy, m_g16t_300_toy = gieles_etal_16_evolution_tidal_prop(
-    reff_bin1_toy, mass_toy, 300 * u.Myr, f_rlx
+    reff_t0, mass_toy, 300 * u.Myr, f_rlx
 )
 r_g16t_300_obs, m_g16t_300_obs = gieles_etal_16_evolution_tidal_prop(
     r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr, f_rlx
@@ -579,62 +576,17 @@ r_g16t_300_obs, m_g16t_300_obs = gieles_etal_16_evolution_tidal_prop(
 # modified G16 such that relaxation causes mass loss, no tidal proportionality
 # ======================================================================================
 r_g16r_30_toy, m_g16r_30_toy = gieles_etal_16_evolution_rlx_loss(
-    reff_bin1_toy, mass_toy, 30 * u.Myr, f_rlx
+    reff_t0, mass_toy, 30 * u.Myr, f_rlx
 )
 r_g16r_30_obs, m_g16r_30_obs = gieles_etal_16_evolution_rlx_loss(
     r_eff_obs[mask_young], mass_obs[mask_young], 30 * u.Myr, f_rlx
 )
 
 r_g16r_300_toy, m_g16r_300_toy = gieles_etal_16_evolution_rlx_loss(
-    reff_bin1_toy, mass_toy, 300 * u.Myr, f_rlx
+    reff_t0, mass_toy, 300 * u.Myr, f_rlx
 )
 r_g16r_300_obs, m_g16r_300_obs = gieles_etal_16_evolution_rlx_loss(
     r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr, f_rlx
-)
-
-# ======================================================================================
-#
-# Have an initial mass-radius relation that gets fed through G10 to reproduce 1-10Myr
-#
-# ======================================================================================
-# put these through G10 to 10 Myr - the oldest possible in the first bin, to get the
-# most evolution (since it's quite small)
-initial_age = np.median(age_obs[mask_young])
-print(initial_age)
-
-
-def diff_initial_relation(params):
-    r_4, beta = params
-    mass_i_fit = np.logspace(1, 6, 1000) * u.Msun
-    r_i_fit = mass_size_relation(mass_i_fit, beta, r_4)
-    # do the model for this age
-    m_g10_fit_evolved, r_g10_fit_evolved = gieles_etal_10_evolution(
-        r_i_fit, mass_i_fit, initial_age
-    )
-
-    m_g10_fit_evolved = m_g10_fit_evolved.to("Msun").value
-    log_r_g10_fit_evolved = np.log10(r_g10_fit_evolved.to("pc").value)
-
-    # then go through each mass and radius to see the difference based on the
-    # predicted value
-    diffs = 0
-    for m_o, r_o in zip(mass_obs[mask_young], r_eff_obs[mask_young]):
-        log_r_o = np.log10(r_o.to("pc").value)
-        m_o = m_o.to("Msun").value
-
-        # find the radius that's the best fit
-        idx = np.argmin(np.abs(m_g10_fit_evolved - m_o))
-        diffs += (log_r_o - log_r_g10_fit_evolved[idx]) ** 2
-
-    return diffs
-
-
-initial_r_4, initial_beta = optimize.minimize(diff_initial_relation, x0=(2, 0.2)).x
-# make a line from this
-r_initial = mass_size_relation(mass_toy, initial_beta, initial_r_4)
-# and the evolved relation
-m_initial_to_10, r_initial_to_10 = gieles_etal_10_evolution(
-    r_initial, mass_toy, initial_age
 )
 
 # ======================================================================================
@@ -858,15 +810,24 @@ mru_p.plot_mass_size_dataset_contour(
     zorder=0,
 )
 
+# plot the initial mass-radius relation
+ax.plot(
+    mass_toy,
+    reff_t0,
+    lw=5,
+    c=bpl.color_cycle[2],
+    zorder=200,
+    label="t=0",
+)
 
-# then lines for these segments
+# then lines for the observed relations
 ax.plot(
     mass_toy,
     reff_bin1_toy,
     c=bpl.color_cycle[0],
     lw=5,
     zorder=100,
-    label="Age: 1-10 Myr Observed",
+    label="1-10 Myr Observed",
 )
 ax.plot(
     mass_toy,
@@ -874,7 +835,7 @@ ax.plot(
     c=bpl.color_cycle[5],
     lw=5,
     zorder=100,
-    label="Age: 10-100 Myr Observed",
+    label="10-100 Myr Observed",
 )
 ax.plot(
     mass_toy,
@@ -882,7 +843,7 @@ ax.plot(
     c=bpl.color_cycle[3],
     lw=5,
     zorder=100,
-    label="Age: 100 Myr - 1 Gyr Observed",
+    label="100 Myr - 1 Gyr Observed",
 )
 
 # Then the Gieles+2016 modified model with no mass loss. Just plot dummy lines
@@ -891,7 +852,7 @@ ax.plot(
     [1, 1],
     [1, 1],
     lw=5,
-    c=bpl.color_cycle[6],
+    c=bpl.color_cycle[7],
     zorder=200,
     label="No Mass Loss",
 )
@@ -900,7 +861,7 @@ ax.plot(
     [1, 1],
     [1, 1],
     lw=5,
-    c=bpl.color_cycle[7],
+    c=bpl.color_cycle[6],
     zorder=200,
     label="Mass Loss from Tides and Relaxation",
 )
@@ -919,14 +880,14 @@ for m_0, m_30, m_300, r_0, r_30, r_300, color, fs in zip(
     [mass_toy, mass_toy, mass_toy],
     [mass_toy, m_g16r_30_toy, m_g16t_30_toy],
     [mass_toy, m_g16r_300_toy, m_g16t_300_toy],
-    [reff_bin1_toy, reff_bin1_toy, reff_bin1_toy],
+    [reff_t0, reff_t0, reff_t0],
     [r_g16m_30_toy, r_g16r_30_toy, r_g16t_30_toy],
     [r_g16m_300_toy, r_g16r_300_toy, r_g16t_300_toy],
-    [bpl.color_cycle[6], bpl.color_cycle[7], bpl.color_cycle[4]],
+    [bpl.color_cycle[7], bpl.color_cycle[6], bpl.color_cycle[4]],
     [
         np.arange(0.425, 1.001, 0.025),
-        np.arange(0.25, 0.701, 0.03),
-        np.arange(0.3, 0.701, 0.075),
+        np.arange(0.35, 0.701, 0.04),
+        np.arange(0.35, 0.701, 0.075),
     ],
 ):
     # ax.plot(m_model, r_model, lw=2, c=color)
@@ -950,6 +911,6 @@ for m_0, m_30, m_300, r_0, r_30, r_300, color, fs in zip(
             )
 
 mru_p.format_mass_size_plot(ax)
-ax.legend(loc=2, fontsize=14, frameon=False)
-ax.set_limits(1e2, 3e5, 0.2, 30)
+ax.legend(loc=2, fontsize=13, frameon=False)
+ax.set_limits(1e2, 3e5, 0.2, 35)
 fig.savefig(plot_name)
