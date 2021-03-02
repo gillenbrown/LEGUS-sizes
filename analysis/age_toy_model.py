@@ -12,7 +12,6 @@ import numpy as np
 from scipy import optimize
 from astropy import constants as c
 from astropy import units as u
-from astropy import table
 
 import betterplotlib as bpl
 
@@ -506,7 +505,7 @@ def gieles_etal_16_evolution_rlx_loss(initial_radius, initial_mass, end_time, f_
 # Run clusters through this evolution - for both mean relation and full clusters
 #
 # ======================================================================================
-mass_toy = np.logspace(2.5, 5, 100) * u.Msun
+mass_toy = np.logspace(2.5, 5, 1000) * u.Msun
 reff_bin1_toy = mass_size_relation(mass_toy, *fits["age1"])
 reff_bin2_toy = mass_size_relation(mass_toy, *fits["age2"])
 reff_bin3_toy = mass_size_relation(mass_toy, *fits["age3"])
@@ -580,7 +579,7 @@ r_g16t_300_obs, m_g16t_300_obs = gieles_etal_16_evolution_tidal_prop(
 # modified G16 such that relaxation causes mass loss, no tidal proportionality
 # ======================================================================================
 r_g16r_30_toy, m_g16r_30_toy = gieles_etal_16_evolution_rlx_loss(
-    reff_bin1_toy, mass_toy, 300 * u.Myr, f_rlx
+    reff_bin1_toy, mass_toy, 30 * u.Myr, f_rlx
 )
 r_g16r_30_obs, m_g16r_30_obs = gieles_etal_16_evolution_rlx_loss(
     r_eff_obs[mask_young], mass_obs[mask_young], 30 * u.Myr, f_rlx
@@ -834,13 +833,33 @@ def fit_mass_size_relation(mass, r_eff):
 # Make a version of this plot showing toy arrows
 #
 # ======================================================================================
-def format_params(base_label, beta, r_4):
-    return f"{base_label} - $\\beta={beta:.3f}, r_4={r_4:.3f}$"
-
-
 fig, ax = bpl.subplots()
 # plot the mean relation evolution for each model.
-# Start with observed young data set
+# Start with contours for all the data sets
+mru_p.plot_mass_size_dataset_contour(
+    ax,
+    mass_obs[mask_young].to("Msun").value,
+    r_eff_obs[mask_young].to("pc").value,
+    bpl.fade_color(bpl.color_cycle[0]),
+    zorder=0,
+)
+mru_p.plot_mass_size_dataset_contour(
+    ax,
+    mass_obs[mask_med].to("Msun").value,
+    r_eff_obs[mask_med].to("pc").value,
+    bpl.fade_color(bpl.color_cycle[5]),
+    zorder=0,
+)
+mru_p.plot_mass_size_dataset_contour(
+    ax,
+    mass_obs[mask_old].to("Msun").value,
+    r_eff_obs[mask_old].to("pc").value,
+    bpl.fade_color(bpl.color_cycle[3]),
+    zorder=0,
+)
+
+
+# then lines for these segments
 ax.plot(
     mass_toy,
     reff_bin1_toy,
@@ -851,59 +870,86 @@ ax.plot(
 )
 ax.plot(
     mass_toy,
+    reff_bin2_toy,
+    c=bpl.color_cycle[5],
+    lw=5,
+    zorder=100,
+    label="Age: 10-100 Myr Observed",
+)
+ax.plot(
+    mass_toy,
     reff_bin3_toy,
     c=bpl.color_cycle[3],
     lw=5,
+    zorder=100,
     label="Age: 100 Myr - 1 Gyr Observed",
 )
 
 # Then the Gieles+2016 modified model with no mass loss. Just plot dummy lines
-# to include in legend, then some arrows
+# to include in legend,
 ax.plot(
     [1, 1],
     [1, 1],
     lw=5,
     c=bpl.color_cycle[6],
-    label="G16 No Mass Loss",
+    zorder=200,
+    label="No Mass Loss",
 )
 # Then the Gieles+2016 modified model that's not proportional to tidal radius
 ax.plot(
     [1, 1],
     [1, 1],
     lw=5,
-    c=bpl.color_cycle[4],
-    label="G16 - $f_{rlx}$=" + str(f_rlx),
+    c=bpl.color_cycle[7],
+    zorder=200,
+    label="Mass Loss from Tides and Relaxation",
 )
 # Then the Gieles+2016 modified model that's proportional to tidal radius
 ax.plot(
     [1, 1],
     [1, 1],
     lw=5,
-    c=bpl.color_cycle[5],
-    label="G16 $r_{eff} \propto r_{tid}$, $f_{rlx}$=" + str(f_rlx),
+    c=bpl.color_cycle[4],
+    zorder=200,
+    label="$r_{eff} \propto r_{tid}$",
 )
 
 
-for m_model, r_model, color, fs in zip(
+for m_0, m_30, m_300, r_0, r_30, r_300, color, fs in zip(
+    [mass_toy, mass_toy, mass_toy],
+    [mass_toy, m_g16r_30_toy, m_g16t_30_toy],
     [mass_toy, m_g16r_300_toy, m_g16t_300_toy],
+    [reff_bin1_toy, reff_bin1_toy, reff_bin1_toy],
+    [r_g16m_30_toy, r_g16r_30_toy, r_g16t_30_toy],
     [r_g16m_300_toy, r_g16r_300_toy, r_g16t_300_toy],
-    [bpl.color_cycle[6], bpl.color_cycle[4], bpl.color_cycle[5]],
+    [bpl.color_cycle[6], bpl.color_cycle[7], bpl.color_cycle[4]],
     [
-        [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99],
-        [0.3, 0.4, 0.5, 0.6],
-        [0.3, 0.4, 0.5, 0.6],
+        np.arange(0.425, 1.001, 0.025),
+        np.arange(0.25, 0.701, 0.03),
+        np.arange(0.3, 0.701, 0.075),
     ],
 ):
-    ax.plot(m_model, r_model, lw=2, c=color)
-    idxs = [int(f * len(mass_toy)) for f in fs]
+    # ax.plot(m_model, r_model, lw=2, c=color)
+    idxs = [int(f * len(mass_toy)) - 1 for f in fs]
     for idx in idxs:
-        ax.annotate(
-            "",
-            xy=(m_model[idx].to("Msun").value, r_model[idx].to("pc").value),
-            xytext=(mass_toy[idx].to("Msun").value, reff_bin1_toy[idx].to("pc").value),
-            arrowprops={"edgecolor": "none", "facecolor": color},
-        )
+        for m1, m2, r1, r2, width_factor in zip(
+            [m_0, m_30], [m_30, m_300], [r_0, r_30], [r_30, r_300], [3, 1]
+        ):
+            ax.annotate(
+                "",
+                xy=(m2[idx].to("Msun").value, r2[idx].to("pc").value),
+                xytext=(m1[idx].to("Msun").value, r1[idx].to("pc").value),
+                arrowprops={
+                    "edgecolor": "none",
+                    "facecolor": color,
+                    "width": width_factor * 3,
+                    "headwidth": width_factor * 7,
+                    "headlength": 0.0001 + 5 * (width_factor == 1),
+                },
+                zorder=200,
+            )
 
 mru_p.format_mass_size_plot(ax)
-ax.legend(loc=4, fontsize=14)
+ax.legend(loc=2, fontsize=14, frameon=False)
+ax.set_limits(1e2, 3e5, 0.2, 30)
 fig.savefig(plot_name)
