@@ -153,26 +153,26 @@ def gieles_etal_10_evolution(initial_radius, initial_mass, time):
     return m_final.to(u.Msun), r_final.to(u.pc)
 
 
-# ======================================================================================
-# duplicate plot from paper to validate this prescription
-# ======================================================================================
-test_mass_initial = np.logspace(3, 10, 100) * u.Msun
-test_r_initial = 10 ** (-3.560 + 0.615 * np.log10(test_mass_initial.to("Msun").value))
-test_r_initial *= u.pc
-
-fig, ax = bpl.subplots(figsize=[7, 7])
-ax.plot(test_mass_initial, test_r_initial, label="Initial")
-# then  go through the different ages
-for age in [10 * u.Myr, 100 * u.Myr, 1 * u.Gyr, 10 * u.Gyr]:
-    this_m, this_r = gieles_etal_10_evolution(test_r_initial, test_mass_initial, age)
-    ax.plot(this_m, this_r, label=age)
-
-ax.add_labels("Mass", "Radius")
-ax.set_xscale("log")
-ax.set_yscale("log")
-ax.set_limits(1e3, 3e8, 0.1, 300)
-ax.legend()
-fig.savefig("test_g10.png")
+# # ======================================================================================
+# # duplicate plot from paper to validate this prescription
+# # ======================================================================================
+# test_mass_initial = np.logspace(3, 10, 100) * u.Msun
+# test_r_initial = 10 ** (-3.560 + 0.615 * np.log10(test_mass_initial.to("Msun").value))
+# test_r_initial *= u.pc
+#
+# fig, ax = bpl.subplots(figsize=[7, 7])
+# ax.plot(test_mass_initial, test_r_initial, label="Initial")
+# # then  go through the different ages
+# for age in [10 * u.Myr, 100 * u.Myr, 1 * u.Gyr, 10 * u.Gyr]:
+#     this_m, this_r = gieles_etal_10_evolution(test_r_initial, test_mass_initial, age)
+#     ax.plot(this_m, this_r, label=age)
+#
+# ax.add_labels("Mass", "Radius")
+# ax.set_xscale("log")
+# ax.set_yscale("log")
+# ax.set_limits(1e3, 3e8, 0.1, 300)
+# ax.legend()
+# fig.savefig("test_g10.png")
 
 # ======================================================================================
 #
@@ -268,7 +268,7 @@ def gieles_etal_16_evolution(initial_radius, initial_mass, end_time):
     rho_history = u.Quantity(rho_history)
 
     r_history = density_to_half_mass_radius(rho_history, M_history)
-    return t_history, M_history, rho_history, r_history
+    return t_history, M_history, r_history, rho_history
 
 
 def gieles_etal_16_density(initial_mass, current_mass, initial_density):
@@ -301,53 +301,53 @@ def density_to_half_mass_radius(density, mass):
     return ((3 * 0.5 * mass) / (4 * np.pi * density)) ** (1 / 3)
 
 
-# ======================================================================================
-# duplicate plot from paper to validate this prescription
-# ======================================================================================
-# test the gieles etal 16 prescription
-test_rho = 30 * u.Msun / u.pc ** 3
-test_mass_initial = np.logspace(2.5, 5.0, 10) * u.Msun
-test_radius_initial = density_to_half_mass_radius(test_rho, test_mass_initial)
-
-test_run = gieles_etal_16_evolution(test_radius_initial, test_mass_initial, 300 * u.Myr)
-test_t_history, test_M_history, test_rho_history, test_r_history = test_run
-test_idx_30 = np.where(test_t_history == 30 * u.Myr)
-test_idx_300 = np.where(test_t_history == 300 * u.Myr)
-
-test_rho_30 = test_rho_history[test_idx_30]
-test_rho_300 = test_rho_history[test_idx_300]
-test_m_30 = test_M_history[test_idx_30]
-test_m_300 = test_M_history[test_idx_300]
-
-fig, ax = bpl.subplots(figsize=[7, 7])
-ax.scatter(
-    test_mass_initial, [test_rho.to(u.Msun / u.pc ** 3).value] * 10, label="Initial"
-)
-ax.scatter(test_m_30, test_rho_30, label="30 Myr")
-ax.scatter(test_m_300, test_rho_300, label="300 Myr")
-for idx in range(10):
-    test_ms = test_M_history[:, idx]
-    test_rhos = test_rho_history[:, idx]
-    ax.plot(test_ms, test_rhos, c=bpl.almost_black, lw=1, zorder=0)
-
-test_A = 0.02 * u.pc ** (-9 / 2) * u.Msun ** (1 / 2)
-test_eq_m = np.logspace(-1, 6, 1000) * u.Msun
-test_rho_eq = (test_A * test_eq_m) ** (2 / 3)
-ax.plot(
-    test_eq_m.to(u.Msun).value,
-    test_rho_eq.to(u.Msun / u.pc ** 3).value,
-    ls=":",
-    c=bpl.almost_black,
-    lw=1,
-    zorder=0,
-)
-
-ax.add_labels("Mass [$M_\odot$]", "Density [$M_\odot / pc^3$]")
-ax.set_xscale("log")
-ax.set_yscale("log")
-ax.set_limits(1e2, 1e6, 0.1, 1e4)
-ax.legend()
-fig.savefig("test_g16.png")
+# # ======================================================================================
+# # duplicate plot from paper to validate this prescription
+# # ======================================================================================
+# # test the gieles etal 16 prescription
+# test_rho = 30 * u.Msun / u.pc ** 3
+# test_mass_initial = np.logspace(2.5, 5.0, 10) * u.Msun
+# test_radius_initial = density_to_half_mass_radius(test_rho, test_mass_initial)
+#
+# test_run = gieles_etal_16_evolution(test_radius_initial, test_mass_initial, 300 * u.Myr)
+# test_t_history, test_M_history, test_r_history, test_rho_history = test_run
+# test_idx_30 = np.where(test_t_history == 30 * u.Myr)
+# test_idx_300 = np.where(test_t_history == 300 * u.Myr)
+#
+# test_rho_30 = test_rho_history[test_idx_30]
+# test_rho_300 = test_rho_history[test_idx_300]
+# test_m_30 = test_M_history[test_idx_30]
+# test_m_300 = test_M_history[test_idx_300]
+#
+# fig, ax = bpl.subplots(figsize=[7, 7])
+# ax.scatter(
+#     test_mass_initial, [test_rho.to(u.Msun / u.pc ** 3).value] * 10, label="Initial"
+# )
+# ax.scatter(test_m_30, test_rho_30, label="30 Myr")
+# ax.scatter(test_m_300, test_rho_300, label="300 Myr")
+# for idx in range(10):
+#     test_ms = test_M_history[:, idx]
+#     test_rhos = test_rho_history[:, idx]
+#     ax.plot(test_ms, test_rhos, c=bpl.almost_black, lw=1, zorder=0)
+#
+# test_A = 0.02 * u.pc ** (-9 / 2) * u.Msun ** (1 / 2)
+# test_eq_m = np.logspace(-1, 6, 1000) * u.Msun
+# test_rho_eq = (test_A * test_eq_m) ** (2 / 3)
+# ax.plot(
+#     test_eq_m.to(u.Msun).value,
+#     test_rho_eq.to(u.Msun / u.pc ** 3).value,
+#     ls=":",
+#     c=bpl.almost_black,
+#     lw=1,
+#     zorder=0,
+# )
+#
+# ax.add_labels("Mass [$M_\odot$]", "Density [$M_\odot / pc^3$]")
+# ax.set_xscale("log")
+# ax.set_yscale("log")
+# ax.set_limits(1e2, 1e6, 0.1, 1e4)
+# ax.legend()
+# fig.savefig("test_g16.png")
 
 # ======================================================================================
 #
@@ -371,6 +371,9 @@ def gieles_etal_16_evolution_no_mass_loss(initial_radius, mass, end_time):
     t_now = 0 * u.Myr
     r_now = r_i.copy()
 
+    t_history = [t_now.copy()]
+    M_history = [M.copy()]
+    r_history = [r_now.copy()]
     while t_now < t_end:
         # calculate the timescales needed
         rho_now = calculate_density(M, r_now)
@@ -390,7 +393,17 @@ def gieles_etal_16_evolution_no_mass_loss(initial_radius, mass, end_time):
         r_now = np.minimum(100 * u.pc, r_now + dr)
         t_now += dt
 
-    return r_now
+        # store in history
+        t_history.append(t_now.copy())
+        r_history.append(r_now.copy())
+        M_history.append(M.copy())
+
+    # turn history into nice astropy arrays
+    t_history = u.Quantity(t_history)
+    r_history = u.Quantity(r_history)
+    M_history = u.Quantity(M_history)
+
+    return t_history, M_history, r_history
 
 
 # ======================================================================================
@@ -420,6 +433,10 @@ def gieles_etal_16_evolution_tidal_prop(initial_radius, initial_mass, end_time, 
     r_now = r_i.copy()
     M_now = M_i.copy()
 
+    t_history = [t_now.copy()]
+    M_history = [M_now.copy()]
+    r_history = [r_now.copy()]
+
     while t_now < t_end:
         # calculate the timescales needed
         rho_now = calculate_density(M_now, r_now)
@@ -442,7 +459,17 @@ def gieles_etal_16_evolution_tidal_prop(initial_radius, initial_mass, end_time, 
         r_now = r_i * (M_now / M_i) ** (1 / 3)
         t_now += dt
 
-    return r_now, M_now
+        # store in history
+        t_history.append(t_now.copy())
+        r_history.append(r_now.copy())
+        M_history.append(M_now.copy())
+
+    # turn history into nice astropy arrays
+    t_history = u.Quantity(t_history)
+    r_history = u.Quantity(r_history)
+    M_history = u.Quantity(M_history)
+
+    return t_history, M_history, r_history
 
 
 # ======================================================================================
@@ -469,6 +496,10 @@ def gieles_etal_16_evolution_rlx_loss(initial_radius, initial_mass, end_time, f_
     t_now = 0 * u.Myr
     r_now = r_i.copy()
     M_now = M_i.copy()
+
+    t_history = [t_now.copy()]
+    M_history = [M_now.copy()]
+    r_history = [r_now.copy()]
 
     while t_now < t_end:
         # calculate the timescales needed
@@ -497,7 +528,17 @@ def gieles_etal_16_evolution_rlx_loss(initial_radius, initial_mass, end_time, f_
 
         t_now += dt
 
-    return r_now, M_now
+        # store in history
+        t_history.append(t_now.copy())
+        r_history.append(r_now.copy())
+        M_history.append(M_now.copy())
+
+    # turn history into nice astropy arrays
+    t_history = u.Quantity(t_history)
+    r_history = u.Quantity(r_history)
+    M_history = u.Quantity(M_history)
+
+    return t_history, M_history, r_history
 
 
 # ======================================================================================
@@ -506,7 +547,7 @@ def gieles_etal_16_evolution_rlx_loss(initial_radius, initial_mass, end_time, f_
 #
 # ======================================================================================
 mass_toy = np.logspace(2.5, 5, 1000) * u.Msun
-reff_t0 = mass_size_relation(mass_toy, 0.15, 2)
+reff_t0 = mass_size_relation(mass_toy, 0.12, 2.3)
 reff_bin1_toy = mass_size_relation(mass_toy, *fits["age1"])
 reff_bin2_toy = mass_size_relation(mass_toy, *fits["age2"])
 reff_bin3_toy = mass_size_relation(mass_toy, *fits["age3"])
@@ -524,33 +565,31 @@ m_g10_300myr_obs, r_g10_300myr_obs = gieles_etal_10_evolution(
 # ======================================================================================
 # 2016 model
 # ======================================================================================
-t_history_toy, M_history_toy, rho_history_toy, r_history_toy = gieles_etal_16_evolution(
-    reff_t0, mass_toy, 300 * u.Myr
-)
-idx_300 = np.where(t_history_toy == 300 * u.Myr)[0]
-# not sure why this extra index is needed
-m_g16_300myr_toy = M_history_toy[idx_300][0]
-r_g16_300myr_toy = r_history_toy[idx_300][0]
+(
+    t_history_g16_toy,
+    M_history_g16_toy,
+    r_history_g16_toy,
+    rho_history_g16_toy,
+) = gieles_etal_16_evolution(reff_t0, mass_toy, 300 * u.Myr)
 
 # then do the same for the full clusters
-t_history_obs, M_history_obs, rho_history_obs, r_history_obs = gieles_etal_16_evolution(
+t_history_obs, M_history_obs, r_history_obs, rho_history_obs = gieles_etal_16_evolution(
     r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr
 )
-idx_300 = np.where(t_history_obs == 300 * u.Myr)[0]
-# not sure why this extra index is needed
-m_g16_300myr_obs = M_history_obs[idx_300][0]
-r_g16_300myr_obs = r_history_obs[idx_300][0]
 
 # ======================================================================================
 # modified G16 with no mass loss
 # ======================================================================================
-r_g16m_30_toy = gieles_etal_16_evolution_no_mass_loss(reff_t0, mass_toy, 30 * u.Myr)
-r_g16m_30_obs = gieles_etal_16_evolution_no_mass_loss(
-    r_eff_obs[mask_young], mass_obs[mask_young], 30 * u.Myr
-)
-
-r_g16m_300_toy = gieles_etal_16_evolution_no_mass_loss(reff_t0, mass_toy, 300 * u.Myr)
-r_g16m_300_obs = gieles_etal_16_evolution_no_mass_loss(
+(
+    t_history_g16m_toy,
+    M_history_g16m_toy,
+    r_history_g16m_toy,
+) = gieles_etal_16_evolution_no_mass_loss(reff_t0, mass_toy, 300 * u.Myr)
+(
+    t_history_g16m_obs,
+    M_history_g16m_obs,
+    r_history_g16m_obs,
+) = gieles_etal_16_evolution_no_mass_loss(
     r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr
 )
 
@@ -558,34 +597,32 @@ r_g16m_300_obs = gieles_etal_16_evolution_no_mass_loss(
 # modified G16 such that r is proportional to tidal radius
 # ======================================================================================
 f_rlx = 0.2
-r_g16t_30_toy, m_g16t_30_toy = gieles_etal_16_evolution_tidal_prop(
-    reff_t0, mass_toy, 30 * u.Myr, f_rlx
-)
-r_g16t_30_obs, m_g16t_30_obs = gieles_etal_16_evolution_tidal_prop(
-    r_eff_obs[mask_young], mass_obs[mask_young], 30 * u.Myr, f_rlx
-)
-
-r_g16t_300_toy, m_g16t_300_toy = gieles_etal_16_evolution_tidal_prop(
-    reff_t0, mass_toy, 300 * u.Myr, f_rlx
-)
-r_g16t_300_obs, m_g16t_300_obs = gieles_etal_16_evolution_tidal_prop(
+(
+    t_history_g16t_toy,
+    M_history_g16t_toy,
+    r_history_g16t_toy,
+) = gieles_etal_16_evolution_tidal_prop(reff_t0, mass_toy, 300 * u.Myr, f_rlx)
+(
+    t_history_g16t_obs,
+    M_history_g16t_obs,
+    r_history_g16t_obs,
+) = gieles_etal_16_evolution_tidal_prop(
     r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr, f_rlx
 )
 
 # ======================================================================================
 # modified G16 such that relaxation causes mass loss, no tidal proportionality
 # ======================================================================================
-r_g16r_30_toy, m_g16r_30_toy = gieles_etal_16_evolution_rlx_loss(
-    reff_t0, mass_toy, 30 * u.Myr, f_rlx
-)
-r_g16r_30_obs, m_g16r_30_obs = gieles_etal_16_evolution_rlx_loss(
-    r_eff_obs[mask_young], mass_obs[mask_young], 30 * u.Myr, f_rlx
-)
-
-r_g16r_300_toy, m_g16r_300_toy = gieles_etal_16_evolution_rlx_loss(
-    reff_t0, mass_toy, 300 * u.Myr, f_rlx
-)
-r_g16r_300_obs, m_g16r_300_obs = gieles_etal_16_evolution_rlx_loss(
+(
+    t_history_g16r_toy,
+    M_history_g16r_toy,
+    r_history_g16r_toy,
+) = gieles_etal_16_evolution_rlx_loss(reff_t0, mass_toy, 300 * u.Myr, f_rlx)
+(
+    t_history_g16r_obs,
+    M_history_g16r_obs,
+    r_history_g16r_obs,
+) = gieles_etal_16_evolution_rlx_loss(
     r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr, f_rlx
 )
 
@@ -794,6 +831,8 @@ mru_p.plot_mass_size_dataset_contour(
     r_eff_obs[mask_young].to("pc").value,
     bpl.fade_color(bpl.color_cycle[0]),
     zorder=0,
+    cmap_min_saturation=0.02,
+    cmap_max_value=0.95,
 )
 mru_p.plot_mass_size_dataset_contour(
     ax,
@@ -801,6 +840,8 @@ mru_p.plot_mass_size_dataset_contour(
     r_eff_obs[mask_med].to("pc").value,
     bpl.fade_color(bpl.color_cycle[5]),
     zorder=0,
+    cmap_min_saturation=0.02,
+    cmap_max_value=0.95,
 )
 mru_p.plot_mass_size_dataset_contour(
     ax,
@@ -808,6 +849,8 @@ mru_p.plot_mass_size_dataset_contour(
     r_eff_obs[mask_old].to("pc").value,
     bpl.fade_color(bpl.color_cycle[3]),
     zorder=0,
+    cmap_min_saturation=0.02,
+    cmap_max_value=0.95,
 )
 
 # plot the initial mass-radius relation
@@ -817,7 +860,7 @@ ax.plot(
     lw=5,
     c=bpl.color_cycle[2],
     zorder=200,
-    label="t=0",
+    label="Inferred t=0 Relation",
 )
 
 # then lines for the observed relations
@@ -876,41 +919,67 @@ ax.plot(
 )
 
 
-for m_0, m_30, m_300, r_0, r_30, r_300, color, fs in zip(
-    [mass_toy, mass_toy, mass_toy],
-    [mass_toy, m_g16r_30_toy, m_g16t_30_toy],
-    [mass_toy, m_g16r_300_toy, m_g16t_300_toy],
-    [reff_t0, reff_t0, reff_t0],
-    [r_g16m_30_toy, r_g16r_30_toy, r_g16t_30_toy],
-    [r_g16m_300_toy, r_g16r_300_toy, r_g16t_300_toy],
+plot_limits = 1e2, 3e5, 0.2, 35
+for t_history, m_history, r_history, color, fs in zip(
+    [t_history_g16m_toy, t_history_g16r_toy, t_history_g16t_toy],
+    [M_history_g16m_toy, M_history_g16r_toy, M_history_g16t_toy],
+    [r_history_g16m_toy, r_history_g16r_toy, r_history_g16t_toy],
     [bpl.color_cycle[7], bpl.color_cycle[6], bpl.color_cycle[4]],
     [
-        np.arange(0.425, 1.001, 0.025),
-        np.arange(0.35, 0.701, 0.04),
-        np.arange(0.35, 0.701, 0.075),
+        np.arange(0.4, 1.001, 0.025),
+        np.arange(0.2, 0.701, 0.05),
+        np.arange(0.2, 0.701, 0.075),
     ],
 ):
     # ax.plot(m_model, r_model, lw=2, c=color)
     idxs = [int(f * len(mass_toy)) - 1 for f in fs]
     for idx in idxs:
-        for m1, m2, r1, r2, width_factor in zip(
-            [m_0, m_30], [m_30, m_300], [r_0, r_30], [r_30, r_300], [3, 1]
+        m_plot = m_history[:, idx]
+        r_plot = r_history[:, idx]
+
+        for t_max, lw in zip([30, 300] * u.Myr, [6, 2]):
+            t_idxs = t_history <= t_max
+            ax.plot(m_plot[t_idxs], r_plot[t_idxs], color=color, lw=lw, zorder=200)
+
+        # The arrows are way more complicated than I expected. I want them to start from
+        # the end of the line with the appropriate angle
+        # get the log of the values. Doing it separately this way is cleaner
+        log_r1 = np.log10(r_plot[-1].to("pc").value)
+        log_r2 = np.log10(r_plot[-2].to("pc").value)
+        log_m1 = np.log10(m_plot[-1].to("Msun").value)
+        log_m2 = np.log10(m_plot[-2].to("Msun").value)
+
+        d_logm = log_m1 - log_m2
+        d_logr = log_r1 - log_r2
+        theta = np.arctan2(d_logr, d_logm)
+
+        arrow_length = 0.02  # dex, chosen by experimentation
+        arrow_d_logm = arrow_length * np.cos(theta)
+        arrow_d_logr = arrow_length * np.sin(theta)
+
+        arrow_end_m = 10 ** (log_m1 + arrow_d_logm)
+        arrow_end_r = 10 ** (log_r1 + arrow_d_logr)
+
+        # only plot arrows that will be in the plot
+        if (
+            plot_limits[0] < arrow_end_m < plot_limits[1]
+            and plot_limits[2] < arrow_end_r < plot_limits[3]
         ):
             ax.annotate(
                 "",
-                xy=(m2[idx].to("Msun").value, r2[idx].to("pc").value),
-                xytext=(m1[idx].to("Msun").value, r1[idx].to("pc").value),
+                xy=(arrow_end_m, arrow_end_r),
+                xytext=(m_plot[-1].to("Msun").value, r_plot[-1].to("pc").value),
                 arrowprops={
                     "edgecolor": "none",
                     "facecolor": color,
-                    "width": width_factor * 3,
-                    "headwidth": width_factor * 7,
-                    "headlength": 0.0001 + 5 * (width_factor == 1),
+                    "width": 1e-10,
+                    "headwidth": 6,
+                    "headlength": 6,
                 },
-                zorder=200,
+                zorder=300,
             )
 
 mru_p.format_mass_size_plot(ax)
-ax.legend(loc=2, fontsize=13, frameon=False)
-ax.set_limits(1e2, 3e5, 0.2, 35)
+ax.legend(loc=2, fontsize=12, frameon=False)
+ax.set_limits(*plot_limits)
 fig.savefig(plot_name)

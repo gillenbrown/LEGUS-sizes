@@ -360,6 +360,9 @@ def create_color_cmap(hex_color, min_saturation=0.1, max_value=0.8):
     base_color_rgb = colors.hex2color(hex_color)
     h, s, v = colors.rgb_to_hsv(base_color_rgb)
     N = 256  # number of points in final colormap
+    # check that this color is within the range specified
+    assert s > min_saturation
+    assert v < max_value
     # reduce the saturation and up the brightness. Start from the outer values, as these
     # will correspond to 0, while the original color will be 1
     saturations = np.linspace(min_saturation, s, N)
@@ -379,8 +382,10 @@ def create_color_cmap(hex_color, min_saturation=0.1, max_value=0.8):
     return colors.LinearSegmentedColormap(hex_color, cmap_dict, N=256)
 
 
-def plot_mass_size_dataset_contour(ax, mass, r_eff, color, zorder=5):
-    cmap = create_color_cmap(color)
+def plot_mass_size_dataset_contour(
+    ax, mass, r_eff, color, zorder=5, cmap_min_saturation=0.1, cmap_max_value=0.8
+):
+    cmap = create_color_cmap(color, cmap_min_saturation, cmap_max_value)
     # use median errors as the smoothing. First get mean min and max of all clusters,
     # then take the median of that
     # k = 1.25
