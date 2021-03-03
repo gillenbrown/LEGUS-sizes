@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 from astropy import table
 import numpy as np
-from scipy import stats, interpolate
+from scipy import stats, interpolate, special, integrate
 import betterplotlib as bpl
 
 bpl.set_style()
@@ -138,27 +138,31 @@ fig, axs = bpl.subplots(nrows=nrows, ncols=ncols, figsize=[5 * ncols, 5 * nrows]
 axs = axs.flatten()
 
 radii_plot = np.logspace(-1, 1.5, 300)
+stacked_pdf = kde(
+    radii_plot,
+    stacked_catalog["r_eff_log"],
+    stacked_catalog["r_eff_log_smooth"],
+)
+
 for idx, galaxy in enumerate(sorted_galaxies):
     ax = axs[idx]
     cat = galaxy_catalogs[galaxy]
+    cat_pdf = kde(
+        radii_plot,
+        cat["r_eff_log"],
+        cat["r_eff_log_smooth"],
+    )
+
     ax.plot(
         radii_plot,
-        kde(
-            radii_plot,
-            stacked_catalog["r_eff_log"],
-            stacked_catalog["r_eff_log_smooth"],
-        ),
+        stacked_pdf,
         lw=2,
         zorder=2,
         c=bpl.color_cycle[2],
     )
     ax.plot(
         radii_plot,
-        kde(
-            radii_plot,
-            cat["r_eff_log"],
-            cat["r_eff_log_smooth"],
-        ),
+        cat_pdf,
         lw=4,
         zorder=4,
         c=bpl.color_cycle[0],
@@ -170,12 +174,19 @@ for idx, galaxy in enumerate(sorted_galaxies):
         alternative="two-sided",
     )[1]
 
+    # KL is done elementwise, then we integrate
+    kl_values = special.kl_div(stacked_pdf, cat_pdf)
+    kl_value = integrate.trapezoid(kl_values, radii_plot)
+
     ax.set_xscale("log")
     ax.set_limits(0.1, 25, 0, 1.0)
     ax.set_xticks([0.1, 1, 10])
     ax.set_xticklabels(["0.1", "1", "10"])
     ax.add_labels("$R_{eff}$ [pc]", "Normalized KDE Density")
-    ax.easy_add_text(f"{galaxy.upper()}\nN={len(cat)}\nP={pvalue:.3g}", "upper left")
+    ax.easy_add_text(
+        f"{galaxy.upper()}\nN={len(cat)}\nP={pvalue:.3g}\nKL={kl_value:.3f}",
+        "upper left",
+    )
 # last axis isn't needed, we only have 31 galaxies
 axs[-1].axis("off")
 
