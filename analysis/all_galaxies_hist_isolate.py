@@ -153,7 +153,13 @@ stacked_pdf = kde(
     stacked_catalog["r_eff_log"],
     stacked_catalog["r_eff_log_smooth"],
 )
-print(f"Peak of stacked distribution: {calculate_peak(radii_plot, stacked_pdf):.3f}pc")
+r_peak_stack = calculate_peak(radii_plot, stacked_pdf)
+print(f"Peak of stacked distribution: {r_peak_stack:.3f}pc")
+
+# Have a separate plot of the peak values
+fig_peak, ax_peak = bpl.subplots()
+# track peak values for galaxies above a certain count
+r_10, r_100 = [], []
 
 for idx, galaxy in enumerate(sorted_galaxies):
     ax = axs[idx]
@@ -187,6 +193,24 @@ for idx, galaxy in enumerate(sorted_galaxies):
 
     peak_r = calculate_peak(radii_plot, cat_pdf)
 
+    # put this on the peak plot, point out outliers
+    if galaxy in ["ngc7793", "ngc1566"]:
+        ax_peak.scatter([peak_r], len(cat), c=bpl.color_cycle[3])
+        ax_peak.add_text(
+            x=peak_r + 0.1,
+            y=len(cat),
+            text=galaxy.upper(),
+            fontsize=12,
+            ha="left",
+            va="center",
+        )
+    else:
+        ax_peak.scatter([peak_r], len(cat), c=bpl.color_cycle[0])
+    if len(cat) > 10:
+        r_10.append(peak_r)
+    if len(cat) > 100:
+        r_100.append(peak_r)
+
     # KL is done elementwise, then we integrate
     kl_values = special.kl_div(stacked_pdf, cat_pdf)
     kl_value = integrate.trapezoid(kl_values, radii_plot)
@@ -208,3 +232,27 @@ for idx, galaxy in enumerate(sorted_galaxies):
 axs[-1].axis("off")
 
 fig.savefig(plot_name)
+
+# ======================================================================================
+#
+# plot the distribution of r_peaks
+#
+# ======================================================================================
+std_10 = np.std(r_10)
+std_100 = np.std(r_100)
+ax_peak.axvline(r_peak_stack, ls="--")
+ax_peak.axhline(10, ls=":")
+ax_peak.axhline(100, ls=":")
+ax_peak.add_labels("$R_{peak}$ [pc]", "Number of Clusters")
+ax_peak.set_yscale("log")
+ax_peak.set_limits(1, 7.5, 1, 3000)
+ax_peak.easy_add_text(
+    "$\sigma_{100} = $"
+    + f"{std_100:.3f} pc, {100 * std_100 / r_peak_stack:.1f}%\n"
+    + "$\sigma_{10} = $"
+    + f"{std_10:.3f} pc, {100 * std_10 / r_peak_stack:.1f}%\n",
+    "upper right",
+)
+fig_peak.savefig(plot_name.parent / "r_peak.png")
+
+# and print the debug info
