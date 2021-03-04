@@ -132,6 +132,16 @@ def kde(r_eff_grid, log_r_eff, log_r_eff_err):
     return ys
 
 
+def calculate_peak(r_eff_grid, pdf):
+    max_pdf = -1
+    max_r = 0
+    for idx in range(len(r_eff_grid)):
+        if pdf[idx] > max_pdf:
+            max_r = r_eff_grid[idx]
+            max_pdf = pdf[idx]
+    return max_r
+
+
 nrows = 4
 ncols = 8
 fig, axs = bpl.subplots(nrows=nrows, ncols=ncols, figsize=[5 * ncols, 5 * nrows])
@@ -143,6 +153,7 @@ stacked_pdf = kde(
     stacked_catalog["r_eff_log"],
     stacked_catalog["r_eff_log_smooth"],
 )
+print(f"Peak of stacked distribution: {calculate_peak(radii_plot, stacked_pdf):.3f}pc")
 
 for idx, galaxy in enumerate(sorted_galaxies):
     ax = axs[idx]
@@ -174,6 +185,8 @@ for idx, galaxy in enumerate(sorted_galaxies):
         alternative="two-sided",
     )[1]
 
+    peak_r = calculate_peak(radii_plot, cat_pdf)
+
     # KL is done elementwise, then we integrate
     kl_values = special.kl_div(stacked_pdf, cat_pdf)
     kl_value = integrate.trapezoid(kl_values, radii_plot)
@@ -184,7 +197,11 @@ for idx, galaxy in enumerate(sorted_galaxies):
     ax.set_xticklabels(["0.1", "1", "10"])
     ax.add_labels("$R_{eff}$ [pc]", "Normalized KDE Density")
     ax.easy_add_text(
-        f"{galaxy.upper()}\nN={len(cat)}\nP={pvalue:.3g}\nKL={kl_value:.3f}",
+        f"{galaxy.upper()}\n"
+        f"N={len(cat)}\n"
+        f"P={pvalue:.3g}\n"
+        f"KL={kl_value:.3f}\n"
+        "$R_{peak} = $" + f"{peak_r:.2f}pc",
         "upper left",
     )
 # last axis isn't needed, we only have 31 galaxies
