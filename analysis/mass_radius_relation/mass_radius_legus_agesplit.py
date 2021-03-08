@@ -52,7 +52,13 @@ for age_mask, name, color, zorder in zip(
         ax, mass[age_mask], r_eff[age_mask], color, zorder=zorder
     )
     mru_p.add_percentile_lines(
-        ax, mass[age_mask], r_eff[age_mask], color=color, percentiles=[50], label=False
+        ax,
+        mass[age_mask],
+        r_eff[age_mask],
+        color=color,
+        percentiles=[50],
+        label_percents=False,
+        label_legend=f"{name.replace('--', '-')}, N={np.sum(age_mask)}",
     )
     mru_p.plot_best_fit_line(
         ax,
@@ -61,7 +67,7 @@ for age_mask, name, color, zorder in zip(
         1e5,
         color,
         fill=False,
-        label=f"{name.replace('--', '-')}, N={np.sum(age_mask)}",
+        label="",
         ls=":",
     )
     mru.write_fit_results(fit_out_file, name, fit, fit_history, mass[age_mask])

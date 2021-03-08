@@ -83,7 +83,8 @@ for mask_ssfr, name, color in zip(
         r_eff[mask_ssfr],
         color=color,
         percentiles=[50],
-        label=False,
+        label_percents=False,
+        label_legend=f"{name}, N={np.sum(mask_ssfr)}",
     )
     mru_p.plot_best_fit_line(
         ax,
@@ -92,7 +93,7 @@ for mask_ssfr, name, color in zip(
         1e5,
         color,
         fill=False,
-        label=f"{name}, N={np.sum(mask_ssfr)}",
+        label="",
         ls=":",
     )
     mru.write_fit_results(fit_out_file, name, fit, fit_history, mass[mask_ssfr])

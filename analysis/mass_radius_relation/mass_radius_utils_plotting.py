@@ -111,7 +111,8 @@ def add_percentile_lines(
     style="hybrid",
     color=bpl.almost_black,
     percentiles=None,
-    label=True,
+    label_percents=True,
+    label_legend=None,
 ):
     # set the percentiles to choose
     if percentiles is None:
@@ -142,8 +143,9 @@ def add_percentile_lines(
             c=color,
             lw=3 * (1 - (abs(percentile - 50) / 50)) + 0.5,
             zorder=9,
+            label=label_legend,
         )
-        if label:
+        if label_percents:
             ax.text(
                 x=mass_bins[0],
                 y=radii_percentile[0],
@@ -249,6 +251,8 @@ def plot_best_fit_line(
         label += "\left( \\frac{M}{10^4 M_\odot} \\right)^{"
         label += f"{best_fit_params[0]:.2f}"
         label += "}$"
+    elif label == "":
+        label = None
 
     plot_log_masses = np.arange(
         np.log10(fit_mass_lower_limit), np.log10(fit_mass_upper_limit), 0.01
@@ -383,8 +387,19 @@ def create_color_cmap(hex_color, min_saturation=0.1, max_value=0.8):
 
 
 def plot_mass_size_dataset_contour(
-    ax, mass, r_eff, color, zorder=5, cmap_min_saturation=0.1, cmap_max_value=0.8
+    ax,
+    mass,
+    r_eff,
+    color,
+    zorder=5,
+    cmap_min_saturation=0.1,
+    cmap_max_value=0.8,
+    levels=None,
 ):
+    # if the user did not specify levels, use 50 and 90 as the default
+    if levels is None:
+        levels = [0.5, 0.9]
+
     cmap = create_color_cmap(color, cmap_min_saturation, cmap_max_value)
     # use median errors as the smoothing. First get mean min and max of all clusters,
     # then take the median of that
@@ -395,7 +410,7 @@ def plot_mass_size_dataset_contour(
     y_smoothing = 0.08
 
     common = {
-        "percent_levels": [0.5, 0.9],
+        "percent_levels": levels,
         "smoothing": [x_smoothing, y_smoothing],  # dex
         "bin_size": 0.01,  # dex
         "log": True,
