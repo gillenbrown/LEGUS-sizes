@@ -12,6 +12,7 @@ import numpy as np
 from scipy import optimize
 from astropy import constants as c
 from astropy import units as u
+from matplotlib import colors as mpl_colors
 
 import betterplotlib as bpl
 
@@ -518,8 +519,8 @@ def gieles_etal_16_evolution_rlx_loss(initial_radius, initial_mass, end_time, f_
         # mass loss is the same as the previous prescription
         dM = -dt * M_now * (f_sh / tau_sh + zeta * f_rlx / tau_rh)
         # but radius is more complicated
-        dr_term_1 = (1 - (8 / 3) * f_sh) / tau_sh
-        dr_term_2 = (1 - (8 / 3) * f_rlx) * zeta / tau_rh
+        dr_term_1 = (1 - 2 * f_sh) / tau_sh
+        dr_term_2 = (1 - 2 * f_rlx) * zeta / tau_rh
         dr = dt * (r_now / 3) * (dr_term_1 + dr_term_2)
 
         # apply the changes, but don't let them go to crazy values
@@ -547,7 +548,7 @@ def gieles_etal_16_evolution_rlx_loss(initial_radius, initial_mass, end_time, f_
 #
 # ======================================================================================
 mass_toy = np.logspace(2.5, 5, 1000) * u.Msun
-reff_t0 = mass_size_relation(mass_toy, 0.12, 2.3)
+reff_t0 = mass_size_relation(mass_toy, *fits["age1"])  # 0.12, 2.3)
 reff_bin1_toy = mass_size_relation(mass_toy, *fits["age1"])
 reff_bin2_toy = mass_size_relation(mass_toy, *fits["age2"])
 reff_bin3_toy = mass_size_relation(mass_toy, *fits["age3"])
@@ -555,12 +556,12 @@ reff_bin3_toy = mass_size_relation(mass_toy, *fits["age3"])
 # ======================================================================================
 # 2010 model
 # ======================================================================================
-m_g10_300myr_toy, r_g10_300myr_toy = gieles_etal_10_evolution(
-    reff_t0, mass_toy, 300 * u.Myr
-)
-m_g10_300myr_obs, r_g10_300myr_obs = gieles_etal_10_evolution(
-    r_eff_obs[mask_young], mass_obs[mask_young], 300 * u.Myr
-)
+t_history_g10_toy = np.arange(1, 300.01, 1) * u.Myr
+history_g10_toy = [
+    gieles_etal_10_evolution(reff_t0, mass_toy, t) for t in t_history_g10_toy
+]
+M_history_g10_toy = u.Quantity([h[0] for h in history_g10_toy])
+r_history_g10_toy = u.Quantity([h[1] for h in history_g10_toy])
 
 # ======================================================================================
 # 2016 model
@@ -822,61 +823,98 @@ def fit_mass_size_relation(mass, r_eff):
 # Make a version of this plot showing toy arrows
 #
 # ======================================================================================
+def fade_color(color, f_s=0.666, f_v=0.75):
+    rgb = mpl_colors.to_rgb(color)
+    hsv = mpl_colors.rgb_to_hsv(rgb)
+    h = hsv[0]
+    s = hsv[1] * (1 - f_s)  # remove saturation
+    # make things lighter - 3/4 of the way to full brightness. In combination
+    # with the reduction in saturation, it basically fades things whiter
+    v = hsv[2] + (1.0 - hsv[2]) * f_v
+
+    return mpl_colors.hsv_to_rgb([h, s, v])
+
+
+# set the values used for these fade parameters
+c1, c2, c3 = bpl.color_cycle[0], bpl.color_cycle[5], bpl.color_cycle[3]
+fs_fill = {c1: 0.75, c2: 0.75, c3: 0.75}
+fv_fill = {c1: 0.75, c2: 0.75, c3: 0.75}
+fs_line = {c1: 0.6, c2: 0.6, c3: 0.6}
+fv_line = {c1: 0.6, c2: 0.6, c3: 0.6}
+
 fig, ax = bpl.subplots()
 # plot the mean relation evolution for each model.
 # Start with contours for all the data sets
-mru_p.plot_mass_size_dataset_contour(
-    ax,
-    mass_obs[mask_young].to("Msun").value,
-    r_eff_obs[mask_young].to("pc").value,
-    bpl.fade_color(bpl.color_cycle[0]),
-    zorder=0,
-    cmap_min_saturation=0.02,
-    cmap_max_value=0.95,
-)
-mru_p.plot_mass_size_dataset_contour(
-    ax,
-    mass_obs[mask_med].to("Msun").value,
-    r_eff_obs[mask_med].to("pc").value,
-    bpl.fade_color(bpl.color_cycle[5]),
-    zorder=0,
-    cmap_min_saturation=0.02,
-    cmap_max_value=0.95,
-)
-mru_p.plot_mass_size_dataset_contour(
-    ax,
-    mass_obs[mask_old].to("Msun").value,
-    r_eff_obs[mask_old].to("pc").value,
-    bpl.fade_color(bpl.color_cycle[3]),
-    zorder=0,
-    cmap_min_saturation=0.02,
-    cmap_max_value=0.95,
-)
+# colors are manually selected to look okay here
+for mask, color, name in zip(
+    [mask_young, mask_med, mask_old],
+    [c1, c2, c3],
+    ["1-10 Myr Observed", "10-100 Myr Observed", "100 Myr - 1 Gyr Observed"],
+):
+    # make my own version of the contour function in my mass radius utils
+    common = {
+        "percent_levels": [0.75],
+        "smoothing": 0.08,  # dex
+        "bin_size": 0.01,  # dex
+        "log": True,
+    }
+    ax.density_contourf(
+        mass_obs[mask].to("Msun").value,
+        r_eff_obs[mask].to("pc").value,
+        alpha=0.6,
+        zorder=0,
+        colors=[fade_color(color, fs_fill[color], fv_fill[color])],
+        **common
+    )
+    ax.density_contour(
+        mass_obs[mask].to("Msun").value,
+        r_eff_obs[mask].to("pc").value,
+        zorder=1,
+        colors=[fade_color(color, fs_line[color], fv_line[color])],
+        **common
+    )
+    # mru_p.add_percentile_lines(
+    #     ax,
+    #     mass_obs[mask].to("Msun").value,
+    #     r_eff_obs[mask].to("pc").value,
+    #     color=color,
+    #     percentiles=[50],
+    #     label_percents=False,
+    #     label_legend=name,
+    #     lw_50=2,
+    # )
+    # ax.plot(
+    #     [1, 1],
+    #     [1, 1],
+    #     c=color,
+    #     zorder=200,
+    #     label=name,
+    # )
 
-# plot the initial mass-radius relation
-ax.plot(
-    mass_toy,
-    reff_t0,
-    lw=5,
-    c=bpl.color_cycle[2],
-    zorder=200,
-    label="Inferred t=0 Relation",
-)
+# # plot the initial mass-radius relation
+# ax.plot(
+#     mass_toy,
+#     reff_t0,
+#     lw=3,
+#     c=bpl.color_cycle[2],
+#     zorder=500,
+#     label="Example t=0 Relation",
+# )
 
 # then lines for the observed relations
 ax.plot(
     mass_toy,
     reff_bin1_toy,
     c=bpl.color_cycle[0],
-    lw=5,
-    zorder=100,
+    lw=3,
+    zorder=1000,
     label="1-10 Myr Observed",
 )
 ax.plot(
     mass_toy,
     reff_bin2_toy,
     c=bpl.color_cycle[5],
-    lw=5,
+    lw=3,
     zorder=100,
     label="10-100 Myr Observed",
 )
@@ -884,7 +922,7 @@ ax.plot(
     mass_toy,
     reff_bin3_toy,
     c=bpl.color_cycle[3],
-    lw=5,
+    lw=3,
     zorder=100,
     label="100 Myr - 1 Gyr Observed",
 )
@@ -894,25 +932,30 @@ ax.plot(
 ax.plot(
     [1, 1],
     [1, 1],
-    lw=5,
+    c=bpl.color_cycle[6],
+    zorder=200,
+    label="Gieles+16",
+)
+ax.plot(
+    [1, 1],
+    [1, 1],
     c=bpl.color_cycle[7],
     zorder=200,
     label="No Mass Loss",
 )
-# Then the Gieles+2016 modified model that's not proportional to tidal radius
-ax.plot(
-    [1, 1],
-    [1, 1],
-    lw=5,
-    c=bpl.color_cycle[6],
-    zorder=200,
-    label="Mass Loss from Tides and Relaxation",
-)
+# # Then the Gieles+2016 modified model that's not proportional to tidal radius
+# ax.plot(
+#     [1, 1],
+#     [1, 1],
+#     lw=5,
+#     c=bpl.color_cycle[6],
+#     zorder=200,
+#     label="Mass Loss from Tides and Relaxation",
+# )
 # Then the Gieles+2016 modified model that's proportional to tidal radius
 ax.plot(
     [1, 1],
     [1, 1],
-    lw=5,
     c=bpl.color_cycle[4],
     zorder=200,
     label="$r_{eff} \propto r_{tid}$",
@@ -921,14 +964,14 @@ ax.plot(
 
 plot_limits = 1e2, 3e5, 0.2, 35
 for t_history, m_history, r_history, color, fs in zip(
-    [t_history_g16m_toy, t_history_g16r_toy, t_history_g16t_toy],
-    [M_history_g16m_toy, M_history_g16r_toy, M_history_g16t_toy],
-    [r_history_g16m_toy, r_history_g16r_toy, r_history_g16t_toy],
-    [bpl.color_cycle[7], bpl.color_cycle[6], bpl.color_cycle[4]],
+    [t_history_g16_toy, t_history_g16m_toy, t_history_g16t_toy],
+    [M_history_g16_toy, M_history_g16m_toy, M_history_g16t_toy],
+    [r_history_g16_toy, r_history_g16m_toy, r_history_g16t_toy],
+    [bpl.color_cycle[6], bpl.color_cycle[7], bpl.color_cycle[4]],
     [
-        np.arange(0.4, 1.001, 0.025),
-        np.arange(0.2, 0.701, 0.05),
-        np.arange(0.2, 0.701, 0.075),
+        np.concatenate([[0.15, 0.275], np.arange(0.35, 1.001, 0.05)]),
+        np.arange(0.45, 1.001, 0.05),
+        np.arange(0.3, 1.001, 0.05),
     ],
 ):
     # ax.plot(m_model, r_model, lw=2, c=color)
@@ -937,7 +980,7 @@ for t_history, m_history, r_history, color, fs in zip(
         m_plot = m_history[:, idx]
         r_plot = r_history[:, idx]
 
-        for t_max, lw in zip([30, 300] * u.Myr, [6, 2]):
+        for t_max, lw in zip([300] * u.Myr, [2]):
             t_idxs = t_history <= t_max
             ax.plot(m_plot[t_idxs], r_plot[t_idxs], color=color, lw=lw, zorder=200)
 
@@ -973,8 +1016,8 @@ for t_history, m_history, r_history, color, fs in zip(
                     "edgecolor": "none",
                     "facecolor": color,
                     "width": 1e-10,
-                    "headwidth": 6,
-                    "headlength": 6,
+                    "headwidth": 8,
+                    "headlength": 8,
                 },
                 zorder=300,
             )

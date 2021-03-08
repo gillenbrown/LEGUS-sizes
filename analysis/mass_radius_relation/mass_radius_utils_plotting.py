@@ -110,6 +110,7 @@ def add_percentile_lines(
     r_eff,
     style="hybrid",
     color=bpl.almost_black,
+    lw_50=3,
     percentiles=None,
     label_percents=True,
     label_legend=None,
@@ -141,7 +142,7 @@ def add_percentile_lines(
             mass_bins,
             radii_percentile,
             c=color,
-            lw=3 * (1 - (abs(percentile - 50) / 50)) + 0.5,
+            lw=lw_50 * (1 - (abs(percentile - 50) / 50)) + 0.5,
             zorder=9,
             label=label_legend,
         )
