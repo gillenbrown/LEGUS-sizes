@@ -837,10 +837,8 @@ def fade_color(color, f_s=0.666, f_v=0.75):
 
 # set the values used for these fade parameters
 c1, c2, c3 = bpl.color_cycle[0], bpl.color_cycle[5], bpl.color_cycle[3]
-fs_fill = {c1: 0.75, c2: 0.75, c3: 0.75}
-fv_fill = {c1: 0.75, c2: 0.75, c3: 0.75}
-fs_line = {c1: 0.6, c2: 0.6, c3: 0.6}
-fv_line = {c1: 0.6, c2: 0.6, c3: 0.6}
+f_fill = 0.75
+f_line = 0.6
 
 fig, ax = bpl.subplots()
 # plot the mean relation evolution for each model.
@@ -863,14 +861,14 @@ for mask, color, name in zip(
         r_eff_obs[mask].to("pc").value,
         alpha=0.6,
         zorder=0,
-        colors=[fade_color(color, fs_fill[color], fv_fill[color])],
+        colors=[fade_color(color, f_fill, f_fill)],
         **common
     )
     ax.density_contour(
         mass_obs[mask].to("Msun").value,
         r_eff_obs[mask].to("pc").value,
         zorder=1,
-        colors=[fade_color(color, fs_line[color], fv_line[color])],
+        colors=[fade_color(color, f_line, f_line)],
         **common
     )
     # mru_p.add_percentile_lines(
@@ -901,77 +899,61 @@ for mask, color, name in zip(
 #     label="Example t=0 Relation",
 # )
 
+
+def plot_fit_restricted_range(mass_plot, r_eff_plot, mass_obs, color, zorder, label):
+    # get the 1-99 percentiles
+    m_min, m_max = np.percentile(mass_obs, [1, 99])
+    good_idx = np.logical_and(mass_plot > m_min, mass_plot < m_max)
+    x_values = mass_plot[good_idx]
+    y_values = r_eff_plot[good_idx]
+    ax.plot(x_values, y_values, c=color, lw=3, zorder=zorder, label=label)
+
+
 # then lines for the observed relations
-ax.plot(
+plot_fit_restricted_range(
     mass_toy,
     reff_bin1_toy,
-    c=bpl.color_cycle[0],
-    lw=3,
-    zorder=1000,
-    label="1-10 Myr Observed",
+    mass_obs[mask_young],
+    bpl.color_cycle[0],
+    1000,
+    "1-10 Myr Observed",
 )
-ax.plot(
+plot_fit_restricted_range(
     mass_toy,
     reff_bin2_toy,
-    c=bpl.color_cycle[5],
-    lw=3,
-    zorder=100,
-    label="10-100 Myr Observed",
+    mass_obs[mask_med],
+    bpl.color_cycle[5],
+    100,
+    "10-100 Myr Observed",
 )
-ax.plot(
+plot_fit_restricted_range(
     mass_toy,
     reff_bin3_toy,
-    c=bpl.color_cycle[3],
-    lw=3,
-    zorder=100,
-    label="100 Myr - 1 Gyr Observed",
+    mass_obs[mask_old],
+    bpl.color_cycle[3],
+    100,
+    "100 Myr - 1 Gyr Observed",
 )
 
-# Then the Gieles+2016 modified model with no mass loss. Just plot dummy lines
-# to include in legend,
-ax.plot(
-    [1, 1],
-    [1, 1],
-    c=bpl.color_cycle[6],
-    zorder=200,
-    label="Gieles+16",
-)
-ax.plot(
-    [1, 1],
-    [1, 1],
-    c=bpl.color_cycle[7],
-    zorder=200,
-    label="No Mass Loss",
-)
-# # Then the Gieles+2016 modified model that's not proportional to tidal radius
-# ax.plot(
-#     [1, 1],
-#     [1, 1],
-#     lw=5,
-#     c=bpl.color_cycle[6],
-#     zorder=200,
-#     label="Mass Loss from Tides and Relaxation",
-# )
-# Then the Gieles+2016 modified model that's proportional to tidal radius
-ax.plot(
-    [1, 1],
-    [1, 1],
-    c=bpl.color_cycle[4],
-    zorder=200,
-    label="$r_{eff} \propto r_{tid}$",
-)
-
+# Then the models. Each has their own color
+c_g16 = "#c9733a"
+c_g16m = "#6E0004"
+c_g16t = "#95B125"  # "#95B125"  # 79993D # 81B521
+# Just plot dummy lines  to include in legend, the actual tracks will done later.
+ax.plot([1, 1], [1, 1], c=c_g16, zorder=200, label="Gieles+16")
+ax.plot([1, 1], [1, 1], c=c_g16m, zorder=200, label="No Mass Loss")
+ax.plot([1, 1], [1, 1], c=c_g16t, zorder=200, label="$r_{eff} \propto r_{tid}$")
 
 plot_limits = 1e2, 3e5, 0.2, 35
 for t_history, m_history, r_history, color, fs in zip(
     [t_history_g16_toy, t_history_g16m_toy, t_history_g16t_toy],
     [M_history_g16_toy, M_history_g16m_toy, M_history_g16t_toy],
     [r_history_g16_toy, r_history_g16m_toy, r_history_g16t_toy],
-    [bpl.color_cycle[6], bpl.color_cycle[7], bpl.color_cycle[4]],
+    [c_g16, c_g16m, c_g16t],
     [
-        np.concatenate([[0.15, 0.275], np.arange(0.35, 1.001, 0.05)]),
-        np.arange(0.45, 1.001, 0.05),
-        np.arange(0.3, 1.001, 0.05),
+        np.concatenate([[0.15, 0.275], np.arange(0.35, 0.96, 0.05)]),
+        np.arange(0.45, 0.96, 0.05),
+        np.concatenate([[0.3, 0.4], np.arange(0.5, 0.96, 0.05)]),
     ],
 ):
     # ax.plot(m_model, r_model, lw=2, c=color)
@@ -980,7 +962,7 @@ for t_history, m_history, r_history, color, fs in zip(
         m_plot = m_history[:, idx]
         r_plot = r_history[:, idx]
 
-        for t_max, lw in zip([300] * u.Myr, [2]):
+        for t_max, lw in zip([300] * u.Myr, [2.5]):
             t_idxs = t_history <= t_max
             ax.plot(m_plot[t_idxs], r_plot[t_idxs], color=color, lw=lw, zorder=200)
 
@@ -1016,13 +998,26 @@ for t_history, m_history, r_history, color, fs in zip(
                     "edgecolor": "none",
                     "facecolor": color,
                     "width": 1e-10,
-                    "headwidth": 8,
-                    "headlength": 8,
+                    "headwidth": 9,
+                    "headlength": 9,
                 },
                 zorder=300,
             )
 
+# put arrows in the legend. This is a hack, I just place them in the location to
+# make them appear as part of the legend
+arrowprops = {
+    "edgecolor": "none",
+    "width": 1,
+    "headwidth": 9,
+    "headlength": 9,
+}
+for y, color in zip([12.6, 9.8, 7.6], [c_g16, c_g16m, c_g16t]):
+    arrowprops["facecolor"] = color
+    x0 = 190
+    ax.annotate("", xy=(x0, y), xytext=(x0 - 1, y), arrowprops=arrowprops, zorder=300)
+
 mru_p.format_mass_size_plot(ax)
-ax.legend(loc=2, fontsize=12, frameon=False)
+ax.legend(loc=2, fontsize=14, frameon=False)
 ax.set_limits(*plot_limits)
 fig.savefig(plot_name)
