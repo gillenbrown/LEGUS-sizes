@@ -160,7 +160,9 @@ print(f"Peak of stacked distribution: {r_peak_stack:.3f}pc")
 fig_peak, ax_peak = bpl.subplots()
 # track peak values for galaxies above a certain count
 r_10, r_100 = [], []
-
+# also track how many galaxies have a p-value above a given threshold
+n_min = 50
+n_p_05, n_p_01 = 0, 0
 for idx, galaxy in enumerate(sorted_galaxies):
     ax = axs[idx]
     cat = galaxy_catalogs[galaxy]
@@ -190,6 +192,11 @@ for idx, galaxy in enumerate(sorted_galaxies):
         cdf_func,
         alternative="two-sided",
     )[1]
+    if len(cat) > n_min:
+        if pvalue > 0.05:
+            n_p_05 += 1
+        if pvalue > 0.01:
+            n_p_01 += 1
 
     peak_r = calculate_peak(radii_plot, cat_pdf)
 
@@ -233,6 +240,10 @@ axs[-1].axis("off")
 
 fig.savefig(plot_name)
 
+
+print(f"{n_p_01} galaxies with {n_min} clusters have P > 0.01")
+print(f"{n_p_05} galaxies with {n_min} clusters have P > 0.05")
+
 # ======================================================================================
 #
 # plot the distribution of r_peaks
@@ -254,5 +265,3 @@ ax_peak.easy_add_text(
     "upper right",
 )
 fig_peak.savefig(plot_name.parent / "r_peak.png")
-
-# and print the debug info

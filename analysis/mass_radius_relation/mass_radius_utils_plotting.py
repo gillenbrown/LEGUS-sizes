@@ -418,7 +418,7 @@ def plot_mass_size_dataset_contour(
         "cmap": cmap,
     }
     ax.density_contourf(mass, r_eff, alpha=0.6, zorder=zorder, **common)
-    ax.density_contour(mass, r_eff, zorder=zorder + 20, **common)
+    ax.density_contour(mass, r_eff, zorder=zorder + 1, **common)
 
 
 # Function to use to set the ticks
