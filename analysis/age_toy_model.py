@@ -935,7 +935,7 @@ c_g16 = "#c9733a"
 c_g16m = "#6E0004"
 c_g16t = "#95B125"  # "#95B125"  # 79993D # 81B521
 # Just plot dummy lines  to include in legend, the actual tracks will done later.
-ax.plot([1, 1], [1, 1], c=c_g16, zorder=200, label="Gieles+16")
+ax.plot([1, 1], [1, 1], c=c_g16, zorder=200, label="GR16")
 ax.plot([1, 1], [1, 1], c=c_g16m, zorder=200, label="No Mass Loss")
 ax.plot([1, 1], [1, 1], c=c_g16t, zorder=200, label="$r_{eff} \propto r_{tid}$")
 
