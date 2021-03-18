@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 import numpy as np
 from astropy import table
+import cmocean
+from matplotlib import ticker, colors, cm
 import betterplotlib as bpl
 
 bpl.set_style()
@@ -102,12 +104,51 @@ catalog["reff_relative_error"] = np.abs(reff - reff_true) / reff_true
 # Then plot this up
 #
 # ======================================================================================
+# Function to use to set the ticks
+@ticker.FuncFormatter
+def nice_log_formatter(x, pos):
+    exp = np.log10(x)
+    # this only works for labels that are factors of 10. Other values will produce
+    # misleading results, so check this assumption.
+    assert np.isclose(exp, int(exp))
+
+    # for values between 0.01 and 100, just use that value.
+    # Otherwise use the log.
+    if abs(exp) < 2:
+        return f"{x:g}"
+    else:
+        return f"$10^{exp:.0f}$"
+
+
+cmap = cmocean.cm.thermal_r
+cmap = cmocean.tools.crop_by_percent(cmap, 5, "min")
+boundaries = np.arange(0.75 - 1 / 8, 2.501 + 1 / 8, 0.25)
+norm = colors.BoundaryNorm(
+    boundaries,
+    ncolors=256,
+)
+mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
+plot_colors = [mappable.to_rgba(eta) for eta in catalog["power_law_slope_true"]]
+
+
 fig, ax = bpl.subplots()
-ax.scatter(reff_true, reff, alpha=1)
+s = ax.scatter(
+    reff_true,
+    reff,
+    alpha=1,
+    c=plot_colors,
+)
+ax.plot([1e-5, 100], [1e-5, 100], ls=":", c=bpl.almost_black, zorder=0)
 ax.add_labels("True $R_{eff}$ [pixels]", "Measured $R_{eff}$ [pixels]")
 ax.set_xscale("log")
 ax.set_yscale("log")
 ax.equal_scale()
 ax.set_limits(0.05, 30, 0.05, 30)
-ax.plot([1e-5, 100], [1e-5, 100], ls=":", c=bpl.almost_black, zorder=0)
+ax.xaxis.set_ticks_position("both")
+ax.yaxis.set_ticks_position("both")
+ax.xaxis.set_major_formatter(nice_log_formatter)
+ax.yaxis.set_major_formatter(nice_log_formatter)
+cbar = fig.colorbar(mappable, ax=ax)
+cbar.set_label("Power Law Slope $\eta$")
+cbar.set_ticks(sorted(np.unique(catalog["power_law_slope_true"])))
 fig.savefig(plot_name)
