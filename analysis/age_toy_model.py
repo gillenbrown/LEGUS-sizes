@@ -186,6 +186,8 @@ def gieles_etal_10_evolution(initial_radius, initial_mass, time):
 # note their notation uses i for initial rather than 0, and I keep that in my code
 print("make sure I'm doing 2-3D transition correctly in G16")
 g16_f = 3
+# zeta is chosen to be 0.5 by G16 right at the end of section 3.2
+zeta = 0.5
 
 
 def gieles_t_dis_equilibrium(mass):
@@ -198,6 +200,14 @@ def gieles_t_sh(rho):
     # assumes default value for gamma_GMC
     gamma_gmc = 12.8 * u.Gyr
     return gamma_gmc * (rho / (100 * u.Msun / u.pc ** 3))
+
+
+def gieles_t_rh(M, rho):
+    # kappa is needed for t_rh, G16 use the value for equal mass systems
+    kappa = 142 * u.Myr
+    return (
+        kappa * (M / (1e4 * u.Msun)) * (rho / (1e2 * u.Msun * u.pc ** (-3))) ** (-1 / 2)
+    )
 
 
 # This commented equation does not work, as it uses timescales only valid on the
@@ -379,15 +389,8 @@ def gieles_etal_16_evolution_no_mass_loss(initial_radius, mass, end_time):
         # calculate the timescales needed
         rho_now = calculate_density(M, r_now)
         tau_sh = gieles_t_sh(rho_now)
-        # zeta is chosen to be 0.5 by G16 right at the end of section 3.2
-        zeta = 0.5
-        # kappa is needed for t_rh, G16 use the value for equal mass systems
-        kappa = 142 * u.Myr
-        tau_rh = (
-            kappa
-            * (M / (1e4 * u.Msun))
-            * (rho_now / (1e2 * u.Msun * u.pc ** (-3))) ** (-1 / 2)
-        )
+        tau_rh = gieles_t_rh(M, rho_now)
+
         # then calculate and apply the changed value
         dr = r_now * (1 / tau_sh + zeta / tau_rh) * dt
         # don't let the radius go to infinity
@@ -442,15 +445,7 @@ def gieles_etal_16_evolution_tidal_prop(initial_radius, initial_mass, end_time, 
         # calculate the timescales needed
         rho_now = calculate_density(M_now, r_now)
         tau_sh = gieles_t_sh(rho_now)
-        # zeta is chosen to be 0.5 by G16 right at the end of section 3.2
-        zeta = 0.5
-        # kappa is needed for t_rh, G16 use the value for equal mass systems
-        kappa = 142 * u.Myr
-        tau_rh = (
-            kappa
-            * (M_now / (1e4 * u.Msun))
-            * (rho_now / (1e2 * u.Msun * u.pc ** (-3))) ** (-1 / 2)
-        )
+        tau_rh = gieles_t_rh(M_now, rho_now)
         # then calculate and apply the changed value
         dM = -dt * M_now * (f_sh / tau_sh + zeta * f_rlx / tau_rh)
         # don't let the mass go negative
