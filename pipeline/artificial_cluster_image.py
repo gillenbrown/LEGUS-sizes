@@ -56,8 +56,8 @@ image += true_catalog["local_background_true"][0]
 for row in true_catalog:
     cluster_snapshot = fit_utils.create_model_image(
         row["log_luminosity_true"],
-        snapshot_size,  # x, center of snapshot
-        snapshot_size,  # y, center of snapshot
+        snapshot_size,  # x, center of snapshot in oversampled coords
+        snapshot_size,  # y, center of snapshot in oversampled coords
         row["scale_radius_pixels_true"],
         row["axis_ratio_true"],
         row["position_angle_true"],
@@ -94,7 +94,14 @@ for row in true_catalog:
 # Add noise to the image
 #
 # ======================================================================================
-image += np.random.poisson(image)
+# The image we have so far is the expected image without any noise. This is equivalent
+# to stating that each pixel is the mean of the Poisson distribution at that pixel. So
+# to get an image with noise, in each pixel we sample from a Poisson distribution with
+# the mean of the expected value in that pixel. Note that this produces the new image
+# itself! We do not need to add the noise. Also, the Poisson function returns integers,
+# we need to convert to floats
+image = np.random.poisson(image)
+image = image.astype(float)
 
 # ======================================================================================
 #
