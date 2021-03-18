@@ -11,8 +11,10 @@ ifneq (,$(findstring gillenb-mbp,$(hostname)))
 endif
 # This directory should have nothing but directories with data
 # We'll do this complicated line that just gets all directories inside data_home
-data_dirs = $(sort $(dir $(wildcard $(data_home)/*/)))
-ryon_dirs = $(filter %ngc1313-e/ %ngc1313-w/ %ngc628-e/ %ngc628-c/, $(data_dirs))
+all_data_dirs = $(sort $(dir $(wildcard $(data_home)/*/)))
+data_dirs = $(filter-out %artificial/, $(all_data_dirs))
+ryon_dirs = $(filter %ngc1313-e/ %ngc1313-w/ %ngc628-e/ %ngc628-c/, $(all_data_dirs))
+artificial_dir = $(filter %artificial/, $(all_data_dirs))
 
 # ------------------------------------------------------------------------------
 #
@@ -71,6 +73,9 @@ mass_radius_legus_mw_script = $(mass_radius_dir)mass_radius_legus_mw.py
 mass_radius_legus_external_script = $(mass_radius_dir)mass_radius_legus_external.py
 mass_radius_legus_mw_external_script = $(mass_radius_dir)mass_radius_legus_mw_external.py
 mass_radius_final_table_script = $(mass_radius_dir)mass_radius_final_table.py
+artificial_cluster_catalog_script = $(pipeline_dir)artificial_cluster_catalog.py
+artificial_cluster_image_script = $(pipeline_dir)artificial_cluster_image.py
+artificial_comparison_script = $(analysis_dir)artificial_comparison.py
 
 # ------------------------------------------------------------------------------
 #
@@ -167,6 +172,8 @@ mass_radius_legus_mw_external_plot = $(local_plots_dir)mass_radius_legus_mw_exte
 mass_radius_legus_mw_external_txt = $(mass_size_tables_dir)legus_mw_external_table.txt
 # the mass size tables get combined together into one final table
 mass_radius_table = $(local_plots_dir)mass_radius_fits_table.txt
+# Also do a comparison of the artificial star tests
+artificial_comparison = $(local_plots_dir)artificial_tests.pdf
 # then combine everything together
 outputs = $(galaxy_table) $(psf_demo_image) $(psf_comp_plots) \
           $(comparison_plot_ryon) $(comparison_plot_full) \
@@ -181,7 +188,8 @@ outputs = $(galaxy_table) $(psf_demo_image) $(psf_comp_plots) \
           $(mass_radius_legus_mw_txt) \
           $(mass_radius_legus_external_txt) \
           $(mass_radius_legus_mw_external_plot) $(mass_radius_legus_mw_external_txt) \
-          $(mass_radius_table)
+          $(mass_radius_table) \
+          $(artificial_comparison)
 
 experiments_sentinel = ./testing/experiments_done.txt
 
@@ -352,3 +360,51 @@ $(mass_radius_legus_mw_external_plot) $(mass_radius_legus_mw_external_txt) &: $(
 # combine all tables into the final one
 $(mass_radius_table): $(mass_radius_final_table_script) $(mass_radius_legus_full_txt) $(mass_radius_legus_young_txt) $(mass_radius_legus_agesplit_txt) $(mass_radius_legus_ssfrsplit_txt) $(mass_radius_legus_mw_txt)  $(mass_radius_legus_external_txt)  $(mass_radius_legus_mw_external_txt)
 	python $(mass_radius_final_table_script) $(mass_radius_table) $(mass_radius_legus_full_txt) $(mass_radius_legus_young_txt) $(mass_radius_legus_agesplit_txt) $(mass_radius_legus_ssfrsplit_txt) $(mass_radius_legus_mw_txt)  $(mass_radius_legus_external_txt)  $(mass_radius_legus_mw_external_txt)
+
+# ------------------------------------------------------------------------------
+#  Artificial cluster tests
+# ------------------------------------------------------------------------------
+# Set up the artificial cluster tests separately. This is a bit clunky as it
+# isn't as automated as the normal runs, but that's okay as it's a different
+# workflow from those other runs, slightly.
+# the artificial image needs the long name so the code can find it
+base_galaxy = ngc1313-e
+artificial_catalog = $(artificial_dir)true_catalog.txt
+artificial_image = $(artificial_dir)hlsp_legus_hst_acs_artificial_f555w_v1_drc.fits
+artificial_psf = $(artificial_dir)$(my_dirname)$(psf_my)
+artificial_sigma_image = $(artificial_dir)$(my_dirname)$(sigma_image)
+artificial_mask_image = $(artificial_dir)$(my_dirname)$(mask)
+artificial_fit = $(artificial_dir)$(my_dirname)$(fit)
+artificial_final_cat = $(artificial_dir)$(my_dirname)$(final_cat)
+
+# use the psf from another galaxy
+$(artificial_psf): $(psfs_my)
+	cp $(data_home)/$(base_galaxy)/$(my_dirname)$(psf_my) $@
+
+# Make the catalog with the true locations and parameters of the clusters
+# This depends on the final catalogs so I can sample realistic clusters
+$(artificial_catalog): $(final_cats) $(artificial_cluster_catalog_script)
+	python $(artificial_cluster_catalog_script) $@ $(final_cats)
+
+# the artificial image with fake clusters
+$(artificial_image): $(artificial_cluster_image_script) $(artificial_catalog)
+	python $(artificial_cluster_image_script) $@ $(artificial_catalog) $(psf_oversampling_factor) $(fit_region_size) $(artificial_psf) $(base_galaxy)
+
+# sigma image is done with the normal pipeline. It does depend on the original image
+$(artificial_sigma_image): $(sigma_script) $(artificial_image)
+	python $(sigma_script) $@
+
+# mask is done automatically
+$(artificial_mask_image): $(mask_script) $(artificial_catalog) $(artificial_sigma_image) $(artificial_image)
+	python $(mask_script) $@ $(artificial_catalog) $(artificial_sigma_image)
+
+# then we can do the fitting and postprocessing!
+$(artificial_fit): %: $(fitting_script) $(fit_utils) $(artificial_psf) $(artificial_sigma_image) $(artificial_mask_image) $(artificial_catalog)
+	python $(fitting_script) $@ $(artificial_psf) $(psf_oversampling_factor) $(artificial_sigma_image) $(artificial_mask_image) $(artificial_catalog) $(fit_region_size)
+
+# Add the derived properties to these catalogs
+$(artificial_final_cat): $(final_catalog_script) $(fit_utils) $(artificial_fit) $(artificial_psf) $(artificial_sigma_image) $(artificial_mask_image)
+	python $(final_catalog_script) $@ $(artificial_fit) $(artificial_psf) $(psf_oversampling_factor) $(artificial_sigma_image) $(artificial_mask_image) $(fit_region_size)
+
+$(artificial_comparison): $(artificial_final_cat) $(artificial_comparison_script)
+	python $(artificial_comparison_script) $@ $(artificial_final_cat)

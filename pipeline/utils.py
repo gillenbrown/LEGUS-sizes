@@ -170,6 +170,8 @@ distances_and_errs_mpc = {
     # M31 is needed for comparison data: Wagner-Kaiser+ (2015, MNRAS, 451, 724)
     # optical bands, as used in Krumholz
     "m31": distance_modulus_distance_and_err(24.32, 0.09),
+    # artificial galaxy doesn't matter, I don't use these distances
+    "artificial": (1.00, 0.1),
 }
 
 
