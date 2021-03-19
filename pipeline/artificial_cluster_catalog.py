@@ -7,6 +7,7 @@ create an image of artificial clusters
 import sys
 from pathlib import Path
 from astropy import table
+from scipy import spatial
 import numpy as np
 
 # ======================================================================================
@@ -15,99 +16,143 @@ import numpy as np
 #
 # ======================================================================================
 catalog_name = Path(sys.argv[1]).resolve()
+field = sys.argv[2]
+# find the cluster catalog for the field of interest
+for cat_loc in sys.argv[3:]:
+    if field == Path(cat_loc).parent.parent.name:
+        cat_observed = table.Table.read(cat_loc, format="ascii.ecsv")
+        break
 
-# catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[2:]]
-# # then stack them together in one master catalog
-# big_catalog = table.vstack(catalogs, join_type="inner")
-#
-# # restrict to clusters with good radii
-# big_catalog = big_catalog[big_catalog["good_radius"]]
-
+# create the empty catalog we'll fill later
+catalog = table.Table([], names=[])
 # ======================================================================================
 #
-# Select a few clusters to create
+# first create the parameters for clusters. I'll add x-y later
 #
 # ======================================================================================
 # Here is how I'll pick the parameters for my fake clusters:
-# x - will be placed throughout the image
-# y - will be placed throughout the image
-# log_luminosity - will be a fixed value typical of clusters
+# log_luminosity - will be in the typical range of clusters in this image
 # scale_radius_pixels - will change to simulate moving in distance
 # axis_ratio - will be a fixed value typical of clusters
 # position_angle - will be randomly chosen for each cluster
-# power_law_slope - will be a fixed value typical of clusters
-# local_background - this applies to the image, and will be a representative value
-log_luminosity = [6, 6, 6, 6, 6, 6, 6]
-axis_ratio = [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8]
-power_law_slope = [0.75, 1.01, 1.25, 1.5, 1.75, 2, 2.5]
-position_angle = 0
-background = 50
-# double check my lengths of these arrays
-assert len(log_luminosity) == len(axis_ratio) == len(power_law_slope)
-
-# ======================================================================================
-#
-# Then make the catalog with these parameters
-#
-# ======================================================================================
-colnames = [
-    "ID",
-    "x",
-    "y",
-    "log_luminosity_true",
-    "scale_radius_pixels_true",
-    "axis_ratio_true",
-    "position_angle_true",
-    "power_law_slope_true",
-    "local_background_true",
-    "mass_msun",
-    "mass_msun_min",
-    "mass_msun_max",
-    "age_yr",
-    "Q_probability",
-]
-catalog = table.Table(
-    [[]] * len(colnames),
-    names=colnames,
-    dtype=[int] + [float] * (len(colnames) - 1),
+# power_law_slope - will be iterated over
+# I'll create a slightly nonuniform grid of a-eta-L that I'm iterating over. I'll do
+# this in a way that allows for each cluster to have a unique effective radius, to make
+# plots easier to see. Instead of having the same a-eta and varying L, I'll slightly
+# change a each time. I have a diagram in my notebook, page 137
+n_eta = 8
+n_l = 8
+n_a = 8
+eta_values = np.linspace(1.001, 2.5, n_eta)
+log_luminosity_values = np.linspace(
+    np.min(cat_observed["log_luminosity_best"]),
+    np.max(cat_observed["log_luminosity_best"]),
+    n_l,
 )
+a_values = np.logspace(-2, 0, n_l * n_a)
 
-# set up the grid we'll use for scale radius
-a_pixels = np.logspace(-1, 1, 20)
-# iterate through the other cluster parameters
-dx = 60
-id = 0
-for i in range(len(log_luminosity)):
-    x = (id // len(a_pixels)) * dx + dx
-    # then iterate through the scale radius
-    for a in a_pixels:
-        y = (id % len(a_pixels)) * dx + dx
-        # calculate the true effective radius
+# eta_final = np.repeat(eta_values, len(a_values))
+# a_final = np.repeat(a_values, len(eta_values))
+# l_final = np.repeat(log_luminosity_values, len(eta_values) * a_repeats)
+a_final, eta_final, l_final = [], [], []
+for a_idx in range(len(a_values)):
+    a = a_values[a_idx]
+    l = log_luminosity_values[a_idx % n_l]
 
-        catalog.add_row(
-            [
-                id + 1,  # so first cluster has id=1
-                x,
-                y,
-                log_luminosity[i],
-                a,
-                axis_ratio[i],
-                position_angle,
-                power_law_slope[i],
-                background,
-                1e4,  # mass
-                1e3,  # mass min
-                1e5,  # mass max
-                1e8,  # age
-                1,  # Q probability
-            ]
-        )
-        id += 1
-# TODO: check on non-integer pixel values
+    for eta in eta_values:
+        a_final.append(a)
+        eta_final.append(eta)
+        l_final.append(l)
+
+# double check my lengths of these arrays
+assert len(eta_final) == len(a_final) == len(l_final) == n_eta * n_l * n_a
+
+
+# then add this all to the table, including IDs
+catalog["ID"] = range(1, len(a_final) + 1)
+catalog["log_luminosity_true"] = l_final
+catalog["scale_radius_pixels_true"] = a_final
+catalog["axis_ratio_true"] = 0.8
+catalog["position_angle_true"] = np.random.uniform(0, np.pi, len(a_final))
+catalog["power_law_slope_true"] = eta_final
 
 # ======================================================================================
 #
-# Write the catalog
+# Create the x-y positions of the fake clusters
 #
 # ======================================================================================
+# to select x-y values, I have a few rules. First, clusters must be in the region where
+# real clusters are (i.e. no edge of the image). They must also not be near other
+# clusters, which I define as being outside of 30 pixels from them.
+x_real = cat_observed["x"]
+y_real = cat_observed["y"]
+# Use these to create a region such that we can test whether proposed clusters lie
+# within it. The idea is to use a convex hull, but this stack overflow does it a bit
+# differently in scipy: https://stackoverflow.com/a/16898636
+class Hull(object):
+    def __init__(self, x, y):
+        hull_points = np.array([(xi, yi) for xi, yi in zip(x, y)])
+        self.hull = spatial.Delaunay(hull_points)
+
+    def test_within(self, x, y):
+        return self.hull.find_simplex((x, y)) >= 0
+
+
+hull = Hull(x_real, y_real)
+
+# also get the range so I can restrict where I sample from
+max_x_real = np.max(x_real)
+max_y_real = np.max(y_real)
+min_diff = 30
+
+x_fake, y_fake = np.array([]), np.array([])
+for _ in range(len(catalog)):
+    # set a counter to track when we have a good set of xy
+    good_xy = False
+    tracker = 0
+    while not good_xy:
+        # generate a set of xy
+        x = np.random.uniform(0, max_x_real)
+        y = np.random.uniform(0, max_y_real)
+        within_range = hull.test_within(x, y)
+
+        # then test it against other clusters. The proposed location must be far from
+        # every other cluster in either x or y
+        far_x_real = np.abs(x_real - x) > min_diff
+        far_y_real = np.abs(y_real - y) > min_diff
+        far_real = np.all(np.logical_or(far_x_real, far_y_real))
+        # and clusters that have been made so far
+        far_x_fake = np.abs(x_fake - x) > min_diff
+        far_y_fake = np.abs(y_fake - y) > min_diff
+        far_fake = np.all(np.logical_or(far_x_fake, far_y_fake))
+
+        far_all = np.logical_and(far_real, far_fake)
+
+        good_xy = np.logical_and(far_all, within_range)
+
+        # make sure we never have an infinite loop
+        tracker += 1
+        if tracker > 100:
+            raise RuntimeError("It appears we can't place any more clusters.")
+
+    x_fake = np.append(x_fake, x)
+    y_fake = np.append(y_fake, y)
+
+
+catalog["x"] = x_fake
+catalog["y"] = y_fake
+
+# ======================================================================================
+#
+# Then add a few other needed parameters before saving the catalog
+#
+# ======================================================================================
+# My pipeline uses these quantities for later analysis, even if I won't ever look at
+# the results of this analysis for these artificial clusters.
+catalog["mass_msun"] = 1e4
+catalog["mass_msun_min"] = 1e4
+catalog["mass_msun_max"] = 1e4
+catalog["age_yr"] = 1e7
+catalog["Q_probability"] = 1
+
 catalog.write(catalog_name, format="ascii.ecsv")

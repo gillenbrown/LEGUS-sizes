@@ -117,12 +117,12 @@ def nice_log_formatter(x, pos):
     if abs(exp) < 2:
         return f"{x:g}"
     else:
-        return f"$10^{exp:.0f}$"
+        return "$10^{" + f"{exp:.0f}" + "}$"
 
 
 cmap = cmocean.cm.thermal_r
-cmap = cmocean.tools.crop_by_percent(cmap, 5, "min")
-boundaries = np.arange(0.75 - 1 / 8, 2.501 + 1 / 8, 0.25)
+cmap = cmocean.tools.crop_by_percent(cmap, 15, "both")
+boundaries = np.arange(0.75, 2.7501, 0.5)
 norm = colors.BoundaryNorm(
     boundaries,
     ncolors=256,
@@ -143,7 +143,7 @@ ax.add_labels("True $R_{eff}$ [pixels]", "Measured $R_{eff}$ [pixels]")
 ax.set_xscale("log")
 ax.set_yscale("log")
 ax.equal_scale()
-ax.set_limits(0.05, 30, 0.05, 30)
+ax.set_limits(0.001, 10, 0.001, 10)
 ax.xaxis.set_ticks_position("both")
 ax.yaxis.set_ticks_position("both")
 ax.xaxis.set_major_formatter(nice_log_formatter)
@@ -167,7 +167,6 @@ params_to_compare = {
     "axis_ratio": "Axis Ratio",
     "position_angle": "Position Angle",
     "power_law_slope": "$\eta$ (Power Law Slope)",
-    "local_background": "Local Background [e$^-$]",
 }
 param_limits = {
     "log_luminosity": (1, 8),
@@ -177,7 +176,6 @@ param_limits = {
     "axis_ratio": (-0.05, 1.05),
     "position_angle": (0, np.pi),
     "power_law_slope": (0, 3),
-    "local_background": (-500, 1000),
 }
 param_scale = {
     "log_luminosity": "linear",
@@ -187,7 +185,6 @@ param_scale = {
     "axis_ratio": "linear",
     "position_angle": "linear",
     "power_law_slope": "linear",
-    "local_background": "linear",
 }
 # add the true x and y data, they're all the same
 catalog["x_pix_snapshot_oversampled_true"] = 30

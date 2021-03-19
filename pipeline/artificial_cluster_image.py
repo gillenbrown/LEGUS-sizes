@@ -34,19 +34,10 @@ psf /= np.sum(psf)
 # then load the image from the suggested galaxy
 galaxy = sys.argv[6]
 galaxy_dir = image_name.parent.parent / galaxy
+# note that the raw _get_image function does not scale by the exposure time to get the
+# data in electrons, so I need to do that
 base_image = utils._get_image(galaxy_dir)[0]
-
-# ======================================================================================
-#
-# Then create an array that we'll use to create the image.
-#
-# ======================================================================================
-image = np.zeros(base_image.data.shape)
-# I can eventually use the image itself later if I desire
-
-# add the local background. Note that clusters have the same background, which is why
-# I can do what I do here.
-image += true_catalog["local_background_true"][0]
+image = base_image.data * base_image.header["EXPTIME"]
 
 # ======================================================================================
 #
@@ -67,6 +58,22 @@ for row in true_catalog:
         snapshot_size_oversampled,
         oversampling_factor,
     )[-1]
+    # remove any pixels below 0. This will only happen due to floating point errors,
+    # I believe
+    min_value = np.min(cluster_snapshot)
+    if min_value < 0:
+        print("NEGATIVE VALUE", min_value, np.sum(cluster_snapshot < 0), "pixels")
+        cluster_snapshot = np.maximum(cluster_snapshot, 0)
+
+    # add Poisson noise to the clusters as well.
+    # The snapshot we have so far is the expected snapshot without any noise. This is
+    # equivalent to stating that each pixel is the mean of the Poisson distribution at
+    # that pixel. So to get an image with noise, in each pixel we sample from a Poisson
+    # distribution with the mean of the expected value in that pixel. Note that this
+    # produces the new snapshot itself! We do not need to add the noise. Also, the
+    # Poisson function returns integers, we need to convert to floats
+    cluster_snapshot = np.random.poisson(cluster_snapshot)
+    cluster_snapshot = cluster_snapshot.astype(float)
 
     # then add this array to the appropriate region of the image. To do this I have
     # to take out the region from the image (to make it match the size of this cluster),
@@ -88,20 +95,6 @@ for row in true_catalog:
 
     image_region = image[y_min:y_max, x_min:x_max]
     image_region += cluster_snapshot
-
-# ======================================================================================
-#
-# Add noise to the image
-#
-# ======================================================================================
-# The image we have so far is the expected image without any noise. This is equivalent
-# to stating that each pixel is the mean of the Poisson distribution at that pixel. So
-# to get an image with noise, in each pixel we sample from a Poisson distribution with
-# the mean of the expected value in that pixel. Note that this produces the new image
-# itself! We do not need to add the noise. Also, the Poisson function returns integers,
-# we need to convert to floats
-image = np.random.poisson(image)
-image = image.astype(float)
 
 # ======================================================================================
 #

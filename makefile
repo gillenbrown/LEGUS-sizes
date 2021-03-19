@@ -368,7 +368,7 @@ $(mass_radius_table): $(mass_radius_final_table_script) $(mass_radius_legus_full
 # isn't as automated as the normal runs, but that's okay as it's a different
 # workflow from those other runs, slightly.
 # the artificial image needs the long name so the code can find it
-base_galaxy = ngc1313-e
+base_field = ngc628-c
 artificial_catalog = $(artificial_dir)true_catalog.txt
 artificial_image = $(artificial_dir)hlsp_legus_hst_acs_artificial_f555w_v1_drc.fits
 artificial_psf = $(artificial_dir)$(my_dirname)$(psf_my)
@@ -379,16 +379,16 @@ artificial_final_cat = $(artificial_dir)$(my_dirname)$(final_cat)
 
 # use the psf from another galaxy
 $(artificial_psf): $(psfs_my)
-	cp $(data_home)/$(base_galaxy)/$(my_dirname)$(psf_my) $@
+	cp $(data_home)/$(base_field)/$(my_dirname)$(psf_my) $@
 
 # Make the catalog with the true locations and parameters of the clusters
 # This depends on the final catalogs so I can sample realistic clusters
 $(artificial_catalog): $(final_cats) $(artificial_cluster_catalog_script)
-	python $(artificial_cluster_catalog_script) $@ $(final_cats)
+	python $(artificial_cluster_catalog_script) $@ $(base_field) $(final_cats)
 
 # the artificial image with fake clusters
 $(artificial_image): $(artificial_cluster_image_script) $(artificial_catalog)
-	python $(artificial_cluster_image_script) $@ $(artificial_catalog) $(psf_oversampling_factor) $(fit_region_size) $(artificial_psf) $(base_galaxy)
+	python $(artificial_cluster_image_script) $@ $(artificial_catalog) $(psf_oversampling_factor) $(fit_region_size) $(artificial_psf) $(base_field)
 
 # sigma image is done with the normal pipeline. It does depend on the original image
 $(artificial_sigma_image): $(sigma_script) $(artificial_image)
