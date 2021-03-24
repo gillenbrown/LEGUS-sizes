@@ -108,12 +108,14 @@ for _ in range(len(catalog)):
     good_xy = False
     tracker = 0
     while not good_xy:
-        # generate a set of xy. I do center clusters on pixels. I do this because for
-        # very small clusters, if they are not centered on pixels, the generation
-        # will not get the appropriate peak value. This is only so I can properly
-        # generate realistic clusters.
-        x = float(np.random.randint(0, max_x_real))
-        y = float(np.random.randint(0, max_y_real))
+        # generate a set of xy. I do center clusters on the oversampled pixel
+        # coordinates. Since I have an oversampling factor of 2, the subsampled pixels
+        # will range from 0->0.5 and 0.5->1, putting the center of the first at 0.25.
+        # I do this because for very small clusters, if they are not centered on
+        # pixels, the generation will not get the appropriate peak value. This is only
+        # so I can properly generate realistic clusters.
+        x = np.random.randint(0, max_x_real) + 0.25
+        y = np.random.randint(0, max_y_real) + 0.25
         within_range = hull.test_within(x, y)
 
         # then test it against other clusters. The proposed location must be far from
