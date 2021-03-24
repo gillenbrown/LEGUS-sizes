@@ -68,12 +68,20 @@ plot_colors = [mappable.to_rgba(eta) for eta in catalog["power_law_slope_true"]]
 
 
 fig, ax = bpl.subplots()
-s = ax.scatter(
-    reff_true,
-    reff,
-    alpha=1,
-    c=plot_colors,
-)
+for eta in sorted(np.unique(catalog["power_law_slope_true"])):
+    eta_mask = catalog["power_law_slope_true"] == eta
+    s = ax.errorbar(
+        reff_true[eta_mask],
+        reff[eta_mask],
+        yerr=[
+            catalog["r_eff_pixels_rmax_15pix_e-"][eta_mask],
+            catalog["r_eff_pixels_rmax_15pix_e+"][eta_mask],
+        ],
+        alpha=1,
+        markersize=9,
+        markeredgewidth=0,
+        c=mappable.to_rgba(eta),
+    )
 ax.plot([1e-5, 100], [1e-5, 100], ls=":", c=bpl.almost_black, zorder=0)
 ax.add_labels("True $R_{eff}$ [pixels]", "Measured $R_{eff}$ [pixels]")
 ax.set_xscale("log")
