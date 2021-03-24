@@ -41,33 +41,29 @@ catalog = table.Table([], names=[])
 # plots easier to see. Instead of having the same a-eta and varying L, I'll slightly
 # change a each time. I have a diagram in my notebook, page 137
 n_eta = 8
-n_l = 8
+n_p = 8
 n_a = 8
 eta_values = np.linspace(1.001, 2.5, n_eta)
-log_luminosity_values = np.linspace(
-    np.min(cat_observed["log_luminosity_best"]),
-    np.max(cat_observed["log_luminosity_best"]),
-    n_l,
-)
-a_values = np.logspace(-2, 0, n_l * n_a)
+peak_values = np.logspace(2, 4, n_p)
+a_values = np.logspace(-2, 0, n_p * n_a)
 
-a_final, eta_final, l_final = [], [], []
+a_final, eta_final, p_final = [], [], []
 for a_idx in range(len(a_values)):
     a = a_values[a_idx]
-    l = log_luminosity_values[a_idx % n_l]
+    p = peak_values[a_idx % n_p]
 
     for eta in eta_values:
         a_final.append(a)
         eta_final.append(eta)
-        l_final.append(l)
+        p_final.append(p)
 
 # double check my lengths of these arrays
-assert len(eta_final) == len(a_final) == len(l_final) == n_eta * n_l * n_a
+assert len(eta_final) == len(a_final) == len(p_final) == n_eta * n_p * n_a
 
 
 # then add this all to the table, including IDs
 catalog["ID"] = range(1, len(a_final) + 1)
-catalog["log_luminosity_true"] = l_final
+catalog["peak_pixel_value_true"] = p_final
 catalog["scale_radius_pixels_true"] = a_final
 catalog["axis_ratio_true"] = 0.8
 catalog["position_angle_true"] = np.random.uniform(0, np.pi, len(a_final))

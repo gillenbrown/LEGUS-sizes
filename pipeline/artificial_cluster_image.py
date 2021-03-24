@@ -34,8 +34,8 @@ psf /= np.sum(psf)
 # then load the image from the suggested galaxy
 galaxy = sys.argv[6]
 galaxy_dir = image_name.parent.parent / galaxy
-# note that the raw _get_image function does not scale by the exposure time to get the
-# data in electrons, so I need to do that
+# I need the header, so I need to use my clunkier function to get the data. It does not
+# scale by the exposure time to get the data in electrons, so I need to do that.
 base_image = utils._get_image(galaxy_dir)[0]
 image = base_image.data * base_image.header["EXPTIME"]
 
@@ -65,9 +65,10 @@ for row in true_catalog:
 
     image_region = image[y_min:y_max, x_min:x_max]
 
-    # Then make the cluster snapshot
+    # Then make the cluster snapshot. We use an arbitrary luminosity, then scale it to
+    # match the peak value requested
     cluster_snapshot = fit_utils.create_model_image(
-        row["log_luminosity_true"],
+        6,
         fit_utils.image_to_oversampled(row["x"] - x_min, oversampling_factor),
         fit_utils.image_to_oversampled(row["y"] - y_min, oversampling_factor),
         row["scale_radius_pixels_true"],
@@ -79,6 +80,10 @@ for row in true_catalog:
         snapshot_size_oversampled,
         oversampling_factor,
     )[-1]
+    flux_scale = row["peak_pixel_value_true"] / np.max(cluster_snapshot)
+    cluster_snapshot *= flux_scale
+    assert np.isclose(np.max(cluster_snapshot), row["peak_pixel_value_true"])
+
     # remove any pixels below 0. This will only happen due to floating point errors,
     # I believe
     min_value = np.min(cluster_snapshot)

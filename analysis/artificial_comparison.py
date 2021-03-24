@@ -160,38 +160,26 @@ fig.savefig(plot_name)
 # ======================================================================================
 # I'll have several things that need to be tracked for each parameter
 params_to_compare = {
-    "log_luminosity": "Log Luminosity [e$^-$]",
-    "x_pix_snapshot_oversampled": "X Center",
-    "y_pix_snapshot_oversampled": "Y Center",
     "scale_radius_pixels": "Scale Radius [pixels]",
     "axis_ratio": "Axis Ratio",
     "position_angle": "Position Angle",
     "power_law_slope": "$\eta$ (Power Law Slope)",
 }
 param_limits = {
-    "log_luminosity": (1, 8),
-    "x_pix_snapshot_oversampled": (25, 35),
-    "y_pix_snapshot_oversampled": (25, 35),
     "scale_radius_pixels": (0.05, 20),
     "axis_ratio": (-0.05, 1.05),
     "position_angle": (0, np.pi),
     "power_law_slope": (0, 3),
 }
 param_scale = {
-    "log_luminosity": "linear",
-    "x_pix_snapshot_oversampled": "linear",
-    "y_pix_snapshot_oversampled": "linear",
     "scale_radius_pixels": "log",
     "axis_ratio": "linear",
     "position_angle": "linear",
     "power_law_slope": "linear",
 }
-# add the true x and y data, they're all the same
-catalog["x_pix_snapshot_oversampled_true"] = 30
-catalog["y_pix_snapshot_oversampled_true"] = 30
 
 # then plot
-fig, axs = bpl.subplots(ncols=4, nrows=2, figsize=[24, 12])
+fig, axs = bpl.subplots(ncols=2, nrows=2, figsize=[12, 12])
 axs = axs.flatten()
 
 for p, ax in zip(params_to_compare, axs):
