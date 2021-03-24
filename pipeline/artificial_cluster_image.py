@@ -45,10 +45,31 @@ image = base_image.data * base_image.header["EXPTIME"]
 #
 # ======================================================================================
 for row in true_catalog:
+    # find the appropriate region of the image. To do this I have
+    # to take out the region from the image (to make it match the size of this cluster),
+    # then add the artificial cluster to that part of the image. Note that getting the
+    # region still allows us to modify the image in place.
+
+    # We use ceiling to get the integer pixel values as python indexing does not
+    # include the final value.
+    x_cen = int(np.ceil(row["x"]))
+    y_cen = int(np.ceil(row["y"]))
+    # Get the snapshot, based on the size desired.
+    # Since we took the ceil of the center, go more in the negative direction (i.e.
+    # use ceil to get the minimum values). This only matters if the snapshot size is
+    # odd
+    x_min = x_cen - int(np.ceil(snapshot_size / 2.0))
+    x_max = x_cen + int(np.floor(snapshot_size / 2.0))
+    y_min = y_cen - int(np.ceil(snapshot_size / 2.0))
+    y_max = y_cen + int(np.floor(snapshot_size / 2.0))
+
+    image_region = image[y_min:y_max, x_min:x_max]
+
+    # Then make the cluster snapshot
     cluster_snapshot = fit_utils.create_model_image(
         row["log_luminosity_true"],
-        snapshot_size,  # x, center of snapshot in oversampled coords
-        snapshot_size,  # y, center of snapshot in oversampled coords
+        fit_utils.image_to_oversampled(row["x"] - x_min, oversampling_factor),
+        fit_utils.image_to_oversampled(row["y"] - y_min, oversampling_factor),
         row["scale_radius_pixels_true"],
         row["axis_ratio_true"],
         row["position_angle_true"],
@@ -75,25 +96,7 @@ for row in true_catalog:
     cluster_snapshot = np.random.poisson(cluster_snapshot)
     cluster_snapshot = cluster_snapshot.astype(float)
 
-    # then add this array to the appropriate region of the image. To do this I have
-    # to take out the region from the image (to make it match the size of this cluster),
-    # then add the artificial cluster to that part of the image. Note that getting the
-    # region still allows us to modify the image in place.
-
-    # We use ceiling to get the integer pixel values as python indexing does not
-    # include the final value.
-    x_cen = int(np.ceil(row["x"]))
-    y_cen = int(np.ceil(row["y"]))
-    # Get the snapshot, based on the size desired.
-    # Since we took the ceil of the center, go more in the negative direction (i.e.
-    # use ceil to get the minimum values). This only matters if the snapshot size is
-    # odd
-    x_min = x_cen - int(np.ceil(snapshot_size / 2.0))
-    x_max = x_cen + int(np.floor(snapshot_size / 2.0))
-    y_min = y_cen - int(np.ceil(snapshot_size / 2.0))
-    y_max = y_cen + int(np.floor(snapshot_size / 2.0))
-
-    image_region = image[y_min:y_max, x_min:x_max]
+    # then we can add it to the image
     image_region += cluster_snapshot
 
 # ======================================================================================

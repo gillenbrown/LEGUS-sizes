@@ -51,9 +51,6 @@ log_luminosity_values = np.linspace(
 )
 a_values = np.logspace(-2, 0, n_l * n_a)
 
-# eta_final = np.repeat(eta_values, len(a_values))
-# a_final = np.repeat(a_values, len(eta_values))
-# l_final = np.repeat(log_luminosity_values, len(eta_values) * a_repeats)
 a_final, eta_final, l_final = [], [], []
 for a_idx in range(len(a_values)):
     a = a_values[a_idx]
