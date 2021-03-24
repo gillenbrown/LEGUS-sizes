@@ -7,7 +7,7 @@ create an image of artificial clusters
 import sys
 from pathlib import Path
 from astropy import table
-from scipy import spatial
+from scipy import spatial, optimize
 import numpy as np
 
 # ======================================================================================
@@ -25,49 +25,137 @@ for cat_loc in sys.argv[3:]:
 
 # create the empty catalog we'll fill later
 catalog = table.Table([], names=[])
+
+# ======================================================================================
+#
+# copy some functions to get the true effective radius
+#
+# ======================================================================================
+# I can't import these easily, unfortunately, which is why I copy them here
+def logistic(eta):
+    """
+    This is the fit to the slopes as a function of eta
+
+    These slopes are used in the ellipticity correction.
+    :param eta: Eta (power law slope)
+    :return: The slope to go in ellipticity_correction
+    """
+    ymax = 0.57902801
+    scale = 0.2664717
+    eta_0 = 0.92404378
+    offset = 0.07298404
+    return ymax / (1 + np.exp((eta_0 - eta) / scale)) - offset
+
+
+def ellipticy_correction(q, eta):
+    """
+    Correction for ellipticity. This gives R_eff(q) / R_eff(q=1)
+
+    This is a generalized form of the simplified form used in Ryon's analysis. It's
+    simply a line of arbitrary slope passing through (q=1, correction=1) as circular
+    clusters need no correction. This lets us write the correction in point slope form
+    as:
+    y - 1 = m (q - 1)
+    y = 1 + m (q - 1)
+
+    Note that when m = 0.5, this simplifies to y = (1 + q) * 0.5, as used in Ryon.
+    The slope here (m) is determined by fitting it as a function of eta.
+    """
+    return 1 + logistic(eta) * (q - 1)
+
+
+def eff_profile_r_eff_with_rmax(eta, a, q, rmax):
+    """
+    Calculate the effective radius of an EFF profile, assuming a maximum radius.
+
+    :param eta: Power law slope of the EFF profile
+    :param a: Scale radius of the EFF profile, in any units.
+    :param q: Axis ratio of the profile
+    :param rmax: Maximum radius for the profile, in the same units as a.
+    :return: Effective radius, in the same units as a and rmax
+    """
+    # This is such an ugly formula, put it in a few steps
+    term_1 = 1 + (1 + (rmax / a) ** 2) ** (1 - eta)
+    term_2 = (0.5 * (term_1)) ** (1 / (1 - eta)) - 1
+    return ellipticy_correction(q, eta) * a * np.sqrt(term_2)
+
+
+def get_scale_factor(r_eff, eta, q):
+    """
+    Calculate the scale factor needed to produce a cluster with a given effective
+    radius and other parameters
+
+    :param r_eff: effective radius desired
+    :param eta: power law slope
+    :param q: axis ratio
+    :return: scale factor (a) needed to produce the given r_eff
+    """
+
+    def to_minimize(log_a):
+        this_r_eff = eff_profile_r_eff_with_rmax(eta, 10 ** log_a, q, 15)
+        return (np.log10(r_eff) - np.log10(this_r_eff)) ** 2
+
+    result = optimize.minimize(to_minimize, (0), bounds=[[-6, 1]])
+    assert result.success
+    return 10 ** result.x[0]
+
+
 # ======================================================================================
 #
 # first create the parameters for clusters. I'll add x-y later
 #
 # ======================================================================================
 # Here is how I'll pick the parameters for my fake clusters:
-# log_luminosity - will be in the typical range of clusters in this image
-# scale_radius_pixels - will change to simulate moving in distance
+# r_eff - will have a range of values
+# peak value - will be in the typical range of clusters in this image
+# power_law_slope - will be iterated over in a grid with peak value
+# scale_radius_pixels - will change to match r_eff given other parameters
 # axis_ratio - will be a fixed value typical of clusters
 # position_angle - will be randomly chosen for each cluster
-# power_law_slope - will be iterated over
-# I'll create a slightly nonuniform grid of a-eta-L that I'm iterating over. I'll do
-# this in a way that allows for each cluster to have a unique effective radius, to make
-# plots easier to see. Instead of having the same a-eta and varying L, I'll slightly
-# change a each time. I have a diagram in my notebook, page 137
-n_eta = 8
-n_p = 8
-n_a = 8
+# I'll create a grid of peak value vs eta. Then as I iterate through this grid, I'll
+# slowly increment r_eff. No two fake clusters will have the same r_eff, and I can
+# iterate through eta and peak value at a range of r_eff
+# set up the axis ratio, which is needed to calculate r_eff
+axis_ratio = 0.8
+
+# set up the grid
+n_eta = 4
+n_p = 4
+n_eta_p_repititions = 8
+n_r_eff = n_eta * n_p * n_eta_p_repititions
+
 eta_values = np.linspace(1.001, 2.5, n_eta)
 peak_values = np.logspace(2, 4, n_p)
-a_values = np.logspace(-2, 0, n_p * n_a)
+r_eff_values = np.logspace(-1.5, 0.5, n_r_eff)
 
+# make the ordered grids.
 a_final, eta_final, p_final = [], [], []
-for a_idx in range(len(a_values)):
-    a = a_values[a_idx]
-    p = peak_values[a_idx % n_p]
-
+r_eff_idx = 0
+for _ in range(n_eta_p_repititions):
     for eta in eta_values:
-        a_final.append(a)
-        eta_final.append(eta)
-        p_final.append(p)
+        # figure out what the needed scale factor is to make the cluster have the
+        # desired r_eff
+        a = get_scale_factor(r_eff_values[r_eff_idx], eta, axis_ratio)
+
+        for p in peak_values:
+            a_final.append(a)
+            eta_final.append(eta)
+            p_final.append(p)
+
+            # go to the next r_eff
+            r_eff_idx += 1
 
 # double check my lengths of these arrays
-assert len(eta_final) == len(a_final) == len(p_final) == n_eta * n_p * n_a
-
+assert len(eta_final) == len(a_final) == len(p_final) == n_r_eff
 
 # then add this all to the table, including IDs
 catalog["ID"] = range(1, len(a_final) + 1)
 catalog["peak_pixel_value_true"] = p_final
 catalog["scale_radius_pixels_true"] = a_final
-catalog["axis_ratio_true"] = 0.8
+catalog["axis_ratio_true"] = axis_ratio
 catalog["position_angle_true"] = np.random.uniform(0, np.pi, len(a_final))
 catalog["power_law_slope_true"] = eta_final
+catalog["reff_pixels_true"] = r_eff_values
 
 # ======================================================================================
 #
