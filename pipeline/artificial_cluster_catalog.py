@@ -145,7 +145,7 @@ for _ in range(n_eta_p_repititions):
             # go to the next r_eff
             r_eff_idx += 1
 
-# double check my lengths of these arrays
+# double check the lengths of these arrays
 assert len(eta_final) == len(a_final) == len(p_final) == n_r_eff
 
 # then add this all to the table, including IDs
@@ -162,24 +162,44 @@ catalog["reff_pixels_true"] = r_eff_values
 # Create the x-y positions of the fake clusters
 #
 # ======================================================================================
-# to select x-y values, I have a few rules. First, clusters must be in the region where
-# real clusters are (i.e. no edge of the image). They must also not be near other
-# clusters, which I define as being outside of 30 pixels from them.
+# to select x-y values, I have a few rules. First, clusters must be in the region of
+# the image with actual data (i.e. not the edges or chip gaps).
+# They must also not be near other clusters, which I define as being outside of
+# 30 pixels from them.
 x_real = cat_observed["x"]
 y_real = cat_observed["y"]
+
+# I'll manually define the regions that are allowed. Then I can make use scipy to test
+# whether proposed points are in one of these regions
+left_chip_points = [
+    (25, 2340),
+    (1780, 7000),
+    (4000, 5950),
+    (2200, 1250),
+    (25, 2340),
+]
+right_chip_points = [
+    (2300, 1200),
+    (4140, 5900),
+    (6450, 4830),
+    (4550, 110),
+    (2300, 1200),
+]
+
 # Use these to create a region such that we can test whether proposed clusters lie
 # within it. The idea is to use a convex hull, but this stack overflow does it a bit
 # differently in scipy: https://stackoverflow.com/a/16898636
 class Hull(object):
-    def __init__(self, x, y):
-        hull_points = np.array([(xi, yi) for xi, yi in zip(x, y)])
-        self.hull = spatial.Delaunay(hull_points)
+    def __init__(self, points):
+        self.hull = spatial.Delaunay(np.array(points))
 
     def test_within(self, x, y):
         return self.hull.find_simplex((x, y)) >= 0
 
 
-hull = Hull(x_real, y_real)
+hull_clusters = Hull([(xi, yi) for xi, yi in zip(x_real, y_real)])
+hull_left = Hull(left_chip_points)
+hull_right = Hull(right_chip_points)
 
 # also get the range so I can restrict where I sample from
 max_x_real = np.max(x_real)
@@ -200,7 +220,13 @@ for _ in range(len(catalog)):
         # so I can properly generate realistic clusters.
         x = np.random.randint(0, max_x_real) + 0.25
         y = np.random.randint(0, max_y_real) + 0.25
-        within_range = hull.test_within(x, y)
+        within_clusters = hull_clusters.test_within(x, y)
+        within_chips = hull_left.test_within(x, y) or hull_right.test_within(x, y)
+        within_all = within_chips and within_clusters
+
+        # if it's not in range, don't test whether it's close to other clusters.
+        if not within_all:
+            continue
 
         # then test it against other clusters. The proposed location must be far from
         # every other cluster in either x or y
@@ -214,7 +240,7 @@ for _ in range(len(catalog)):
 
         far_all = np.logical_and(far_real, far_fake)
 
-        good_xy = np.logical_and(far_all, within_range)
+        good_xy = np.logical_and(far_all, within_all)
 
         # make sure we never have an infinite loop
         tracker += 1
