@@ -119,7 +119,7 @@ def get_scale_factor(r_eff, eta, q):
 axis_ratio = 0.8
 
 # set up the grid
-n_eta = 4
+n_eta = 8
 n_p = 4
 n_eta_p_repititions = 6
 n_r_eff = n_eta * n_p * n_eta_p_repititions
