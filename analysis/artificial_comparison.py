@@ -58,7 +58,7 @@ def nice_log_formatter(x, pos):
 
 cmap = cmocean.cm.thermal_r
 cmap = cmocean.tools.crop_by_percent(cmap, 15, "both")
-boundaries = np.arange(0.75, 2.7501, 0.5)
+boundaries = np.arange(0.875, 2.65, 0.25)
 norm = colors.BoundaryNorm(
     boundaries,
     ncolors=256,

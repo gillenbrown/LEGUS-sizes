@@ -1,6 +1,9 @@
 # data directory
 data/
 
+# file I use for testing
+pipeline/test_fit.py
+
 #pycharm junk
 *.idea
 
