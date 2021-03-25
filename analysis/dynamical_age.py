@@ -105,6 +105,7 @@ def bound_fraction(mask):
     mass_bins = np.logspace(2, 6, 13)
     # then figure out which clusters are in the mass bins
     bound_fractions = []
+    bound_fraction_errs = []
     mass_centers = []
     for idx_low in range(len(mass_bins) - 1):
         m_lo = mass_bins[idx_low]
@@ -119,11 +120,21 @@ def bound_fraction(mask):
             continue
 
         this_bound_fraction = np.sum(this_mass_subset["bound"]) / len(this_mass_subset)
+        # then calculate error according to Gaussian approximation
+        # https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval
+        p = this_bound_fraction
+        this_bound_fraction_err = np.sqrt((p * (1 - p)) / len(this_mass_subset))
+
         bound_fractions.append(this_bound_fraction)
+        bound_fraction_errs.append(this_bound_fraction_err)
 
         mass_centers.append(10 ** np.mean([np.log10(m_lo), np.log10(m_hi)]))
 
-    return mass_centers, bound_fractions
+    return (
+        np.array(mass_centers),
+        np.array(bound_fractions),
+        np.array(bound_fraction_errs),
+    )
 
 
 fig, ax = bpl.subplots()
@@ -134,8 +145,19 @@ for mask, name, color, zorder in zip(
     [bpl.color_cycle[2], bpl.color_cycle[0], bpl.color_cycle[5], bpl.color_cycle[3]],
     [10, 5, 6, 7],
 ):
-    plot_mass, plot_frac = bound_fraction(mask)
+    plot_mass, plot_frac, plot_frac_err = bound_fraction(mask)
     ax.plot(plot_mass, plot_frac, lw=5, c=color, label=name, zorder=zorder)
+    line_above = plot_frac + plot_frac_err
+    line_below = plot_frac - plot_frac_err
+    ax.fill_between(
+        plot_mass,
+        y1=line_below,
+        y2=line_above,
+        color=color,
+        alpha=0.5,
+        zorder=0,
+        lw=0,
+    )
 
     # then plot and set some limits
     ax.add_labels("Mass [$M_\odot$]", "Fraction of Bound Clusters")
