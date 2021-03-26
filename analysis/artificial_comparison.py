@@ -68,22 +68,35 @@ plot_colors = [mappable.to_rgba(eta) for eta in catalog["power_law_slope_true"]]
 
 # figure size is optimized to make the axes line up properly while also using
 # equal_scale on the main comparison axis
-fig = plt.figure(figsize=[8, 8.75])
+fig = plt.figure(figsize=[8, 8.35])
 gs = gridspec.GridSpec(
     nrows=2,
     ncols=2,
+    wspace=0.1,
     hspace=0,
-    height_ratios=[4, 1],
+    height_ratios=[3, 1],
     width_ratios=[20, 1],
+    top=0.97,
+    right=0.87,
+    left=0.12,
+    bottom=0.1,
 )
-# First plot r_true vs r_measured
+# have two axes: one for the comparison, and one for the ratio
 ax_c = fig.add_subplot(gs[0, 0], projection="bpl")
-for good_fit, symbol in zip([True, False], ["o", "x"]):
+ax_r = fig.add_subplot(gs[1, 0], projection="bpl")
+
+mew = 3
+good_size = 5
+bad_size = 9
+for good_fit, symbol, size in zip([True, False], ["o", "x"], [good_size, bad_size]):
     for eta in sorted(np.unique(catalog["power_law_slope_true"])):
+        color = mappable.to_rgba(eta)
+        # get the clusters that have this eta and fit quality
         eta_mask = catalog["power_law_slope_true"] == eta
         fit_mask = catalog["good_radius"] == good_fit
         mask = np.logical_and(eta_mask, fit_mask)
-        s = ax_c.errorbar(
+
+        ax_c.errorbar(
             reff_true[mask],
             reff[mask],
             yerr=[
@@ -92,20 +105,38 @@ for good_fit, symbol in zip([True, False], ["o", "x"]):
             ],
             fmt=symbol,
             alpha=1,
-            markersize=9,
-            markeredgewidth=3,
-            markeredgecolor=mappable.to_rgba(eta),
-            color=mappable.to_rgba(eta),
+            markersize=size,
+            markeredgewidth=mew,
+            markeredgecolor=color,
+            color=color,
         )
-# one to one line
+        # only plot the good fits in the ratio plot
+        if good_fit:
+            ax_r.errorbar(
+                reff_true[mask],
+                reff_ratio[mask],
+                yerr=[
+                    catalog["r_eff_ratio_e-"][mask],
+                    catalog["r_eff_ratio_e+"][mask],
+                ],
+                fmt=symbol,
+                alpha=1,
+                markersize=size,
+                markeredgewidth=mew,
+                markeredgecolor=color,
+                color=color,
+            )
+# one to one line and horizontal line for ratio of 1
 ax_c.plot([1e-5, 100], [1e-5, 100], ls=":", c=bpl.almost_black, zorder=0)
+ax_r.axhline(1, ls=":", lw=3)
+
 # fake symbols for legend
 ax_c.errorbar(
     [0],
     [0],
     marker="o",
-    markersize=9,
-    markeredgewidth=3,
+    markersize=good_size,
+    markeredgewidth=mew,
     c=bpl.almost_black,
     label="Success",
 )
@@ -113,57 +144,34 @@ ax_c.errorbar(
     [0],
     [0],
     marker="x",
-    markersize=9,
-    markeredgewidth=3,
+    markersize=bad_size,
+    markeredgewidth=mew,
     c=bpl.almost_black,
     label="Failure",
 )
-# plot formatting
+# plot formatting. Some things common to both axes
+for ax in [ax_c, ax_r]:
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.tick_params(axis="x", direction="in", which="both")
+    ax.tick_params(axis="y", direction="in", which="both")
+    ax.xaxis.set_major_formatter(nice_log_formatter)
+    ax.xaxis.set_ticks_position("both")
+    ax.yaxis.set_ticks_position("both")
+
+# then formatting for each axis separately
 x_limits = 0.03, 5
-ax_c.add_labels("", "Measured $R_{eff}$ [pixels]")
-ax_c.equal_scale()
 ax_c.set_limits(*x_limits, *x_limits)
-ax_c.set_xscale("log")
-ax_c.set_yscale("log")
-ax_c.tick_params(axis="x", direction="in", which="both")
-ax_c.xaxis.set_ticks_position("both")
-ax_c.yaxis.set_ticks_position("both")
+ax_c.equal_scale()
+ax_c.add_labels("", "Measured $R_{eff}$ [pixels]")
 ax_c.yaxis.set_major_formatter(nice_log_formatter)
 ax_c.set_xticklabels([])
-ax_c.legend()
+ax_c.legend(loc=2)
 
-# then the ratio. Only plot that for successfull clusters
-ax_r = fig.add_subplot(gs[1, 0], projection="bpl")
-for eta in sorted(np.unique(catalog["power_law_slope_true"])):
-    eta_mask = catalog["power_law_slope_true"] == eta
-    fit_mask = catalog["good_radius"]
-    mask = np.logical_and(eta_mask, fit_mask)
-    s = ax_r.errorbar(
-        reff_true[mask],
-        reff_ratio[mask],
-        yerr=[
-            catalog["r_eff_ratio_e-"][mask],
-            catalog["r_eff_ratio_e+"][mask],
-        ],
-        fmt="o",
-        alpha=1,
-        markersize=9,
-        markeredgewidth=3,
-        markeredgecolor=mappable.to_rgba(eta),
-        color=mappable.to_rgba(eta),
-    )
 ax_r.set_limits(*x_limits, 1 / 3, 3)
-ax_r.axhline(1, ls=":", lw=3)
 ax_r.add_labels("True $R_{eff}$ [pixels]", "$R_{eff}$ Ratio")
-ax_r.set_xscale("log")
-ax_r.set_yscale("log")
-ax_r.tick_params(axis="x", direction="in", which="both")
-ax_r.xaxis.set_ticks_position("both")
-ax_r.yaxis.set_ticks_position("both")
-ax_r.xaxis.set_major_formatter(nice_log_formatter)
 ax_r.set_yticks([0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 2.0, 3.0])
 ax_r.set_yticklabels(["", "", "0.5", "", "", "", "", "1", "2", ""])
-
 
 # the colorbar gets its own axis
 cax = fig.add_subplot(gs[:, 1], projection="bpl")
