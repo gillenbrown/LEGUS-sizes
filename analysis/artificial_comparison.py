@@ -56,14 +56,20 @@ def nice_log_formatter(x, pos):
         return "$10^{" + f"{exp:.0f}" + "}$"
 
 
-# Set up the colormap to use the eta values in the catalog. Assume values are equally
-# spaced
-eta_values = sorted(np.unique(catalog["power_law_slope_true"]))
-diff = eta_values[1] - eta_values[0]
-boundaries = np.arange(eta_values[0] - 0.5 * diff, eta_values[-1] + 0.51 * diff, diff)
-
+# Set up the colormap to use any given value in the catalog. Adjust this section, then
+# leave the next sections alone to change the colorbar
+cbar_quantity = "power_law_slope_true"
+take_cbar_log = False
+cbar_name = "Power Law Slope $\eta$"
 cmap = cmocean.cm.thermal_r
 cmap = cmocean.tools.crop_by_percent(cmap, 15, "both")
+
+cbar_values = sorted(np.unique(catalog[cbar_quantity]))
+if take_cbar_log:
+    cbar_values = np.log10(cbar_values)
+# Assume values are equally spaced.
+diff = cbar_values[1] - cbar_values[0]
+boundaries = np.arange(cbar_values[0] - 0.5 * diff, cbar_values[-1] + 0.51 * diff, diff)
 norm = colors.BoundaryNorm(boundaries, ncolors=256)
 mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
 plot_colors = [mappable.to_rgba(eta) for eta in catalog["power_law_slope_true"]]
@@ -91,12 +97,15 @@ mew = 3
 good_size = 5
 bad_size = 9
 for good_fit, symbol, size in zip([True, False], ["o", "x"], [good_size, bad_size]):
-    for eta in eta_values:
-        color = mappable.to_rgba(eta)
-        # get the clusters that have this eta and fit quality
-        eta_mask = catalog["power_law_slope_true"] == eta
+    for v in cbar_values:
+        color = mappable.to_rgba(v)
+        # get the clusters that have this value and fit quality
+        cat_values = catalog[cbar_quantity]
+        if take_cbar_log:
+            cat_values = np.log10(cat_values)
+        v_mask = cat_values == v
         fit_mask = catalog["good_radius"] == good_fit
-        mask = np.logical_and(eta_mask, fit_mask)
+        mask = np.logical_and(v_mask, fit_mask)
 
         ax_c.errorbar(
             reff_true[mask],
@@ -178,8 +187,8 @@ ax_r.set_yticklabels(["", "", "0.5", "", "", "", "", "1", "2", ""])
 # the colorbar gets its own axis
 cax = fig.add_subplot(gs[:, 1], projection="bpl")
 cbar = fig.colorbar(mappable, cax=cax)
-cbar.set_label("Power Law Slope $\eta$")
-cbar.set_ticks(eta_values)
+cbar.set_label(cbar_name)
+cbar.set_ticks(cbar_values)
 
 fig.savefig(plot_name)
 
