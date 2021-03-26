@@ -119,12 +119,12 @@ def get_scale_factor(r_eff, eta, q):
 axis_ratio = 0.8
 
 # set up the grid
-n_eta = 7
+n_eta = 6
 n_p = 6
 n_eta_p_repititions = 6
 n_r_eff = n_eta * n_p * n_eta_p_repititions
 
-eta_values = np.linspace(1.001, 2.5, n_eta)
+eta_values = np.linspace(1.25, 2.5, n_eta)
 peak_values = np.logspace(2, 4, n_p)
 r_eff_values = np.logspace(-1.5, 0.5, n_r_eff)
 
@@ -132,12 +132,11 @@ r_eff_values = np.logspace(-1.5, 0.5, n_r_eff)
 a_final, eta_final, p_final = [], [], []
 r_eff_idx = 0
 for _ in range(n_eta_p_repititions):
-    for p in peak_values:
-        for eta in eta_values:
-            # figure out what the needed scale factor is to make the cluster have the
-            # desired r_eff
-            a = get_scale_factor(r_eff_values[r_eff_idx], eta, axis_ratio)
-
+    for eta in eta_values:
+        # figure out what the needed scale factor is to make the cluster have the
+        # desired r_eff
+        a = get_scale_factor(r_eff_values[r_eff_idx], eta, axis_ratio)
+        for p in peak_values:
             a_final.append(a)
             eta_final.append(eta)
             p_final.append(p)
