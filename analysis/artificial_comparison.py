@@ -56,13 +56,15 @@ def nice_log_formatter(x, pos):
         return "$10^{" + f"{exp:.0f}" + "}$"
 
 
+# Set up the colormap to use the eta values in the catalog. Assume values are equally
+# spaced
+eta_values = sorted(np.unique(catalog["power_law_slope_true"]))
+diff = eta_values[1] - eta_values[0]
+boundaries = np.arange(eta_values[0] - 0.5 * diff, eta_values[-1] + 0.51 * diff, diff)
+
 cmap = cmocean.cm.thermal_r
 cmap = cmocean.tools.crop_by_percent(cmap, 15, "both")
-boundaries = np.arange(0.875, 2.65, 0.25)
-norm = colors.BoundaryNorm(
-    boundaries,
-    ncolors=256,
-)
+norm = colors.BoundaryNorm(boundaries, ncolors=256)
 mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
 plot_colors = [mappable.to_rgba(eta) for eta in catalog["power_law_slope_true"]]
 
@@ -89,7 +91,7 @@ mew = 3
 good_size = 5
 bad_size = 9
 for good_fit, symbol, size in zip([True, False], ["o", "x"], [good_size, bad_size]):
-    for eta in sorted(np.unique(catalog["power_law_slope_true"])):
+    for eta in eta_values:
         color = mappable.to_rgba(eta)
         # get the clusters that have this eta and fit quality
         eta_mask = catalog["power_law_slope_true"] == eta
@@ -177,7 +179,7 @@ ax_r.set_yticklabels(["", "", "0.5", "", "", "", "", "1", "2", ""])
 cax = fig.add_subplot(gs[:, 1], projection="bpl")
 cbar = fig.colorbar(mappable, cax=cax)
 cbar.set_label("Power Law Slope $\eta$")
-cbar.set_ticks(sorted(np.unique(catalog["power_law_slope_true"])))
+cbar.set_ticks(eta_values)
 
 fig.savefig(plot_name)
 
