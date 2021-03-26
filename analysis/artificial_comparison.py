@@ -59,8 +59,8 @@ def nice_log_formatter(x, pos):
 # Set up the colormap to use any given value in the catalog. Adjust this section, then
 # leave the next sections alone to change the colorbar
 cbar_quantity = "power_law_slope_true"
-take_cbar_log = False
 cbar_name = "Power Law Slope $\eta$"
+take_cbar_log = False
 cmap = cmocean.cm.thermal_r
 cmap = cmocean.tools.crop_by_percent(cmap, 15, "both")
 
@@ -72,7 +72,6 @@ diff = cbar_values[1] - cbar_values[0]
 boundaries = np.arange(cbar_values[0] - 0.5 * diff, cbar_values[-1] + 0.51 * diff, diff)
 norm = colors.BoundaryNorm(boundaries, ncolors=256)
 mappable = cm.ScalarMappable(norm=norm, cmap=cmap)
-plot_colors = [mappable.to_rgba(eta) for eta in catalog["power_law_slope_true"]]
 
 # figure size is optimized to make the axes line up properly while also using
 # equal_scale on the main comparison axis
@@ -220,6 +219,10 @@ param_scale = {
 # then plot
 fig, axs = bpl.subplots(ncols=2, nrows=2, figsize=[12, 12])
 axs = axs.flatten()
+plot_colors = [
+    mappable.to_rgba(np.log10(v)) if take_cbar_log else mappable.to_rgba(v)
+    for v in catalog[cbar_quantity]
+]
 
 for p, ax in zip(params_to_compare, axs):
     ax.scatter(
@@ -239,7 +242,7 @@ for p, ax in zip(params_to_compare, axs):
     ax.xaxis.set_ticks_position("both")
     ax.yaxis.set_ticks_position("both")
     cbar = fig.colorbar(mappable, ax=ax)
-    cbar.set_label("Power Law Slope $\eta$")
-    cbar.set_ticks(sorted(np.unique(catalog["power_law_slope_true"])))
+    cbar.set_label(cbar_name)
+    cbar.set_ticks(cbar_values)
 
 fig.savefig(plot_name.parent / "artificial_tests_params.pdf")
