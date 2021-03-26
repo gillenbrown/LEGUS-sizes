@@ -56,14 +56,32 @@ def nice_log_formatter(x, pos):
         return "$10^{" + f"{exp:.0f}" + "}$"
 
 
-# Set up the colormap to use any given value in the catalog. Adjust this section, then
-# leave the next sections alone to change the colorbar
+# Set up the colormap to use any given value in the catalog.
 cbar_quantity = "power_law_slope_true"
-cbar_name = "Power Law Slope $\eta$"
-take_cbar_log = False
-cmap = cmocean.cm.thermal_r
-cmap = cmocean.tools.crop_by_percent(cmap, 15, "both")
+# set up the parameters used for this quantity
+cbar_name = {
+    "peak_pixel_value_true": "Log Peak Pixel Value",
+    "power_law_slope_true": "Power Law Slope $\eta$",
+}[cbar_quantity]
 
+take_cbar_log = {
+    "peak_pixel_value_true": True,
+    "power_law_slope_true": False,
+}[cbar_quantity]
+
+cmap = {
+    "peak_pixel_value_true": cmocean.cm.haline_r,
+    "power_law_slope_true": cmocean.cm.thermal_r,
+}[cbar_quantity]
+
+cut_percent = {
+    "peak_pixel_value_true": 20,
+    "power_law_slope_true": 15,
+}[cbar_quantity]
+
+cmap = cmocean.tools.crop_by_percent(cmap, cut_percent, "both")
+
+# then make the colorbar
 cbar_values = sorted(np.unique(catalog[cbar_quantity]))
 if take_cbar_log:
     cbar_values = np.log10(cbar_values)
