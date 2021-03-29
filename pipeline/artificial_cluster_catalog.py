@@ -133,10 +133,12 @@ a_final, eta_final, p_final = [], [], []
 r_eff_idx = 0
 for _ in range(n_eta_p_repititions):
     for eta in eta_values:
-        # figure out what the needed scale factor is to make the cluster have the
-        # desired r_eff
-        a = get_scale_factor(r_eff_values[r_eff_idx], eta, axis_ratio)
         for p in peak_values:
+            # figure out what the needed scale factor is to make the cluster have the
+            # desired r_eff. This has to be in this loop because we change the
+            # effective radius for each iteration, so a needs to change too.
+            a = get_scale_factor(r_eff_values[r_eff_idx], eta, axis_ratio)
+
             a_final.append(a)
             eta_final.append(eta)
             p_final.append(p)
