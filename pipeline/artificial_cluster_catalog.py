@@ -107,7 +107,7 @@ def get_scale_factor(r_eff, eta, q):
 # ======================================================================================
 # Here is how I'll pick the parameters for my fake clusters:
 # r_eff - will have a range of values
-# peak value - will be in the typical range of clusters in this image
+# magnitude - will be in the typical range of clusters in this image
 # power_law_slope - will be iterated over in a grid with peak value
 # scale_radius_pixels - will change to match r_eff given other parameters
 # axis_ratio - will be a fixed value typical of clusters
@@ -120,20 +120,20 @@ axis_ratio = 0.8
 
 # set up the grid
 n_eta = 6
-n_p = 6
+n_mag = 6
 n_eta_p_repititions = 6
-n_r_eff = n_eta * n_p * n_eta_p_repititions
+n_r_eff = n_eta * n_mag * n_eta_p_repititions
 
 eta_values = np.linspace(1.25, 2.5, n_eta)
-peak_values = np.logspace(2, 4, n_p)
+mag_values = np.linspace(20, 24, n_mag)
 r_eff_values = np.logspace(-1.5, 0.5, n_r_eff)
 
 # make the ordered grids.
-a_final, eta_final, p_final = [], [], []
+a_final, eta_final, mag_final = [], [], []
 r_eff_idx = 0
 for _ in range(n_eta_p_repititions):
     for eta in eta_values:
-        for p in peak_values:
+        for m in mag_values:
             # figure out what the needed scale factor is to make the cluster have the
             # desired r_eff. This has to be in this loop because we change the
             # effective radius for each iteration, so a needs to change too.
@@ -141,17 +141,17 @@ for _ in range(n_eta_p_repititions):
 
             a_final.append(a)
             eta_final.append(eta)
-            p_final.append(p)
+            mag_final.append(m)
 
             # go to the next r_eff
             r_eff_idx += 1
 
 # double check the lengths of these arrays
-assert len(eta_final) == len(a_final) == len(p_final) == n_r_eff
+assert len(eta_final) == len(a_final) == len(mag_final) == n_r_eff
 
 # then add this all to the table, including IDs
 catalog["ID"] = range(1, len(a_final) + 1)
-catalog["peak_pixel_value_true"] = p_final
+catalog["mag_F555W"] = mag_final
 catalog["scale_radius_pixels_true"] = a_final
 catalog["axis_ratio_true"] = axis_ratio
 catalog["position_angle_true"] = np.random.uniform(0, np.pi, len(a_final))

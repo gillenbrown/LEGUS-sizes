@@ -57,26 +57,30 @@ def nice_log_formatter(x, pos):
 
 
 # Set up the colormap to use any given value in the catalog.
-cbar_quantity = "power_law_slope_true"
+cbar_quantity = "mag_F555W"
 # set up the parameters used for this quantity
 cbar_name = {
     "peak_pixel_value_true": "Log Peak Pixel Value",
     "power_law_slope_true": "Power Law Slope $\eta$",
+    "mag_F555W": "F555W Magnitude",
 }[cbar_quantity]
 
 take_cbar_log = {
     "peak_pixel_value_true": True,
     "power_law_slope_true": False,
+    "mag_F555W": False,
 }[cbar_quantity]
 
 cmap = {
     "peak_pixel_value_true": cmocean.cm.haline_r,
     "power_law_slope_true": cmocean.cm.thermal_r,
+    "mag_F555W": cmocean.cm.haline_r,
 }[cbar_quantity]
 
 cut_percent = {
     "peak_pixel_value_true": 20,
     "power_law_slope_true": 15,
+    "mag_F555W": 20,
 }[cbar_quantity]
 
 cmap = cmocean.tools.crop_by_percent(cmap, cut_percent, "both")

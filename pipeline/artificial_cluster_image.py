@@ -41,6 +41,45 @@ image = base_image.data * base_image.header["EXPTIME"]
 
 # ======================================================================================
 #
+# Set up the function to measure magnitude
+#
+# ======================================================================================
+# Note that this is calibrated in the testing notebook. The apertures were chosen
+# following Adamo et al.17, and the zeropoint is chosen so that I can reproduce the
+# real cluster magnitudes
+def distance(x1, y1, x2, y2):
+    return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+
+
+def measure_magnitude(snapshot, x_cen, y_cen):
+    aperture = 4
+    zeropoint = 32.2
+
+    flux_source = 0
+    flux_sky = 0
+    n_pixels_source = 0
+    n_pixels_sky = 0
+    for x in range(snapshot.shape[1]):
+        for y in range(snapshot.shape[0]):
+            dist = distance(x, y, x_cen, y_cen)
+            # if it's a cluster pixel, count it
+            if dist <= aperture:
+                flux_source += snapshot[y][x]
+                n_pixels_source += 1
+
+            # then count the sky annulus
+            if 6.5 <= dist < 7.5:
+                flux_sky += snapshot[y][x]
+                n_pixels_sky += 1
+
+    # then subtract the background
+    flux_source -= flux_sky * (n_pixels_source / n_pixels_sky)
+
+    return -2.5 * np.log10(flux_source) + zeropoint
+
+
+# ======================================================================================
+#
 # Then go through and add the artificial clusters to this image
 #
 # ======================================================================================
@@ -52,25 +91,29 @@ for row in true_catalog:
 
     # We use ceiling to get the integer pixel values as python indexing does not
     # include the final value.
-    x_cen = int(np.ceil(row["x"]))
-    y_cen = int(np.ceil(row["y"]))
+    x_cen_snap = int(np.ceil(row["x"]))
+    y_cen_snap = int(np.ceil(row["y"]))
     # Get the snapshot, based on the size desired.
     # Since we took the ceil of the center, go more in the negative direction (i.e.
     # use ceil to get the minimum values). This only matters if the snapshot size is
     # odd
-    x_min = x_cen - int(np.ceil(snapshot_size / 2.0))
-    x_max = x_cen + int(np.floor(snapshot_size / 2.0))
-    y_min = y_cen - int(np.ceil(snapshot_size / 2.0))
-    y_max = y_cen + int(np.floor(snapshot_size / 2.0))
+    x_min = x_cen_snap - int(np.ceil(snapshot_size / 2.0))
+    x_max = x_cen_snap + int(np.floor(snapshot_size / 2.0))
+    y_min = y_cen_snap - int(np.ceil(snapshot_size / 2.0))
+    y_max = y_cen_snap + int(np.floor(snapshot_size / 2.0))
 
     image_region = image[y_min:y_max, x_min:x_max]
+
+    # get the coordinate of the cluster within this snapshot
+    x_cen_cluster = row["x"] - x_min
+    y_cen_cluster = row["y"] - y_min
 
     # Then make the cluster snapshot. We use an arbitrary luminosity, then scale it to
     # match the peak value requested
     cluster_snapshot = fit_utils.create_model_image(
         6,
-        fit_utils.image_to_oversampled(row["x"] - x_min, oversampling_factor),
-        fit_utils.image_to_oversampled(row["y"] - y_min, oversampling_factor),
+        fit_utils.image_to_oversampled(x_cen_cluster, oversampling_factor),
+        fit_utils.image_to_oversampled(y_cen_cluster, oversampling_factor),
         row["scale_radius_pixels_true"],
         row["axis_ratio_true"],
         row["position_angle_true"],
@@ -80,9 +123,20 @@ for row in true_catalog:
         snapshot_size_oversampled,
         oversampling_factor,
     )[-1]
-    flux_scale = row["peak_pixel_value_true"] / np.max(cluster_snapshot)
-    cluster_snapshot *= flux_scale
-    assert np.isclose(np.max(cluster_snapshot), row["peak_pixel_value_true"])
+    # I'll need to scale the cluster to get the appropriate magnitude. Here is the math:
+    # m - m_desired = -2.5 log10(f / f_desired)
+    #               = -2.5 log10(f / (f * scale_factor))
+    #               = -2.5 log10(1 / scale_factor)
+    #               = 2.5 log10(scale_factor)
+    # scale_factor = 10**((m - m_desired) / 2.5)
+    first_mag = measure_magnitude(cluster_snapshot, x_cen_cluster, y_cen_cluster)
+    scale_factor = 10 ** ((first_mag - row["mag_F555W"]) / 2.5)
+    cluster_snapshot *= scale_factor
+    # double check this math.
+    assert np.isclose(
+        measure_magnitude(cluster_snapshot, x_cen_cluster, y_cen_cluster),
+        row["mag_F555W"],
+    )
 
     # remove any pixels below 0. This will only happen due to floating point errors,
     # I believe
