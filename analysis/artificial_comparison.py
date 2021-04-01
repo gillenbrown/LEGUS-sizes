@@ -74,7 +74,7 @@ take_cbar_log = {
 cmap = {
     "peak_pixel_value_true": cmocean.cm.haline_r,
     "power_law_slope_true": cmocean.cm.thermal_r,
-    "mag_F555W": cmocean.cm.haline_r,
+    "mag_F555W": cmocean.cm.haline,
 }[cbar_quantity]
 
 cut_percent = {

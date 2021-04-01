@@ -120,8 +120,8 @@ axis_ratio = 0.8
 
 # set up the grid
 n_eta = 6
-n_mag = 6
-n_eta_p_repititions = 6
+n_mag = 5
+n_eta_p_repititions = 5
 n_r_eff = n_eta * n_mag * n_eta_p_repititions
 
 eta_values = np.linspace(1.25, 2.5, n_eta)
