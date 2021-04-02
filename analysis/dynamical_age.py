@@ -140,10 +140,10 @@ def bound_fraction(mask):
 fig, ax = bpl.subplots()
 
 for mask, name, color, zorder in zip(
-    [mask_all, mask_young, mask_med, mask_old],
-    ["All", "Age: 1-10 Myr", "Age: 10-100 Myr", "Age: 100 Myr - 1 Gyr"],
-    [bpl.color_cycle[2], bpl.color_cycle[0], bpl.color_cycle[5], bpl.color_cycle[3]],
-    [10, 5, 6, 7],
+    [mask_young, mask_med, mask_old],
+    ["Age: 1-10 Myr", "Age: 10-100 Myr", "Age: 100 Myr - 1 Gyr"],
+    [bpl.color_cycle[0], bpl.color_cycle[5], bpl.color_cycle[3]],
+    [5, 6, 7],
 ):
     plot_mass, plot_frac, plot_frac_err = bound_fraction(mask)
     ax.plot(plot_mass, plot_frac, lw=5, c=color, label=name, zorder=zorder)
