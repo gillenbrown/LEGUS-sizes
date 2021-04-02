@@ -180,7 +180,7 @@ outputs = $(galaxy_table) $(psf_demo_image) $(psf_comp_plots) \
           $(param_dist_plot) $(all_fields_hist_plot) $(all_galaxies_plot) \
           $(all_galaxies_iso_plot) $(stacked_distribution_plot) \
           $(dynamical_age_plot) $(bound_fraction_plot) \
-          $(fit_quality_plot) $(toy_model_plot) \
+          $(fit_quality_plot) $(toy_model_plot) $(example_fit_plot) \
           $(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) \
           $(mass_radius_legus_young_plot) $(mass_radius_legus_young_txt) \
           $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_agesplit_txt) \
