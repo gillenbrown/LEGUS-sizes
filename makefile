@@ -403,4 +403,4 @@ $(artificial_final_cat): $(final_catalog_script) $(fit_utils) $(artificial_fit) 
 	python $(final_catalog_script) $@ $(artificial_fit) $(artificial_psf) $(psf_oversampling_factor) $(artificial_sigma_image) $(artificial_mask_image) $(fit_region_size)
 
 $(artificial_comparison): $(artificial_final_cat) $(artificial_comparison_script)
-	python $(artificial_comparison_script) $@ $(artificial_final_cat)
+	python $(artificial_comparison_script) $@ $(artificial_final_cat) $(artificial_psf) $(psf_oversampling_factor)

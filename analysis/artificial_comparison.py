@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 import numpy as np
 from astropy import table
+from astropy.io import fits
 import cmocean
 from matplotlib import ticker, colors, cm, gridspec
 from matplotlib import pyplot as plt
@@ -22,6 +23,14 @@ bpl.set_style()
 plot_name = Path(sys.argv[1]).resolve()
 catalog_name = Path(sys.argv[2]).resolve()
 catalog = table.Table.read(catalog_name, format="ascii.ecsv")
+# load the PSF
+psf_path = Path(sys.argv[3]).resolve()
+psf = fits.open(psf_path)["PRIMARY"].data
+# the convolution requires the psf to be normalized, and without any negative values
+psf = np.maximum(psf, 0)
+psf /= np.sum(psf)
+
+oversampling_factor = int(sys.argv[4])
 
 # ======================================================================================
 #
@@ -34,6 +43,44 @@ reff_true = catalog["reff_pixels_true"]
 reff_ratio = reff / reff_true
 catalog["r_eff_ratio_e+"] = catalog["r_eff_pixels_rmax_15pix_e+"] / reff_true
 catalog["r_eff_ratio_e-"] = catalog["r_eff_pixels_rmax_15pix_e-"] / reff_true
+
+# ======================================================================================
+#
+# Then calculate the error for the parameters of interest
+#
+# ======================================================================================
+def distance(x1, y1, x2, y2):
+    return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+
+
+def measure_psf_reff(psf, oversampling_factor):
+    # the center is the central pixel of the image
+    x_cen = int((psf.shape[1] - 1.0) / 2.0)
+    y_cen = int((psf.shape[0] - 1.0) / 2.0)
+    total = np.sum(psf)
+    half_light = total / 2.0
+    # then go through all the pixel values to determine the distance from the center.
+    # Then we can go through them in order to determine the half mass radius
+    radii = []
+    values = []
+    for x in range(psf.shape[1]):
+        for y in range(psf.shape[1]):
+            # need to include the oversampling factor in the distance
+            radii.append(distance(x, y, x_cen, y_cen) / oversampling_factor)
+            values.append(psf[y][x])
+
+    idxs_sort = np.argsort(radii)
+    sorted_radii = np.array(radii)[idxs_sort]
+    sorted_values = np.array(values)[idxs_sort]
+
+    cumulative_light = 0
+    for idx in range(len(sorted_radii)):
+        cumulative_light += sorted_values[idx]
+        if cumulative_light >= half_light:
+            return sorted_radii[idx]
+
+
+psf_r_eff = measure_psf_reff(psf, oversampling_factor)
 
 # ======================================================================================
 #
@@ -161,6 +208,10 @@ for good_fit, symbol, size in zip([True, False], ["o", "x"], [good_size, bad_siz
 # one to one line and horizontal line for ratio of 1
 ax_c.plot([1e-5, 100], [1e-5, 100], ls=":", c=bpl.almost_black, zorder=0)
 ax_r.axhline(1, ls=":", lw=3)
+
+# line showing the PSF.
+ax_r.plot([psf_r_eff, psf_r_eff], [2, 100], ls="--", lw=3, c=bpl.almost_black)
+ax_c.plot([psf_r_eff, psf_r_eff], [0.019, 0.04], ls="--", lw=3, c=bpl.almost_black)
 
 # fake symbols for legend
 ax_c.errorbar(
