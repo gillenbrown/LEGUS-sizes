@@ -176,7 +176,9 @@ for field, cat in matches.items():
 # Calculate RMS
 #
 # ======================================================================================
-def rms(suffix_1, suffix_2, mask_col_name):
+def rms(suffix_1, suffix_2, mask_col_name, print_threshold=1000):
+    # the print_threshold parameter can be used to find clusters that deviate strongly.
+    # If 0.1 is passed, it will print all clusters that deviate by more than 10%
     sum_squares = 0
     num_clusters = 0
 
@@ -195,6 +197,13 @@ def rms(suffix_1, suffix_2, mask_col_name):
                     err_2 = row[f"r_eff_e-_{suffix_2}"]
                 # add the errors in quadrature
                 err = np.sqrt(err_1 ** 2 + err_2 ** 2)
+
+                if abs(r_eff_1 - r_eff_2) / r_eff_2 > print_threshold:
+                    print(
+                        f'{row["galaxy_full"]} {row["ID"]}, '
+                        f"{suffix_1}={r_eff_1:.2f}, "
+                        f"{suffix_2}={r_eff_2:.2f}"
+                    )
 
                 # then compile the sum of squares
                 sum_squares += ((r_eff_1 - r_eff_2) / err) ** 2
