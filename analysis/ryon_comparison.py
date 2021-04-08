@@ -144,7 +144,7 @@ for field, cat in matches.items():
 
     # in this comparison with my ryon-like method I need the fit to be successfull and
     # for eta>1.3 here aws well.
-    cat["mask_ryon_and_me"] = np.logical_and.reduce(
+    cat["mask_ryon_ryonlike"] = np.logical_and.reduce(
         [
             ryon_mask,
             cat["good_radius_ryonlike"],
@@ -154,11 +154,20 @@ for field, cat in matches.items():
 
     # for the comparison of my two methods, I still need the restriction on eta for the
     # ryon-like fit, and both of my fits need to be successfull.
-    cat["mask_my_methods"] = np.logical_and.reduce(
+    cat["mask_ryonlike_full"] = np.logical_and.reduce(
         [
             cat["good_radius_full"],
             cat["good_radius_ryonlike"],
             cat["eta_ryonlike"] > 1.3,
+        ]
+    )
+
+    # then one to compare my full method to ryon's. I don't need my method to have
+    # eta > 1.3, but Ryon still needs that.
+    cat["mask_ryon_full"] = np.logical_and.reduce(
+        [
+            ryon_mask,
+            cat["good_radius_full"],
         ]
     )
 
@@ -210,10 +219,18 @@ colors = {
     "ngc628-e": bpl.color_cycle[2],
     "ngc628-c": bpl.color_cycle[3],
 }
+labels = {
+    "ryon": "$R_{eff}$ [pc] - Ryon+ 2017",
+    "ryonlike": "$R_{eff}$ [pc] - This Work Ryon-like",
+    "full": "$R_{eff}$ [pc] - This Work Full Method",
+}
 # In the left panel, we compare my Ryon-like (x) to Ryon's results (y). Then in the
-# right panel I compare my two methods
-for ax, y_suffix, mask_col_name in zip(
-    axs, ["ryon", "full"], ["mask_ryon_and_me", "mask_my_methods"]
+# right panel I compare my two methods. I wrote this to be flexible though.
+for ax, x_suffix, y_suffix, mask_col_name in zip(
+    axs,
+    ["ryonlike", "ryonlike"],
+    ["ryon", "full"],
+    ["mask_ryon_ryonlike", "mask_ryonlike_full"],
 ):
     for field, cat in matches.items():
         mask = cat[mask_col_name]
@@ -221,9 +238,9 @@ for ax, y_suffix, mask_col_name in zip(
         c = colors[field]
 
         ax.errorbar(
-            x=cat["r_eff_ryonlike"][mask],
+            x=cat[f"r_eff_{x_suffix}"][mask],
             y=cat[f"r_eff_{y_suffix}"][mask],
-            xerr=[cat["r_eff_e-_ryonlike"][mask], cat["r_eff_e+_ryonlike"][mask]],
+            xerr=[cat[f"r_eff_e-_{x_suffix}"][mask], cat[f"r_eff_e+_{x_suffix}"][mask]],
             yerr=[cat[f"r_eff_e-_{y_suffix}"][mask], cat[f"r_eff_e+_{y_suffix}"][mask]],
             markerfacecolor=c,
             markeredgecolor=c,
@@ -234,7 +251,7 @@ for ax, y_suffix, mask_col_name in zip(
             zorder=2,
         )
 
-    print(y_suffix, rms("ryonlike", y_suffix, mask_col_name))
+    print(y_suffix, rms(x_suffix, y_suffix, mask_col_name))
 
     ax.set_yscale("log")
     ax.set_xscale("log")
@@ -244,8 +261,6 @@ for ax, y_suffix, mask_col_name in zip(
     ax.equal_scale()
     ax.legend(loc=4)
 
-# plot labels
-x_label = "$R_{eff}$ [pc] - This Work Ryon-like"
-axs[0].add_labels(x_label, "$R_{eff}$ [pc] - Ryon+ 2017")
-axs[1].add_labels(x_label, "$R_{eff}$ [pc] - This Work Full Method")
+    ax.add_labels(labels[x_suffix], labels[y_suffix])
+
 fig.savefig(plot_name)
