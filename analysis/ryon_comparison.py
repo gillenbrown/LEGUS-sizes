@@ -14,7 +14,6 @@ sys.path.append(str(code_home_dir / "pipeline"))
 import utils
 
 plot_name = Path(sys.argv[1])
-full_ryon = sys.argv[2].lower() == "ryon"
 
 # ======================================================================================
 #
@@ -25,47 +24,70 @@ ryon_628 = table.Table.read("ryon_results_ngc628.txt", format="ascii.cds")
 ryon_1313 = table.Table.read("ryon_results_ngc1313.txt", format="ascii.cds")
 # then make new columns, since Ryon's tables are in log radius, and I just want radius
 for cat in [ryon_628, ryon_1313]:
-    cat["r_eff_Galfit"] = 10 ** cat["logReff-gal"]
-    cat["e_r_eff+_Galfit"] = np.minimum(
-        10 ** (cat["logReff-gal"] + cat["E_logReff-gal"]) - cat["r_eff_Galfit"], 1000
+    cat["r_eff_ryon"] = 10 ** cat["logReff-gal"]
+    cat["r_eff_e+_ryon"] = (
+        10 ** (cat["logReff-gal"] + cat["E_logReff-gal"]) - cat["r_eff_ryon"]
     )
-    cat["e_r_eff-_Galfit"] = np.minimum(
-        cat["r_eff_Galfit"] - 10 ** (cat["logReff-gal"] - cat["e_logReff-gal"]), 100
-    )
-
-    cat["r_eff_CI"] = 10 ** cat["logReff-ci"]
-    cat["e_r_eff+_CI"] = (
-        10 ** (cat["logReff-ci"] + cat["E_logReff-ci"]) - cat["r_eff_CI"]
-    )
-    cat["e_r_eff-_CI"] = cat["r_eff_CI"] - 10 ** (
-        cat["logReff-ci"] - cat["e_logReff-ci"]
+    cat["r_eff_e-_ryon"] = cat["r_eff_ryon"] - 10 ** (
+        cat["logReff-gal"] - cat["e_logReff-gal"]
     )
 
 # Go through all the cluster catalogs that are passed in, and get the ones we need
-catalogs = {"ngc1313-e": None, "ngc1313-w": None, "ngc628-c": None, "ngc628-e": None}
-for item in sys.argv[3:]:
+# f stands for my full method, r is the ryon-like
+catalogs_f = {"ngc1313-e": None, "ngc1313-w": None, "ngc628-c": None, "ngc628-e": None}
+catalogs_r = catalogs_f.copy()
+# I have both ryon-like and non-ryon-like catalogs. I pass both in using a very long
+# list of catalogs.
+for item in sys.argv[2:]:
     path = Path(item)
     data_dir = path.parent.parent
     galaxy_name = data_dir.name
-    if galaxy_name in catalogs:
+    if galaxy_name in catalogs_f:
+        # See if this will be a ryon-like catalog or not
+        if "ryonlike" in item:
+            suffix = "ryonlike"
+        else:
+            suffix = "full"
+
         this_cat = table.Table.read(item, format="ascii.ecsv")
 
-        # If we need to, modify the radii so they use the same distances as ryon
-        if not full_ryon:
-            # scale the radii by the ratio of the distances as used in Ryon and as
-            # used in my work
+        # rename the r_eff columns to be easier to use. Also rename the eta column,
+        # since I'll use that later too
+        this_cat.rename_column("r_eff_pc_rmax_15pix_best", "r_eff")
+        this_cat.rename_column("r_eff_pc_rmax_15pix_e-", "r_eff_e-")
+        this_cat.rename_column("r_eff_pc_rmax_15pix_e+", "r_eff_e+")
+        this_cat.rename_column("power_law_slope_best", "eta")
+
+        # modify the radii so they use the same distances as ryon
+        # scale the radii by the ratio of the distances as used in Ryon and as
+        # used in my work. The ryon-like catalogs have already done this, so there
+        # is nothing needed there.
+        if suffix == "full":
             distance_ryon = utils.distance(data_dir, True).to("Mpc").value
             distance_me = utils.distance(data_dir, False).to("Mpc").value
             dist_factor = distance_ryon / distance_me
-            this_cat["r_eff_pc_rmax_15pix_best"] *= dist_factor
-            this_cat["r_eff_pc_rmax_15pix_e-"] *= dist_factor
-            this_cat["r_eff_pc_rmax_15pix_e+"] *= dist_factor
+            this_cat["r_eff"] *= dist_factor
+            this_cat["r_eff_e-"] *= dist_factor
+            this_cat["r_eff_e+"] *= dist_factor
 
-        catalogs[galaxy_name] = this_cat
+        # rename all the columns to either be "ryonlike" or "full", depending on
+        # which this catalog is. This will avoid overlap when matching
+        for col in this_cat.colnames:
+            if col == "ID":  # don't rename ID
+                continue
+            this_cat.rename_column(col, col + "_" + suffix)
+
+        # Then store these catalogs
+        if suffix == "ryonlike":
+            catalogs_r[galaxy_name] = this_cat
+        else:
+            catalogs_f[galaxy_name] = this_cat
 
 # check that none of these are empty
-for key in catalogs:
-    if catalogs[key] is None:
+for key in catalogs_f:
+    if catalogs_r[key] is None:
+        raise RuntimeError(f"The {key} Ryon-like catalog has not been created!")
+    if catalogs_f[key] is None:
         raise RuntimeError(f"The {key} catalog has not been created!")
 
 # ======================================================================================
@@ -75,74 +97,103 @@ for key in catalogs:
 # ======================================================================================
 # Here Ryon's catalogs combine the two fields for these two galaxies. I won't do that,
 # as I want to compare the different fields separately, but I do need to match to the
-# IDs used in the Ryon catalogs
-for name, cat in catalogs.items():
+# format of IDs used in the Ryon catalogs
+for name, cat in catalogs_f.items():
+    cat["ID"] = [f"{i}{name[-2:]}" for i in cat["ID"]]
+for name, cat in catalogs_r.items():
     cat["ID"] = [f"{i}{name[-2:]}" for i in cat["ID"]]
 
-# Then match the tables together. Using the inner join type is the strict intersection
-# where the matched keys must match exactly
+# First I'll match my catalogs together, then afterwards I'll match that to Ryon's
+# Using the inner join type is the strict intersection where the matched keys must
+# match exactly
+common = {"join_type": "inner", "keys": "ID"}
 matches = dict()
-matches["ngc1313-e"] = table.join(
-    catalogs["ngc1313-e"], ryon_1313, join_type="inner", keys="ID"
-)
-matches["ngc1313-w"] = table.join(
-    catalogs["ngc1313-w"], ryon_1313, join_type="inner", keys="ID"
-)
-matches["ngc628-e"] = table.join(
-    catalogs["ngc628-e"], ryon_628, join_type="inner", keys="ID"
-)
+for field in catalogs_f:
+    matches[field] = table.join(catalogs_f[field], catalogs_r[field], **common)
+
+# Then match to Ryon.
+matches["ngc1313-e"] = table.join(matches["ngc1313-e"], ryon_1313, **common)
+matches["ngc1313-w"] = table.join(matches["ngc1313-w"], ryon_1313, **common)
+matches["ngc628-e"] = table.join(matches["ngc628-e"], ryon_628, **common)
 # The NGC 628 Center field has different IDs than the published tables! I need to match
 # based on RA/Dec
 matches["ngc628-c"] = symmetric_match(
-    catalogs["ngc628-c"],
+    matches["ngc628-c"],
     ryon_628,
-    ra_col_1="RA",
+    ra_col_1="RA_full",
     ra_col_2="RAdeg",
-    dec_col_1="Dec",
+    dec_col_1="Dec_full",
     dec_col_2="DEdeg",
     max_sep=0.03,
 )
 
 # ======================================================================================
 #
-# Calculate RMS
+# masking
 #
 # ======================================================================================
-total_rms = 0
-num_clusters = 0
-
 for field, cat in matches.items():
-    ryon_mask_good = cat["Eta"] >= 1.3
+    ryon_mask = cat["Eta"] >= 1.3
     # section 4.1 of Ryon+17 lists the number of clusters that pass the eta cut:
     # NGC1313-e: 14
     # NGC1313-w: 45
     # NGC628-c: 107
     # NGC628-e: 27
     # using print statements here I get the same thing
-    # if we're using my full method, I don't need to do my restriction on slope
-    my_mask_good = cat["good_radius"]
-    if full_ryon:
-        my_mask_good = np.logical_and(cat["power_law_slope_best"] >= 1.3, my_mask_good)
+    # print(field, np.sum(ryon_mask))
 
-    cat["good_for_plot"] = np.logical_and(ryon_mask_good, my_mask_good)
+    # in this comparison with my ryon-like method I need the fit to be successfull and
+    # for eta>1.3 here aws well.
+    cat["mask_ryon_and_me"] = np.logical_and.reduce(
+        [
+            ryon_mask,
+            cat["good_radius_ryonlike"],
+            cat["eta_ryonlike"] >= 1.3,
+        ]
+    )
 
-for field, cat in matches.items():
-    for row in cat:
-        if row["good_for_plot"]:
-            my_r_eff = row["r_eff_pc_rmax_15pix_best"]
-            ryon_r_eff = row["r_eff_Galfit"]
-            if my_r_eff > ryon_r_eff:
-                ryon_err = row["e_r_eff+_Galfit"]
-                my_err = row["r_eff_pc_rmax_15pix_e-"]
-            else:
-                ryon_err = row["e_r_eff-_Galfit"]
-                my_err = row["r_eff_pc_rmax_15pix_e+"]
-            used_err = np.sqrt(ryon_err ** 2 + my_err ** 2)
-            diff = (my_r_eff - ryon_r_eff) / used_err
-            total_rms += ((my_r_eff - ryon_r_eff) / used_err) ** 2
-            num_clusters += 1
+    # for the comparison of my two methods, I still need the restriction on eta for the
+    # ryon-like fit, and both of my fits need to be successfull.
+    cat["mask_my_methods"] = np.logical_and.reduce(
+        [
+            cat["good_radius_full"],
+            cat["good_radius_ryonlike"],
+            cat["eta_ryonlike"] > 1.3,
+        ]
+    )
 
-normalized_rms = np.sqrt(total_rms / num_clusters)
+# ======================================================================================
+#
+# Calculate RMS
+#
+# ======================================================================================
+def rms(suffix_1, suffix_2, mask_col_name):
+    sum_squares = 0
+    num_clusters = 0
+
+    for field, cat in matches.items():
+        for row in cat:
+            if row[mask_col_name]:
+                r_eff_1 = row[f"r_eff_{suffix_1}"]
+                r_eff_2 = row[f"r_eff_{suffix_2}"]
+
+                # use the appropriate asymmetric error
+                if r_eff_1 > r_eff_2:
+                    err_1 = row[f"r_eff_e-_{suffix_1}"]
+                    err_2 = row[f"r_eff_e+_{suffix_2}"]
+                else:
+                    err_1 = row[f"r_eff_e+_{suffix_1}"]
+                    err_2 = row[f"r_eff_e-_{suffix_2}"]
+                # add the errors in quadrature
+                err = np.sqrt(err_1 ** 2 + err_2 ** 2)
+
+                # then compile the sum of squares
+                sum_squares += ((r_eff_1 - r_eff_2) / err) ** 2
+                num_clusters += 1
+
+    rms = np.sqrt(sum_squares / num_clusters)
+    return rms
+
 
 # ======================================================================================
 #
@@ -151,38 +202,50 @@ normalized_rms = np.sqrt(total_rms / num_clusters)
 # ======================================================================================
 limits = 0.3, 20
 # First we'll make a straight comparison
-fig, ax = bpl.subplots(figsize=[7, 7])
-for idx, (field, cat) in enumerate(matches.items()):
-    mask = cat["good_for_plot"]
+fig, axs = bpl.subplots(ncols=2, figsize=[14, 7])
 
-    c = bpl.color_cycle[idx]
+colors = {
+    "ngc1313-e": bpl.color_cycle[0],
+    "ngc1313-w": bpl.color_cycle[1],
+    "ngc628-e": bpl.color_cycle[2],
+    "ngc628-c": bpl.color_cycle[3],
+}
+# In the left panel, we compare my Ryon-like (x) to Ryon's results (y). Then in the
+# right panel I compare my two methods
+for ax, y_suffix, mask_col_name in zip(
+    axs, ["ryon", "full"], ["mask_ryon_and_me", "mask_my_methods"]
+):
+    for field, cat in matches.items():
+        mask = cat[mask_col_name]
 
-    ax.errorbar(
-        x=cat["r_eff_Galfit"][mask],
-        y=cat["r_eff_pc_rmax_15pix_best"][mask],
-        xerr=[cat["e_r_eff-_Galfit"][mask], cat["e_r_eff+_Galfit"][mask]],
-        yerr=[
-            cat["r_eff_pc_rmax_15pix_e-"][mask],
-            cat["r_eff_pc_rmax_15pix_e+"][mask],
-        ],
-        markerfacecolor=c,
-        markeredgecolor=c,
-        markersize=5,
-        ecolor=c,
-        label=field.replace("ngc", "NGC "),
-        elinewidth=0.5,
-        zorder=2,
-    )
+        c = colors[field]
 
-ax.set_yscale("log")
-ax.set_xscale("log")
+        ax.errorbar(
+            x=cat["r_eff_ryonlike"][mask],
+            y=cat[f"r_eff_{y_suffix}"][mask],
+            xerr=[cat["r_eff_e-_ryonlike"][mask], cat["r_eff_e+_ryonlike"][mask]],
+            yerr=[cat[f"r_eff_e-_{y_suffix}"][mask], cat[f"r_eff_e+_{y_suffix}"][mask]],
+            markerfacecolor=c,
+            markeredgecolor=c,
+            markersize=5,
+            ecolor=c,
+            label=field.replace("ngc", "NGC "),
+            elinewidth=0.5,
+            zorder=2,
+        )
 
-ax.set_limits(*limits, *limits)
-ax.plot(limits, limits, c=bpl.almost_black, lw=1, zorder=0)
-ax.equal_scale()
-ax.legend(loc=4)
-ax.easy_add_text(f"RMS = {normalized_rms:.3f}", "upper left")
-ax.add_labels(
-    "Cluster $R_{eff}$ [pc] - Ryon+ 2017", "Cluster $R_{eff}$ [pc] - This Work"
-)
+    print(y_suffix, rms("ryonlike", y_suffix, mask_col_name))
+
+    ax.set_yscale("log")
+    ax.set_xscale("log")
+
+    ax.set_limits(*limits, *limits)
+    ax.plot(limits, limits, c=bpl.almost_black, lw=1, zorder=0)
+    ax.equal_scale()
+    ax.legend(loc=4)
+
+# plot labels
+x_label = "$R_{eff}$ [pc] - This Work Ryon-like"
+axs[0].add_labels(x_label, "$R_{eff}$ [pc] - Ryon+ 2017")
+axs[1].add_labels(x_label, "$R_{eff}$ [pc] - This Work Full Method")
 fig.savefig(plot_name)

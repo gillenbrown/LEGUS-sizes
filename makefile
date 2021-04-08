@@ -145,8 +145,7 @@ endif
 # ------------------------------------------------------------------------------
 galaxy_table = $(local_plots_dir)galaxy_table.txt
 psf_demo_image = $(local_plots_dir)psf_demo_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.pdf
-comparison_plot_ryon = $(local_plots_dir)comparison_plot_ryon_size.pdf
-comparison_plot_full = $(local_plots_dir)comparison_plot_full_size.pdf
+comparison_plot = $(local_plots_dir)comparison_plot.pdf
 param_dist_plot = $(local_plots_dir)parameter_distribution_size.pdf
 all_fields_hist_plot = $(local_plots_dir)all_fields.pdf
 all_galaxies_plot = $(local_plots_dir)all_galaxies.pdf
@@ -176,7 +175,7 @@ mass_radius_table = $(local_plots_dir)mass_radius_fits_table.txt
 artificial_comparison = $(local_plots_dir)artificial_tests.pdf
 # then combine everything together
 outputs = $(galaxy_table) $(psf_demo_image) $(psf_comp_plots) \
-          $(comparison_plot_ryon) $(comparison_plot_full) \
+          $(comparison_plot) \
           $(param_dist_plot) $(all_fields_hist_plot) $(all_galaxies_plot) \
           $(all_galaxies_iso_plot) $(stacked_distribution_plot) \
           $(dynamical_age_plot) $(bound_fraction_plot) \
@@ -295,11 +294,8 @@ $(final_cats_ryon): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit_ryon
 	python $(final_catalog_script) $@ $(dir $@)$(fit_ryon) $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(fit_region_size) ryon_like
 
 # Make the comparisons to Ryon+17's results and other comparison plots
-$(comparison_plot_ryon): $(comparison_script) $(final_cats_ryon)
-	python $(comparison_script) $@ ryon $(final_cats_ryon)
-
-$(comparison_plot_full): $(comparison_script) $(final_cats)
-	python $(comparison_script) $@ new $(final_cats)
+$(comparison_plot): $(comparison_script) $(final_cats) $(final_cats_ryon)
+	python $(comparison_script) $@ $(final_cats_ryon) $(final_cats)
 
 $(param_dist_plot): $(parameters_dist_script) $(final_cats)
 	python $(parameters_dist_script) $@ $(final_cats)
