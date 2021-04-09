@@ -133,43 +133,29 @@ matches["ngc628-c"] = symmetric_match(
 #
 # ======================================================================================
 for field, cat in matches.items():
-    ryon_mask = cat["Eta"] >= 1.3
+    cat["mask_ryon"] = cat["Eta"] >= 1.3
     # section 4.1 of Ryon+17 lists the number of clusters that pass the eta cut:
     # NGC1313-e: 14
     # NGC1313-w: 45
     # NGC628-c: 107
     # NGC628-e: 27
     # using print statements here I get the same thing
-    # print(field, np.sum(ryon_mask))
 
-    # in this comparison with my ryon-like method I need the fit to be successfull and
-    # for eta>1.3 here aws well.
-    cat["mask_ryon_ryonlike"] = np.logical_and.reduce(
-        [
-            ryon_mask,
-            cat["good_radius_ryonlike"],
-            cat["eta_ryonlike"] >= 1.3,
-        ]
+    # for my Ryon-like comparison, I need eta>1.3 and a good fit
+    cat["mask_ryonlike"] = np.logical_and(
+        cat["good_radius_ryonlike"], cat["eta_ryonlike"] >= 1.3
     )
 
-    # for the comparison of my two methods, I still need the restriction on eta for the
-    # ryon-like fit, and both of my fits need to be successfull.
-    cat["mask_ryonlike_full"] = np.logical_and.reduce(
-        [
-            cat["good_radius_full"],
-            cat["good_radius_ryonlike"],
-            cat["eta_ryonlike"] > 1.3,
-        ]
-    )
+    # for my full method, I only need the good radius
+    cat["mask_full"] = cat["good_radius_full"]
 
-    # then one to compare my full method to ryon's. I don't need my method to have
-    # eta > 1.3, but Ryon still needs that.
-    cat["mask_ryon_full"] = np.logical_and.reduce(
-        [
-            ryon_mask,
-            cat["good_radius_full"],
-        ]
-    )
+    # print the number of successfull clusters
+    print(f"{field} - Ryon {np.sum(cat['mask_ryon'])}, me {np.sum(cat['mask_full'])}")
+
+    # then we'll make the combinations to use in the comparisons
+    cat["mask_ryon_ryonlike"] = np.logical_and(cat["mask_ryon"], cat["mask_ryonlike"])
+    cat["mask_ryonlike_full"] = np.logical_and(cat["mask_ryonlike"], cat["mask_full"])
+    cat["mask_ryon_full"] = np.logical_and(cat["mask_ryon"], cat["mask_full"])
 
 # ======================================================================================
 #
