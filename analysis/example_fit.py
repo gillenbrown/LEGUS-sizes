@@ -110,38 +110,38 @@ sigma_snapshot *= mask_snapshot
 #
 # ======================================================================================
 # These don't really need to be functions, but it makes things cleaner in the plot below
-# vmax = max(np.max(model_image), np.max(model_psf_image), np.max(data_snapshot))
-data_norm = colors.LogNorm(vmin=50, vmax=1e3)
-sigma_norm = colors.Normalize(vmin=-3, vmax=3)
-data_cmap = bpl.cm.davos
-data_cmap.set_bad(data_cmap(0))
-sigma_cmap = cmocean.cm.tarn  # "bwr_r" also works
 
 
 def distance(x1, y1, x2, y2):
     return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
 
-def radial_profile(snapshot, oversampling_factor, x_c, y_c):
+def radial_profile(snapshot, oversampling_factor, x_c, y_c, y_at_zero=None):
     radii, ys = [], []
     for x in range(snapshot.shape[1]):
         for y in range(snapshot.shape[0]):
             radii.append(distance(x, y, x_c, y_c) / oversampling_factor)
             ys.append(snapshot[y, x])
     idx_sort = np.argsort(radii)
-    return np.array(radii)[idx_sort], np.array(ys)[idx_sort]
+
+    radii = np.array(radii)[idx_sort]
+    ys = np.array(ys)[idx_sort]
+    if radii[0] != 0.0 and y_at_zero is not None:
+        radii = np.concatenate([[0], radii])
+        ys = np.concatenate([[y_at_zero], ys])
+
+    return radii, ys
 
 
-def binned_radial_profile(snapshot, oversampling_factor, x_c, y_c, bin_size):
-    radii, ys = radial_profile(snapshot, oversampling_factor, x_c, y_c)
+def binned_radial_profile(
+    snapshot, oversampling_factor, x_c, y_c, bin_size, y_at_0=None
+):
+    radii, ys = radial_profile(snapshot, oversampling_factor, x_c, y_c, y_at_0)
     # then bin this data to make the binned plot
-    if radii[0] == 0.0:
-        binned_radii = [0]
-        binned_ys = [ys[0]]
-        radii = radii[1:]
-        ys = ys[1:]
-    else:
-        binned_radii, binned_ys = [], []
+    binned_radii = [0]
+    binned_ys = [ys[0]]
+    radii = radii[1:]
+    ys = ys[1:]
 
     for r_min in np.arange(0, int(np.ceil(max(radii))), bin_size):
         r_max = r_min + bin_size
@@ -160,6 +160,25 @@ def binned_radial_profile(snapshot, oversampling_factor, x_c, y_c, bin_size):
 # Make the plot
 #
 # ======================================================================================
+# parameters that can be adjusted based on individual clusters
+data_cmap_vmin = 50
+data_cmap_vmax = 1e3
+sigma_cmap_vmax = 3
+r_eff_y_max = 630  # how far the R_eff line extends in the y direction to hit the line
+r_eff_y_label = 110  # where the R_eff label goes on the y axis.
+radial_plot_x_max = 7  # how far to extend the radial plot
+radial_plot_y_min = 40
+radial_plot_y_max = 2e3
+model_ymax = 1500  # extrapolation to r=0
+model_psf_ymax = 430  # extrapolation to r=0
+
+# vmax = max(np.max(model_image), np.max(model_psf_image), np.max(data_snapshot))
+data_norm = colors.LogNorm(vmin=data_cmap_vmin, vmax=data_cmap_vmax)
+sigma_norm = colors.Normalize(vmin=-sigma_cmap_vmax, vmax=sigma_cmap_vmax)
+data_cmap = bpl.cm.davos
+data_cmap.set_bad(data_cmap(0))
+sigma_cmap = cmocean.cm.tarn  # "bwr_r" also works
+
 # This will have the data, model, and residual above the plot
 fig = plt.figure(figsize=[15, 7])
 gs = gridspec.GridSpec(
@@ -168,8 +187,8 @@ gs = gridspec.GridSpec(
     width_ratios=[2, 1, 1],
     wspace=0.1,
     hspace=0.2,
-    left=0.08,
-    right=0.98,
+    left=0.07,
+    right=0.97,
     bottom=0.1,
     top=0.9,
 )
@@ -184,10 +203,14 @@ f_im = ax_f.imshow(model_psf_bin_image, origin="lower", cmap=data_cmap, norm=dat
 d_im = ax_d.imshow(data_snapshot, origin="lower", cmap=data_cmap, norm=data_norm)
 s_im = ax_s.imshow(sigma_snapshot, origin="lower", cmap=sigma_cmap, norm=sigma_norm)
 
-fig.colorbar(r_im, ax=ax_r, pad=0)
-fig.colorbar(f_im, ax=ax_f, pad=0)
-fig.colorbar(d_im, ax=ax_d, pad=0)
-fig.colorbar(s_im, ax=ax_s, pad=0)
+r_cbar = fig.colorbar(r_im, ax=ax_r, pad=0)
+f_cbar = fig.colorbar(f_im, ax=ax_f, pad=0)
+d_cbar = fig.colorbar(d_im, ax=ax_d, pad=0)
+s_cbar = fig.colorbar(s_im, ax=ax_s, pad=0)
+
+r_cbar.set_label("          Pixel Value [e$^-$]", fontsize=16, labelpad=0)
+f_cbar.set_label("          Pixel Value [e$^-$]", fontsize=16, labelpad=0)
+d_cbar.set_label("          Pixel Value [e$^-$]", fontsize=16, labelpad=0)
 
 title_fontsize = 16
 ax_r.set_title("Raw Cluster Model", fontsize=title_fontsize)
@@ -201,13 +224,17 @@ for ax in [ax_r, ax_f, ax_d, ax_s]:
 
 # Then the radial profiles
 ax_big.plot(
-    *radial_profile(model_image, 2, x_cen_snap_oversampled, y_cen_snap_oversampled),
+    *radial_profile(
+        model_image, 2, x_cen_snap_oversampled, y_cen_snap_oversampled, model_ymax
+    ),
     label="Raw Cluster Model",
     c=bpl.color_cycle[3],
     lw=4,
 )
 ax_big.plot(
-    *binned_radial_profile(model_psf_bin_image, 1, x_cen_snap, y_cen_snap, 0.25),
+    *binned_radial_profile(
+        model_psf_bin_image, 1, x_cen_snap, y_cen_snap, 0.25, model_psf_ymax
+    ),
     label="Model Convolved with PSF",
     c=bpl.color_cycle[0],
     lw=4,
@@ -218,8 +245,8 @@ ax_big.scatter(
     c=bpl.color_cycle[2],
 )
 
-# Use the final model to normalize the psf
-psf *= np.max(model_psf_bin_image) / np.max(psf)
+# Normalize the PSF to match the PSF smoothed model
+psf *= model_psf_ymax / np.max(psf)
 ax_big.plot(
     *binned_radial_profile(psf, 2, psf_cen, psf_cen, 0.1),
     label="PSF",
@@ -239,10 +266,10 @@ ax_big.axhline(row["local_background_best"], ls=":", label="Local Background")
 # )
 
 r_eff = row["r_eff_pixels_rmax_15pix_best"]
-ax_big.plot([r_eff, r_eff], [0, 630], c=bpl.almost_black, ls="--")
+ax_big.plot([r_eff, r_eff], [0, r_eff_y_max], c=bpl.almost_black, ls="--")
 ax_big.add_text(
     x=r_eff - 0.05,
-    y=110,
+    y=r_eff_y_label,
     text="$R_{eff}$",
     ha="right",
     va="bottom",
@@ -265,11 +292,10 @@ ax_big.add_text(
 ax_big.legend()
 ax_big.set_yscale("log")
 ax_big.add_labels("Radius [pixels]", "Pixel Value [e$^-$]")
-max_pix = 7
-ax_big.set_limits(0, max_pix, 40, 2e3)
+ax_big.set_limits(0, radial_plot_x_max, radial_plot_y_min, radial_plot_y_max)
 
 # then add a second scale on top translating into parsecs
-arcsec = utils.pixels_to_arcsec(max_pix, data_dir)
+arcsec = utils.pixels_to_arcsec(radial_plot_x_max, data_dir)
 max_pc, _, _ = utils.arcsec_to_pc_with_errors(data_dir, arcsec, 0, 0)
 ax_big.twin_axis_simple("x", lower_lim=0, upper_lim=max_pc, label="Radius [pc]")
 
