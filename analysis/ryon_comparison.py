@@ -3,8 +3,9 @@ from pathlib import Path
 
 from astropy import table
 import numpy as np
-import betterplotlib as bpl
 from sinistra.astropy_helpers import symmetric_match
+from matplotlib import ticker
+import betterplotlib as bpl
 
 bpl.set_style()
 
@@ -204,6 +205,22 @@ def rms(suffix_1, suffix_2, mask_col_name, print_threshold=1000):
 # Making plots
 #
 # ======================================================================================
+# Function to use to set the ticks
+@ticker.FuncFormatter
+def nice_log_formatter(x, pos):
+    exp = np.log10(x)
+    # this only works for labels that are factors of 10. Other values will produce
+    # misleading results, so check this assumption.
+    assert np.isclose(exp, int(exp))
+
+    # for values between 0.01 and 100, just use that value.
+    # Otherwise use the log.
+    if abs(exp) < 2:
+        return f"{x:g}"
+    else:
+        return f"$10^{exp:.0f}$"
+
+
 limits = 0.3, 20
 # First we'll make a straight comparison
 fig, axs = bpl.subplots(ncols=2, figsize=[14, 7])
@@ -216,8 +233,8 @@ colors = {
 }
 labels = {
     "ryon": "$R_{eff}$ [pc] - Ryon+ 2017",
-    "ryonlike": "$R_{eff}$ [pc] - This Work Ryon-like",
-    "full": "$R_{eff}$ [pc] - This Work Full Method",
+    "ryonlike": "$R_{eff}$ [pc] - This Work, R17 Method",
+    "full": "$R_{eff}$ [pc] - This Work, Full Method",
 }
 # In the left panel, we compare my Ryon-like (x) to Ryon's results (y). Then in the
 # right panel I compare my two methods. I wrote this to be flexible though.
@@ -257,5 +274,8 @@ for ax, x_suffix, y_suffix, mask_col_name in zip(
     ax.legend(loc=4)
 
     ax.add_labels(labels[x_suffix], labels[y_suffix])
+
+    ax.xaxis.set_major_formatter(nice_log_formatter)
+    ax.yaxis.set_major_formatter(nice_log_formatter)
 
 fig.savefig(plot_name)
