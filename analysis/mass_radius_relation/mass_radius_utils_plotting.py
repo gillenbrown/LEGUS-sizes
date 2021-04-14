@@ -55,7 +55,10 @@ def get_r_percentiles_moving(radii, masses, percentile, n, dn):
 
 
 def get_r_percentiles_hybrid(radii, masses, percentile, d_log_M):
-    bins = np.logspace(0, 6, int(6 / d_log_M) + 1)
+    log_m_min = 1.1
+    log_m_max = 6
+    n_points = 1 + int((log_m_max - log_m_min) / d_log_M)
+    bins = np.logspace(log_m_min, log_m_max, n_points)
 
     bin_centers = []
     radii_percentiles = []
@@ -114,6 +117,7 @@ def add_percentile_lines(
     percentiles=None,
     label_percents=True,
     label_legend=None,
+    label_percent_fontsize=16,
 ):
     # set the percentiles to choose
     if percentiles is None:
@@ -153,7 +157,7 @@ def add_percentile_lines(
                 ha="right",
                 va="center",
                 s=percentile,
-                fontsize=16,
+                fontsize=label_percent_fontsize,
                 zorder=100,
             )
 
