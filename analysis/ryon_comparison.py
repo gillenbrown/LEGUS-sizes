@@ -277,5 +277,7 @@ for ax, x_suffix, y_suffix, mask_col_name in zip(
 
     ax.xaxis.set_major_formatter(nice_log_formatter)
     ax.yaxis.set_major_formatter(nice_log_formatter)
+    ax.xaxis.set_ticks_position("both")
+    ax.yaxis.set_ticks_position("both")
 
 fig.savefig(plot_name)
