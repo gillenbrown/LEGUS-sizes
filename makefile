@@ -51,7 +51,6 @@ final_catalog_script = $(pipeline_dir)derived_properties.py
 comparison_script = $(analysis_dir)ryon_comparison.py
 radii_def_plot_script = $(analysis_dir)radii_def_comp_plot.py
 parameters_dist_script = $(analysis_dir)parameter_distribution.py
-all_fields_script = $(analysis_dir)all_fields_hist.py
 all_galaxies_script = $(analysis_dir)all_galaxies_hist.py
 all_galaxies_iso_script = $(analysis_dir)all_galaxies_hist_isolate.py
 stacked_distribution_script = $(analysis_dir)stacked_distribution.py
@@ -147,7 +146,6 @@ galaxy_table = $(local_plots_dir)galaxy_table.txt
 psf_demo_image = $(local_plots_dir)psf_demo_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.pdf
 comparison_plot = $(local_plots_dir)comparison_plot.pdf
 param_dist_plot = $(local_plots_dir)parameter_distribution_size.pdf
-all_fields_hist_plot = $(local_plots_dir)all_fields.pdf
 all_galaxies_plot = $(local_plots_dir)all_galaxies.pdf
 all_galaxies_iso_plot = $(local_plots_dir)all_galaxies_isolate.pdf
 stacked_distribution_plot = $(local_plots_dir)stacked_distribution.pdf
@@ -175,9 +173,8 @@ mass_radius_table = $(local_plots_dir)mass_radius_fits_table.txt
 artificial_comparison = $(local_plots_dir)artificial_tests.pdf
 # then combine everything together
 outputs = $(galaxy_table) $(psf_demo_image) $(psf_comp_plots) \
-          $(comparison_plot) \
-          $(param_dist_plot) $(all_fields_hist_plot) $(all_galaxies_plot) \
-          $(all_galaxies_iso_plot) $(stacked_distribution_plot) \
+          $(comparison_plot) $(param_dist_plot) \
+          $(all_galaxies_plot) $(all_galaxies_iso_plot) $(stacked_distribution_plot) \
           $(dynamical_age_plot) $(bound_fraction_plot) \
           $(fit_quality_plot) $(toy_model_plot) $(example_fit_plot) \
           $(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) \
