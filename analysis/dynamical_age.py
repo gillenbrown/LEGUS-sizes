@@ -1,10 +1,10 @@
 """
-all_fields_hist.py - Create a histogram showing the distribution of effective radii in
-all fields.
+dynamical_age.py - Create two plots showing the dynamical state of clusters
 
 This takes the following parameters:
-- Path to save the plots
-- Then the paths to all the final catalogs.
+- Path to save the plot comparing crossing time to age
+- Path to save the plot showing the mass dependence of the bound fraction
+- All the catalogs
 """
 
 import sys
