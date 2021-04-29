@@ -296,9 +296,6 @@ $(comparison_plot): $(comparison_script) $(final_cats) $(final_cats_ryon)
 $(param_dist_plot): $(parameters_dist_script) $(final_cats)
 	python $(parameters_dist_script) $@ $(final_cats)
 
-$(all_fields_hist_plot): $(final_cats) $(all_fields_script)
-	python $(all_fields_script) $@ $(final_cats)
-
 $(all_galaxies_plot): $(final_cats) $(all_galaxies_script)
 	python $(all_galaxies_script) $@ $(final_cats)
 
@@ -322,9 +319,6 @@ $(fit_quality_plot): $(final_cats) $(fit_quality_script)
 
 $(galaxy_table): $(final_cats) $(galaxy_table_script)
 	python $(galaxy_table_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) $(psf_type) $(final_cats)
-
-$(experiments_sentinel): $(final_cats) $(experiment_script)
-	python $(experiment_script) $@ $(final_cats)
 
 # Various mass-radius relation plots
 # need make v4.3 for this to work (can be installed with conda)
