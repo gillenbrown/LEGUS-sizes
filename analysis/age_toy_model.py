@@ -123,7 +123,6 @@ def tidal_radius(m_old, m_new, r_old):
 # https://ui.adsabs.harvard.edu/abs/2010MNRAS.408L..16G/abstract
 # Equation 6 is the key
 # this includes stellar evolution and two-body relaxation. No tidal evolution
-print("fix Coulomb logarithm in G10, look at citations")
 
 
 def gieles_etal_10_evolution(initial_radius, initial_mass, time):
@@ -184,7 +183,6 @@ def gieles_etal_10_evolution(initial_radius, initial_mass, time):
 # Equation 12 is essentially the answer here.
 # this model is two body relaxation plus tidal shocks. No stellar evolution.
 # note their notation uses i for initial rather than 0, and I keep that in my code
-print("make sure I'm doing 2-3D transition correctly in G16")
 g16_f = 3
 # zeta is chosen to be 0.5 by G16 right at the end of section 3.2
 zeta = 0.5
@@ -304,12 +302,12 @@ def gieles_etal_16_density(initial_mass, current_mass, initial_density):
 
 def calculate_density(mass, half_mass_radius):
     # when calculating the density, take (half_mass) / (4/3 pi half_mass_radius^3)
-    return 3 * 0.5 * mass / (4 * np.pi * half_mass_radius ** 3)
+    return 3 * mass / (8 * np.pi * half_mass_radius ** 3)
 
 
 def density_to_half_mass_radius(density, mass):
     # then turn this back into half mass radius (remember to use half the mass
-    return ((3 * 0.5 * mass) / (4 * np.pi * density)) ** (1 / 3)
+    return ((3 * mass) / (8 * np.pi * density)) ** (1 / 3)
 
 
 # # ======================================================================================
