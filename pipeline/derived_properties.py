@@ -148,7 +148,11 @@ dist_cols = [
     "local_background",
 ]
 for col in dist_cols:
-    fits_catalog[col] = [unpad(row[col]) for row in fits_catalog]
+    # I create an array and use the object data type to avoid a warning about a
+    # ragged array
+    fits_catalog[col] = np.array(
+        [unpad(row[col]) for row in fits_catalog], dtype="object"
+    )
     # Also delete the columns associated with the multiple starting points. For now we
     # don't do anything with them here
     del fits_catalog[col + "_x0_variations"]
@@ -328,13 +332,61 @@ for row in fits_catalog:
     row["r_eff_pc_rmax_15pix_e+"] = high_e
     row["r_eff_pc_rmax_15pix_e-"] = low_e
 
-    # also calculate the crossing time, from
-    # Gieles, Portegies Zwart 2011, MNRAS, 410, L6
-    # https://ui.adsabs.harvard.edu/abs/2011MNRAS.410L...6G/abstract
-    term_a = (row["r_eff_pc_rmax_15pix_best"] * u.pc) ** 3
-    term_b = c.G * row["mass_msun"] * u.Msun
-    crossing_time = 10 * np.sqrt(term_a / term_b).to(u.year)
-    row["crossing_time_yr"] = crossing_time.value
+# ======================================================================================
+#
+# Derived quantities
+#
+# ======================================================================================
+# I'll need the mass and radius for all of what I'll do here, so get those ahead of
+# time. For the errors on these quantities I'll be using the log error, so I'll
+# need to calculate those things too
+m = fits_catalog["mass_msun"]
+# I need to be a bit careful with the min and max masses, since somehow there is zero
+# in those. I'll set it to nan for the purposes of computing the errors
+m_max = fits_catalog["mass_msun_max"]
+m_min = fits_catalog["mass_msun_min"]
+# select the basic values when they're good, set nan otherwise.
+m = np.where(m > 0, m, np.nan)
+m_max = np.where(m_max > 0, m_max, np.nan)
+m_min = np.where(m_min > 0, m_min, np.nan)
+
+# then calculate the log error for both mass and radius (which will be the mean of the
+# upper and lower limits, for simplicity)
+d_log_m = np.mean(
+    [
+        np.log10(m) - np.log10(m_min),
+        np.log10(m_max) - np.log10(m),
+    ],
+    axis=0,
+)
+
+r_eff = fits_catalog["r_eff_pc_rmax_15pix_best"]
+d_log_r = np.mean(
+    [
+        np.log10(r_eff) - np.log10(r_eff - fits_catalog["r_eff_pc_rmax_15pix_e-"]),
+        np.log10(r_eff + fits_catalog["r_eff_pc_rmax_15pix_e+"]) - np.log10(r_eff),
+    ],
+    axis=0,
+)
+assert len(d_log_m) == len(d_log_r) == len(fits_catalog)
+
+# calculate the crossing time, from
+# Gieles, Portegies Zwart 2011, MNRAS, 410, L6
+# https://ui.adsabs.harvard.edu/abs/2011MNRAS.410L...6G/abstract
+crossing_time = 10 * np.sqrt((r_eff * u.pc) ** 3 / (c.G * m * u.Msun)).to(u.year)
+fits_catalog["crossing_time_yr"] = crossing_time.value
+# error comes from error propagation
+fits_catalog["crossing_time_log_err"] = np.sqrt(
+    ((1 / 2) * d_log_m) ** 2 + ((3 / 2) * d_log_r) ** 2
+)
+
+# Then calculate the surface density and 3D density. This is in solar mass per cubic
+# parsec or square parsec.
+fits_catalog["3d_density"] = 3 * m / (8 * np.pi * r_eff ** 3)
+fits_catalog["3d_density_log_err"] = np.sqrt(d_log_m ** 2 + (3 * d_log_r) ** 2)
+
+fits_catalog["surface_density"] = m / (2 * np.pi * r_eff ** 2)
+fits_catalog["surface_density_log_err"] = np.sqrt(d_log_m ** 2 + (2 * d_log_r) ** 2)
 
 # ======================================================================================
 #
@@ -761,7 +813,7 @@ fits_catalog["fit_rms"] = -99.9
 # This is sort of copied from fit.py, as the process of getting the snapshot is
 # basically the same, only here we center on the pixel where the cluster was fitted to
 # be centered
-for row in tqdm(fits_catalog):
+for row in fits_catalog:
     # create the snapshot. We use ceiling to get the integer pixel values as python
     # indexing does not include the final value. So when we calcualte the offset, it
     # naturally gets biased low. Moving the center up fixes that in the easiest way.

@@ -56,6 +56,7 @@ all_galaxies_iso_script = $(analysis_dir)all_galaxies_hist_isolate.py
 stacked_distribution_script = $(analysis_dir)stacked_distribution.py
 example_plot_script = $(analysis_dir)example_fit.py
 dynamical_age_script = $(analysis_dir)dynamical_age.py
+density_script = $(analysis_dir)density.py
 toy_model_script = $(analysis_dir)age_toy_model.py
 fit_quality_script = $(analysis_dir)fit_quality.py
 galaxy_table_script = $(analysis_dir)galaxy_table.py
@@ -151,6 +152,7 @@ all_galaxies_iso_plot = $(local_plots_dir)all_galaxies_isolate.pdf
 stacked_distribution_plot = $(local_plots_dir)stacked_distribution.pdf
 dynamical_age_plot = $(local_plots_dir)dynamical_age.pdf
 bound_fraction_plot = $(local_plots_dir)bound_fraction.pdf
+density_plot = $(local_plots_dir)density.pdf
 toy_model_plot = $(local_plots_dir)age_toy_model.pdf
 example_fit_plot = $(local_plots_dir)example_fit.pdf
 fit_quality_plot = $(local_plots_dir)fit_quality.pdf
@@ -175,7 +177,7 @@ artificial_comparison = $(local_plots_dir)artificial_tests.pdf
 outputs = $(galaxy_table) $(psf_demo_image) $(psf_comp_plots) \
           $(comparison_plot) $(param_dist_plot) \
           $(all_galaxies_plot) $(all_galaxies_iso_plot) $(stacked_distribution_plot) \
-          $(dynamical_age_plot) $(bound_fraction_plot) \
+          $(dynamical_age_plot) $(bound_fraction_plot) $(density_plot) \
           $(fit_quality_plot) $(toy_model_plot) $(example_fit_plot) \
           $(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) \
           $(mass_radius_legus_young_plot) $(mass_radius_legus_young_txt) \
@@ -307,6 +309,9 @@ $(stacked_distribution_plot): $(final_cats) $(stacked_distribution_script)
 
 $(dynamical_age_plot) $(bound_fraction_plot) &: $(final_cats) $(dynamical_age_script)
 	python $(dynamical_age_script) $(dynamical_age_plot) $(bound_fraction_plot) $(final_cats)
+
+$(density_plot): $(final_cats) $(density_script)
+	python $(density_script) $@ $(final_cats)
 
 $(toy_model_plot): $(toy_model_script) $(mass_radius_table)
 	python $(toy_model_script) $@ $(mass_radius_table) $(final_cats)
