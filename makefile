@@ -190,7 +190,6 @@ outputs = $(galaxy_table) $(psf_demo_image) $(psf_comp_plots) \
           $(mass_radius_table) \
           $(artificial_comparison)
 
-experiments_sentinel = ./testing/experiments_done.txt
 
 # ------------------------------------------------------------------------------
 #
@@ -199,7 +198,7 @@ experiments_sentinel = ./testing/experiments_done.txt
 # ------------------------------------------------------------------------------
 # https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
 
-all: $(all_my_dirs) $(outputs) $(experiments_sentinel)
+all: $(all_my_dirs) $(outputs)
 
 # When we clean we will only clean the things after the fitting, since that
 # takes so long. The "or true" thing there stops make from throwing an error
