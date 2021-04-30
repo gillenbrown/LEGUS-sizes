@@ -8,10 +8,9 @@ output = sys.argv[1]
 legus_full = sys.argv[2]
 legus_young = sys.argv[3]
 legus_agesplit = sys.argv[4]
-legus_ssfrsplit = sys.argv[5]
-legus_mw = sys.argv[6]
-legus_m31 = sys.argv[7]
-legus_mw_m31 = sys.argv[8]
+legus_mw = sys.argv[5]
+legus_m31 = sys.argv[6]
+legus_mw_m31 = sys.argv[7]
 
 # start output file, then make the header
 fit_out_file = open(output, "w")
@@ -23,7 +22,7 @@ fit_out_file.write(
     "Slope ($\\beta$) & "
     "$\\reff$(pc) at $10^4\Msun (R_4)$ & "
     "Intrinsic Scatter & "
-    "$\logM$ percentiles: 1---99 \\\\ \n"
+    "$\log{M}$ percentiles: 1--99 \\\\ \n"
 )
 fit_out_file.write("\t\t\midrule\n")
 
@@ -51,8 +50,6 @@ copy_single_file(legus_full)
 copy_single_file(legus_young)
 out_file_spacer()
 copy_single_file(legus_agesplit)
-out_file_spacer()
-copy_single_file(legus_ssfrsplit)
 out_file_spacer()
 copy_single_file(legus_mw)
 copy_single_file(legus_m31)

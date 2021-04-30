@@ -349,8 +349,8 @@ $(mass_radius_legus_mw_external_plot) $(mass_radius_legus_mw_external_txt) &: $(
 	python $(mass_radius_legus_mw_external_script) $(mass_radius_legus_mw_external_plot) $(mass_radius_legus_mw_external_txt) $(final_cats)
 
 # combine all tables into the final one
-$(mass_radius_table): $(mass_radius_final_table_script) $(mass_radius_legus_full_txt) $(mass_radius_legus_young_txt) $(mass_radius_legus_agesplit_txt) $(mass_radius_legus_ssfrsplit_txt) $(mass_radius_legus_mw_txt)  $(mass_radius_legus_external_txt)  $(mass_radius_legus_mw_external_txt)
-	python $(mass_radius_final_table_script) $(mass_radius_table) $(mass_radius_legus_full_txt) $(mass_radius_legus_young_txt) $(mass_radius_legus_agesplit_txt) $(mass_radius_legus_ssfrsplit_txt) $(mass_radius_legus_mw_txt)  $(mass_radius_legus_external_txt)  $(mass_radius_legus_mw_external_txt)
+$(mass_radius_table): $(mass_radius_final_table_script) $(mass_radius_legus_full_txt) $(mass_radius_legus_young_txt) $(mass_radius_legus_agesplit_txt) $(mass_radius_legus_mw_txt)  $(mass_radius_legus_external_txt)  $(mass_radius_legus_mw_external_txt)
+	python $(mass_radius_final_table_script) $(mass_radius_table) $(mass_radius_legus_full_txt) $(mass_radius_legus_young_txt) $(mass_radius_legus_agesplit_txt) $(mass_radius_legus_mw_txt)  $(mass_radius_legus_external_txt)  $(mass_radius_legus_mw_external_txt)
 
 # ------------------------------------------------------------------------------
 #  Artificial cluster tests
