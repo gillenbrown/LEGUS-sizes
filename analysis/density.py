@@ -10,8 +10,7 @@ import sys
 from pathlib import Path
 from astropy import table
 import numpy as np
-from matplotlib import colors
-from matplotlib import cm
+from matplotlib import ticker
 import betterplotlib as bpl
 
 bpl.set_style()
@@ -74,14 +73,30 @@ def kde(x_grid, log_x, log_x_err):
 def contour(ax, mass, r_eff, color, zorder):
     cmap = create_color_cmap(color, 0.1, 0.8)
     common = {
-        "percent_levels": [0.5, 0.95],
-        "smoothing": [0.2, 0.2],  # dex
-        "bin_size": 0.05,  # dex
+        "percent_levels": [0.5, 0.90],
+        "smoothing": [0.15, 0.15],  # dex
+        "bin_size": 0.02,  # dex
         "log": True,
         "cmap": cmap,
     }
-    ax.density_contourf(mass, r_eff, alpha=0.2, zorder=zorder, **common)
+    ax.density_contourf(mass, r_eff, alpha=0.25, zorder=zorder, **common)
     ax.density_contour(mass, r_eff, zorder=zorder + 1, **common)
+
+
+# Function to use to set the ticks
+@ticker.FuncFormatter
+def nice_log_formatter(x, pos):
+    exp = np.log10(x)
+    # this only works for labels that are factors of 10. Other values will produce
+    # misleading results, so check this assumption.
+    assert np.isclose(exp, int(exp))
+
+    # for values between 0.01 and 100, just use that value.
+    # Otherwise use the log.
+    if abs(exp) < 2:
+        return f"{x:g}"
+    else:
+        return f"$10^{exp:.0f}$"
 
 
 # ======================================================================================
@@ -117,7 +132,7 @@ mask_old = np.logical_and(age >= 1e8, age < 1e9)
 # Make the plot
 #
 # ======================================================================================
-fig, axs = bpl.subplots(figsize=[15, 15], ncols=2, nrows=2)
+fig, axs = bpl.subplots(figsize=[13, 13], ncols=2, nrows=2)
 ax_3_k = axs[0][0]
 ax_3_m = axs[1][0]
 ax_2_k = axs[0][1]
@@ -146,8 +161,8 @@ for mask, name, color, zorder in zip(
     contour(ax_3_m, mass[mask], density_3d[mask], color, zorder)
     contour(ax_2_m, mass[mask], density_2d[mask], color, zorder)
 
-    # # for the mass-density plots I'll use my contour scatter function. It takes some kwargs,
-    # # but also has nested dictionaries, so we have to do some nested dicts here too.
+    # # for the mass-density plots I'll use my contour scatter function. It takes some
+    # # kwargs and has nested dictionaries, so we have to do some nested dicts here too.
     # contour = {"log": True}
     # common = {
     #     "percent_levels":  [0.5, 0.75, 0.95],
@@ -162,15 +177,20 @@ for mask, name, color, zorder in zip(
 
 
 # format axes
-ax_2_k.legend(loc=2, fontsize=16)
-for ax in axs[0]:
+ax_2_k.legend(loc=2, fontsize=14, frameon=False)
+for ax in axs.flatten():
     ax.set_xscale("log")
+    ax.tick_params(axis="both", which="major", length=8)
+    ax.tick_params(axis="both", which="minor", length=4)
+    ax.xaxis.set_ticks_position("both")
+    ax.yaxis.set_ticks_position("both")
+    ax.xaxis.set_major_formatter(nice_log_formatter)
+for ax in axs[0]:
     ax.set_limits(0.1, 1e5, 0)
 for ax in axs[1]:
-    ax.set_xscale("log")
     ax.set_yscale("log")
+    ax.yaxis.set_major_formatter(nice_log_formatter)
     ax.set_limits(1e2, 1e6, 0.1, 1e5)
-
 
 # add labels to the axes
 label_mass = "Mass [$M_\odot$]"
