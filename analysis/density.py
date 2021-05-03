@@ -194,12 +194,13 @@ for ax in axs[1]:
 
 # add labels to the axes
 label_mass = "Mass [$M_\odot$]"
-label_kde = "Normalized KDE Density"
+label_kde_2d = "Normalized dN/dlog($\\Sigma_h$)"
+label_kde_3d = "Normalized dN/dlog($\\rho_h$)"
 label_3d = "Density [$M_\odot$/pc$^3$]"
 label_2d = "Surface Density [$M_\odot$/pc$^2$]"
-ax_3_k.add_labels(label_3d, label_kde)
+ax_3_k.add_labels(label_3d, label_kde_3d)
 ax_3_m.add_labels(label_mass, label_3d)
-ax_2_k.add_labels(label_2d, label_kde)
+ax_2_k.add_labels(label_2d, label_kde_2d)
 ax_2_m.add_labels(label_mass, label_2d)
 
 fig.savefig(plot_name)
