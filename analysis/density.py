@@ -221,21 +221,6 @@ for mask, name, color, zorder in zip(
     contour(ax_3_m, mass[mask], density_3d[mask], color, zorder)
     contour(ax_2_m, mass[mask], density_2d[mask], color, zorder)
 
-    # # for the mass-density plots I'll use my contour scatter function. It takes some
-    # # kwargs and has nested dictionaries, so we have to do some nested dicts here too.
-    # contour = {"log": True}
-    # common = {
-    #     "percent_levels":  [0.5, 0.75, 0.95],
-    #     "smoothing":       [0.1, 0.1],  # dex
-    #     "bin_size":        0.05,  # dex
-    #     "contour_kwargs":  {"cmap": "Blues", **contour},
-    #     "contourf_kwargs": contour,
-    #     "fill_cmap":       "Blues",
-    # }
-    # ax_3_m.contour_scatter(mass, density_3d, **common)
-    # ax_2_m.contour_scatter(mass, density_2d, **common)
-
-
 # format axes
 ax_2_k.legend(loc=2, fontsize=14, frameon=False)
 for ax in axs.flatten():
