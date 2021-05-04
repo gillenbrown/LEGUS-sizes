@@ -27,8 +27,9 @@ from mass_radius_utils_plotting import create_color_cmap
 #
 # ======================================================================================
 plot_name = Path(sys.argv[1]).resolve()
+fits_output_name = Path(sys.argv[2]).resolve()
 
-catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[2:]]
+catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[3:]]
 # then stack them together in one master catalog
 big_catalog = table.vstack(catalogs, join_type="inner")
 
@@ -146,6 +147,35 @@ def nice_log_formatter(x, pos):
 
 # ======================================================================================
 #
+# Start the table to output the fit parameters to
+#
+# ======================================================================================
+out_file = open(fits_output_name, "w")
+# write the header
+out_file.write("\t\\begin{tabular}{lcccc}\n")
+out_file.write("\t\t\\toprule\n")
+out_file.write(
+    "\t\tAge & "
+    "$\log \mu_\\rho$ & "
+    "$\sigma_\\rho$ (dex) & "
+    "$\log \mu_\Sigma$ & "
+    "$\sigma_\Sigma$ (dex) \\\\ \n"
+)
+out_file.write("\t\t\midrule\n")
+
+
+def write_fit_line(name, mean_2d, std_2d, mean_3d, std_3d):
+    out_file.write(
+        f"\t\t{name.replace('-', '--').replace('Age: ', '')} & "
+        f"{mean_3d:.2f} & "
+        f"{std_3d:.2f} & "
+        f"{mean_2d:.2f} & "
+        f"{std_2d:.2f} \\\\ \n"
+    )
+
+
+# ======================================================================================
+#
 # Make the plot
 #
 # ======================================================================================
@@ -158,10 +188,10 @@ ax_2_m = axs[1][1]
 density_grid = np.logspace(-2, 6, 1000)
 
 for mask, name, color, zorder in zip(
-    [mask_young, mask_med, mask_old, mask_all],
-    ["Age: 1-10 Myr", "Age: 10-100 Myr", "Age: 100 Myr - 1 Gyr", "All"],
-    [bpl.color_cycle[0], bpl.color_cycle[5], bpl.color_cycle[3], None],
-    [3, 2, 1, None],
+    [mask_all, mask_young, mask_med, mask_old],
+    ["All", "Age: 1-10 Myr", "Age: 10-100 Myr", "Age: 100 Myr - 1 Gyr"],
+    [None, bpl.color_cycle[0], bpl.color_cycle[5], bpl.color_cycle[3]],
+    [None, 3, 2, 1],
 ):
     # create the KDE histogram for the top panel
     kde_2d = kde(density_grid, np.log10(density_2d[mask]), density_2d_log_err[mask])
@@ -171,10 +201,7 @@ for mask, name, color, zorder in zip(
     norm_2d, mean_2d, variance_2d = fit_gaussian(np.log10(density_grid), kde_2d)
     norm_3d, mean_3d, variance_3d = fit_gaussian(np.log10(density_grid), kde_3d)
 
-    print(name)
-    print(f"Density: mean=10^{mean_3d:.3g}, std={np.sqrt(variance_3d):.3f} dex")
-    print(f"Surface Density: mean=10^{mean_2d:.3g}, std={np.sqrt(variance_2d):.3f} dex")
-    print()
+    write_fit_line(name, mean_2d, np.sqrt(variance_2d), mean_3d, np.sqrt(variance_3d))
 
     # plotting doesn't happen for all subsets. Set None as the color to skip plotting
     if color is None:
@@ -237,3 +264,8 @@ ax_2_k.add_labels(label_2d, label_kde_2d)
 ax_2_m.add_labels(label_mass, label_2d)
 
 fig.savefig(plot_name)
+
+# then finalize the output file
+out_file.write("\t\t\\bottomrule\n")
+out_file.write("\t\end{tabular}\n")
+out_file.close()
