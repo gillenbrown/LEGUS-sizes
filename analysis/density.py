@@ -35,6 +35,34 @@ big_catalog = table.vstack(catalogs, join_type="inner")
 good_mask = np.logical_and(big_catalog["good_radius"], big_catalog["good_fit"])
 big_catalog = big_catalog[good_mask]
 
+# ======================================================================================
+#
+# Get the quantities we'll need for the plot
+#
+# ======================================================================================
+density_3d = big_catalog["3d_density"]
+density_3d_log_err = big_catalog["3d_density_log_err"]
+density_2d = big_catalog["surface_density"]
+density_2d_log_err = big_catalog["surface_density_log_err"]
+
+# turn these errors into linear space for plotting
+density_3d_err_lo = density_3d - 10 ** (np.log10(density_3d) - density_3d_log_err)
+density_3d_err_hi = 10 ** (np.log10(density_3d) + density_3d_log_err) - density_3d
+
+density_2d_err_lo = density_2d - 10 ** (np.log10(density_2d) - density_2d_log_err)
+density_2d_err_hi = 10 ** (np.log10(density_2d) + density_2d_log_err) - density_2d
+
+# then mass
+mass = big_catalog["mass_msun"]
+m_err_lo = big_catalog["mass_msun"] - big_catalog["mass_msun"]
+m_err_hi = big_catalog["mass_msun_max"] - big_catalog["mass_msun"]
+
+# also set up the masks for age
+age = big_catalog["age_yr"]
+mask_young = age < 1e7
+mask_med = np.logical_and(age >= 1e7, age < 1e8)
+mask_old = np.logical_and(age >= 1e8, age < 1e9)
+
 
 # ======================================================================================
 #
@@ -98,34 +126,6 @@ def nice_log_formatter(x, pos):
     else:
         return f"$10^{exp:.0f}$"
 
-
-# ======================================================================================
-#
-# Get the quantities we'll need for the plot
-#
-# ======================================================================================
-density_3d = big_catalog["3d_density"]
-density_3d_log_err = big_catalog["3d_density_log_err"]
-density_2d = big_catalog["surface_density"]
-density_2d_log_err = big_catalog["surface_density_log_err"]
-
-# turn these errors into linear space for plotting
-density_3d_err_lo = density_3d - 10 ** (np.log10(density_3d) - density_3d_log_err)
-density_3d_err_hi = 10 ** (np.log10(density_3d) + density_3d_log_err) - density_3d
-
-density_2d_err_lo = density_2d - 10 ** (np.log10(density_2d) - density_2d_log_err)
-density_2d_err_hi = 10 ** (np.log10(density_2d) + density_2d_log_err) - density_2d
-
-# then mass
-mass = big_catalog["mass_msun"]
-m_err_lo = big_catalog["mass_msun"] - big_catalog["mass_msun"]
-m_err_hi = big_catalog["mass_msun_max"] - big_catalog["mass_msun"]
-
-# also set up the masks for age
-age = big_catalog["age_yr"]
-mask_young = age < 1e7
-mask_med = np.logical_and(age >= 1e7, age < 1e8)
-mask_old = np.logical_and(age >= 1e8, age < 1e9)
 
 # ======================================================================================
 #
