@@ -20,6 +20,8 @@ bpl.set_style()
 code_home_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(code_home_dir / "analysis" / "mass_radius_relation"))
 from mass_radius_utils_plotting import create_color_cmap
+import mass_radius_utils_mle_fitting as mru_mle
+import mass_radius_utils as mru
 
 # ======================================================================================
 #
@@ -56,7 +58,7 @@ density_2d_err_hi = 10 ** (np.log10(density_2d) + density_2d_log_err) - density_
 
 # then mass
 mass = big_catalog["mass_msun"]
-m_err_lo = big_catalog["mass_msun"] - big_catalog["mass_msun"]
+m_err_lo = big_catalog["mass_msun"] - big_catalog["mass_msun_min"]
 m_err_hi = big_catalog["mass_msun_max"] - big_catalog["mass_msun"]
 
 # also set up the masks for age
@@ -147,6 +149,79 @@ def nice_log_formatter(x, pos):
 
 # ======================================================================================
 #
+# Fit the mass-density relation
+#
+# ======================================================================================
+def fit_mass_density_relation_orthogonal(
+    mass, mass_err_lo, mass_err_hi, density, density_log_err
+):
+    # This is basically copied from the mass-radius relation fitting, but with some
+    # changes to make it more suitable here.
+    log_mass, log_mass_err_lo, log_mass_err_hi = mru.transform_to_log(
+        mass, mass_err_lo, mass_err_hi
+    )
+    log_density = np.log10(density)
+
+    # and symmetrize the mass errors
+    log_mass_err = np.mean([log_mass_err_lo, log_mass_err_hi], axis=0)
+
+    # set some of the convergence criteria parameters for the Powell fitting routine.
+    xtol = 1e-10
+    ftol = 1e-10
+    maxfev = np.inf
+    maxiter = np.inf
+    # Then try the fitting
+    best_fit_result = optimize.minimize(
+        mru_mle.negative_log_likelihood,
+        args=(
+            log_mass,
+            log_mass_err,
+            log_density,
+            density_log_err,
+        ),
+        bounds=([-1, 10], [None, None], [0, 2]),
+        x0=np.array([0.4, 2, 1]),
+        method="Powell",
+        options={
+            "xtol": xtol,
+            "ftol": ftol,
+            "maxfev": maxfev,
+            "maxiter": maxiter,
+        },
+    )
+    assert best_fit_result.success
+    return best_fit_result.x
+
+
+def fit_mass_density_relation_vertical(mass, density, density_log_err):
+    log_mass = np.log10(mass)
+    log_density = np.log10(density)
+
+    def to_minimize(params):
+        slope, norm = params
+        expected_log_density = norm + slope * (log_mass - 4)
+        return np.sum(((expected_log_density - log_density) / density_log_err) ** 2)
+
+    fit = optimize.minimize(to_minimize, x0=[2, 0.4], method="Powell")
+    assert fit.success
+    return fit.x
+
+
+fit_2d_o = fit_mass_density_relation_orthogonal(
+    mass, m_err_lo, m_err_hi, density_2d, density_2d_log_err
+)
+fit_3d_o = fit_mass_density_relation_orthogonal(
+    mass, m_err_lo, m_err_hi, density_3d, density_3d_log_err
+)
+fit_2d_v = fit_mass_density_relation_vertical(mass, density_2d, density_2d_log_err)
+fit_3d_v = fit_mass_density_relation_vertical(mass, density_3d, density_3d_log_err)
+
+# print the slopes
+print(f"2D - orthogonal slope={fit_2d_o[0]:.2f}, vertical slope={fit_2d_v[0]:.2f}")
+print(f"3D - orthogonal slope={fit_3d_o[0]:.2f}, vertical slope={fit_3d_v[0]:.2f}")
+
+# ======================================================================================
+#
 # Start the table to output the fit parameters to
 #
 # ======================================================================================
@@ -220,6 +295,17 @@ for mask, name, color, zorder in zip(
     # plot the contours in the lower panels
     contour(ax_3_m, mass[mask], density_3d[mask], color, zorder)
     contour(ax_2_m, mass[mask], density_2d[mask], color, zorder)
+
+# # plot the fits to the mass-density relation
+# test_masses = np.logspace(2, 6, 100)
+# plot_fit_2d_o = (10 ** fit_2d_o[1]) * (test_masses / 1e4) ** (fit_2d_o[0])
+# plot_fit_3d_o = (10 ** fit_3d_o[1]) * (test_masses / 1e4) ** (fit_3d_o[0])
+# plot_fit_2d_v = (10 ** fit_2d_v[1]) * (test_masses / 1e4) ** (fit_2d_v[0])
+# plot_fit_3d_v = (10 ** fit_3d_v[1]) * (test_masses / 1e4) ** (fit_3d_v[0])
+# ax_2_m.plot(test_masses, plot_fit_2d_o, ls=":", c=bpl.almost_black)
+# ax_3_m.plot(test_masses, plot_fit_3d_o, ls=":", c=bpl.almost_black)
+# ax_2_m.plot(test_masses, plot_fit_2d_v, ls="--", c=bpl.almost_black)
+# ax_3_m.plot(test_masses, plot_fit_3d_v, ls="--", c=bpl.almost_black)
 
 # format axes
 ax_2_k.legend(loc=2, fontsize=14, frameon=False)
