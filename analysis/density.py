@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from astropy import table
 import numpy as np
+from scipy import optimize
 from matplotlib import ticker
 import betterplotlib as bpl
 
@@ -62,6 +63,7 @@ age = big_catalog["age_yr"]
 mask_young = age < 1e7
 mask_med = np.logical_and(age >= 1e7, age < 1e8)
 mask_old = np.logical_and(age >= 1e8, age < 1e9)
+mask_all = age < np.inf
 
 
 # ======================================================================================
@@ -83,6 +85,21 @@ def gaussian(x, mean, variance):
     exp_term = np.exp(-((x - mean) ** 2) / (2 * variance))
     normalization = 1.0 / np.sqrt(2 * np.pi * variance)
     return exp_term * normalization
+
+
+def fit_gaussian(x_data, y_data):
+    def to_minimize(params):
+        norm, mean, variance = params
+        predicted = norm * gaussian(x_data, mean, variance)
+        return np.sum((predicted - y_data) ** 2)
+
+    fit = optimize.minimize(
+        to_minimize,
+        x0=(1, 1, 1),
+        bounds=((None, None), (None, None), (0.001, None)),  # variance is positive
+    )
+    assert fit.success
+    return fit.x
 
 
 def kde(x_grid, log_x, log_x_err):
@@ -141,23 +158,39 @@ ax_2_m = axs[1][1]
 density_grid = np.logspace(-2, 6, 1000)
 
 for mask, name, color, zorder in zip(
-    [mask_young, mask_med, mask_old],
-    ["Age: 1-10 Myr", "Age: 10-100 Myr", "Age: 100 Myr - 1 Gyr"],
-    [bpl.color_cycle[0], bpl.color_cycle[5], bpl.color_cycle[3]],
-    [3, 2, 1],
+    [mask_young, mask_med, mask_old, mask_all],
+    ["Age: 1-10 Myr", "Age: 10-100 Myr", "Age: 100 Myr - 1 Gyr", "All"],
+    [bpl.color_cycle[0], bpl.color_cycle[5], bpl.color_cycle[3], None],
+    [3, 2, 1, None],
 ):
-    ax_3_k.plot(
-        density_grid,
-        kde(density_grid, np.log10(density_3d[mask]), density_3d_log_err[mask]),
-        c=color,
-    )
-    ax_2_k.plot(
-        density_grid,
-        kde(density_grid, np.log10(density_2d[mask]), density_2d_log_err[mask]),
-        c=color,
-        label=name,
-    )
+    # create the KDE histogram for the top panel
+    kde_2d = kde(density_grid, np.log10(density_2d[mask]), density_2d_log_err[mask])
+    kde_3d = kde(density_grid, np.log10(density_3d[mask]), density_3d_log_err[mask])
 
+    # fit this with a Gaussian
+    norm_2d, mean_2d, variance_2d = fit_gaussian(np.log10(density_grid), kde_2d)
+    norm_3d, mean_3d, variance_3d = fit_gaussian(np.log10(density_grid), kde_3d)
+
+    print(name)
+    print(f"Density: mean=10^{mean_3d:.3g}, std={np.sqrt(variance_3d):.3f} dex")
+    print(f"Surface Density: mean=10^{mean_2d:.3g}, std={np.sqrt(variance_2d):.3f} dex")
+    print()
+
+    # plotting doesn't happen for all subsets. Set None as the color to skip plotting
+    if color is None:
+        continue
+
+    # plot the KDE histograms
+    ax_3_k.plot(density_grid, kde_3d, c=color)
+    ax_2_k.plot(density_grid, kde_2d, c=color, label=name)
+
+    # # then plot the fit to those histograms
+    # plot_fit_2d = norm_2d * gaussian(np.log10(density_grid), mean_2d, variance_2d)
+    # plot_fit_3d = norm_3d * gaussian(np.log10(density_grid), mean_3d, variance_3d)
+    # ax_2_k.plot(density_grid, plot_fit_2d, ls=":", c=color)
+    # ax_3_k.plot(density_grid, plot_fit_3d, ls=":", c=color)
+
+    # plot the contours in the lower panels
     contour(ax_3_m, mass[mask], density_3d[mask], color, zorder)
     contour(ax_2_m, mass[mask], density_2d[mask], color, zorder)
 
