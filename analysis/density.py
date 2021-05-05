@@ -231,10 +231,10 @@ out_file.write("\t\\begin{tabular}{lcccc}\n")
 out_file.write("\t\t\\toprule\n")
 out_file.write(
     "\t\tAge & "
-    "$\log \mu_\\rho$ & "
-    "$\sigma_\\rho$ (dex) & "
-    "$\log \mu_\Sigma$ & "
-    "$\sigma_\Sigma$ (dex) \\\\ \n"
+    "$\log \mu_{\\rho_h}$ & "
+    "$\sigma_{\\rho_h}$ (dex) & "
+    "$\log \mu_{\Sigma_h}$ & "
+    "$\sigma_{\Sigma_h}$ (dex) \\\\ \n"
 )
 out_file.write("\t\t\midrule\n")
 
