@@ -296,16 +296,31 @@ for mask, name, color, zorder in zip(
     contour(ax_3_m, mass[mask], density_3d[mask], color, zorder)
     contour(ax_2_m, mass[mask], density_2d[mask], color, zorder)
 
-# # plot the fits to the mass-density relation
+# # plot the expected mass-density relations. Math derived by using my best fit relation,
+# # then substituting in to get it in terms of density.
+# R_4 = 2.548
+# beta = 0.242
+# M_0 = 1e4
 # test_masses = np.logspace(2, 6, 100)
+# mrr_density_3d = (
+#     3 * M_0 ** (3 * beta) * test_masses ** (1 - (3 * beta)) / (8 * np.pi * R_4 ** 3)
+# )
+# mrr_density_2d = (
+#     M_0 ** (2 * beta) * test_masses ** (1 - (2 * beta)) / (2 * np.pi * R_4 ** 2)
+# )
+# ax_2_m.plot(test_masses, mrr_density_2d, ls="-", c=bpl.almost_black, label="Expected")
+# ax_3_m.plot(test_masses, mrr_density_3d, ls="-", c=bpl.almost_black)
+#
+# # plot the fits to the mass-density relation
 # plot_fit_2d_o = (10 ** fit_2d_o[1]) * (test_masses / 1e4) ** (fit_2d_o[0])
 # plot_fit_3d_o = (10 ** fit_3d_o[1]) * (test_masses / 1e4) ** (fit_3d_o[0])
 # plot_fit_2d_v = (10 ** fit_2d_v[1]) * (test_masses / 1e4) ** (fit_2d_v[0])
 # plot_fit_3d_v = (10 ** fit_3d_v[1]) * (test_masses / 1e4) ** (fit_3d_v[0])
-# ax_2_m.plot(test_masses, plot_fit_2d_o, ls=":", c=bpl.almost_black)
+# ax_2_m.plot(test_masses, plot_fit_2d_o, ls=":", c=bpl.almost_black, label="Orthogonal")
 # ax_3_m.plot(test_masses, plot_fit_3d_o, ls=":", c=bpl.almost_black)
-# ax_2_m.plot(test_masses, plot_fit_2d_v, ls="--", c=bpl.almost_black)
+# ax_2_m.plot(test_masses, plot_fit_2d_v, ls="--", c=bpl.almost_black, label="Vertical")
 # ax_3_m.plot(test_masses, plot_fit_3d_v, ls="--", c=bpl.almost_black)
+# ax_2_m.legend(frameon=False)
 
 # format axes
 ax_2_k.legend(loc=2, fontsize=14, frameon=False)
