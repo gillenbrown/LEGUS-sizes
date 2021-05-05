@@ -19,8 +19,8 @@ fit_out_file.write("\t\t\\toprule\n")
 fit_out_file.write(
     "\t\tSelection & "
     "$N$ & "
-    "Slope ($\\beta$) & "
-    "$\\reff$(pc) at $10^4\Msun (R_4)$ & "
+    "$\\beta$: Slope & "
+    "$R_4$: $\\reff$(pc) at $10^4\Msun$ & "
     "Intrinsic Scatter & "
     "$\log{M}$ percentiles: 1--99 \\\\ \n"
 )
