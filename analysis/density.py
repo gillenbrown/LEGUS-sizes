@@ -235,9 +235,9 @@ out_file.write(
     "$\sigma_{\\rho}$ & "
     "$\log \mu_{\Sigma}$ & "
     "$\sigma_{\Sigma}$ \\\\ \n"
-    "\t\t& ($\Msun\,\mathrm{pc}^{-3}$) & "
+    "\t\t& ($\Msunpc^{-3}$) & "
     "(dex) & "
-    "($\Msun\,\mathrm{pc}^{-2}$) & "
+    "($\Msunpc^{-2}$) & "
     "(dex) \\\\ \n"
 )
 out_file.write("\t\t\midrule\n")
