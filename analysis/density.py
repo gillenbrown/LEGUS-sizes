@@ -11,7 +11,8 @@ from pathlib import Path
 from astropy import table
 import numpy as np
 from scipy import optimize
-from matplotlib import ticker
+from matplotlib import pyplot as plt
+from matplotlib import ticker, gridspec
 import betterplotlib as bpl
 
 bpl.set_style()
@@ -114,7 +115,7 @@ def kde(x_grid, log_x, log_x_err):
 
     # # normalize the y value
     ys = np.array(ys)
-    ys = 200 * ys / np.sum(ys)  # arbitrary scaling to look nice
+    ys = 150 * ys / np.sum(ys)  # arbitrary scaling to look nice
     return ys
 
 
@@ -258,11 +259,24 @@ def write_fit_line(name, mean_2d, std_2d, mean_3d, std_3d):
 # Make the plot
 #
 # ======================================================================================
-fig, axs = bpl.subplots(figsize=[13, 13], ncols=2, nrows=2)
-ax_3_k = axs[0][0]
-ax_3_m = axs[1][0]
-ax_2_k = axs[0][1]
-ax_2_m = axs[1][1]
+fig = plt.figure(figsize=[16, 7])
+gs = gridspec.GridSpec(
+    nrows=1,
+    ncols=5,
+    wspace=0,
+    hspace=0,
+    width_ratios=[2, 4, 1.8, 2, 4],  # dummy spacer column in middle
+    top=0.96,
+    right=0.96,
+    left=0.06,
+    bottom=0.15,
+)
+# have two axes: one for the comparison, and one for the ratio
+ax_3_k = fig.add_subplot(gs[0], projection="bpl")
+ax_3_m = fig.add_subplot(gs[1], projection="bpl")
+ax_2_k = fig.add_subplot(gs[3], projection="bpl")
+ax_2_m = fig.add_subplot(gs[4], projection="bpl")
+ax_legend = ax_2_m
 
 density_grid = np.logspace(-2, 6, 1000)
 
@@ -286,9 +300,9 @@ for mask, name, color, zorder in zip(
     if color is None:
         continue
 
-    # plot the KDE histograms
-    ax_3_k.plot(density_grid, kde_3d, c=color)
-    ax_2_k.plot(density_grid, kde_2d, c=color, label=name)
+    # plot the KDE histograms. These are horizontal, so the y is the density direction
+    ax_3_k.plot(kde_3d, density_grid, c=color)
+    ax_2_k.plot(kde_2d, density_grid, c=color)
 
     # # then plot the fit to those histograms
     # plot_fit_2d = norm_2d * gaussian(np.log10(density_grid), mean_2d, variance_2d)
@@ -299,6 +313,9 @@ for mask, name, color, zorder in zip(
     # plot the contours in the lower panels
     contour(ax_3_m, mass[mask], density_3d[mask], color, zorder)
     contour(ax_2_m, mass[mask], density_2d[mask], color, zorder)
+
+    # plot dummy lines for use in legend
+    ax_legend.plot([0, 0], [0, 0], c=color, label=name)
 
 # # plot the expected mass-density relations. Math derived by using my best fit relation,
 # # then substituting in to get it in terms of density.
@@ -327,31 +344,38 @@ for mask, name, color, zorder in zip(
 # ax_2_m.legend(frameon=False)
 
 # format axes
-ax_2_k.legend(loc=2, fontsize=14, frameon=False)
-for ax in axs.flatten():
-    ax.set_xscale("log")
-    ax.tick_params(axis="both", which="major", length=8)
-    ax.tick_params(axis="both", which="minor", length=4)
+ax_legend.legend(loc=2, fontsize=14, frameon=False)
+for ax in [ax_2_k, ax_2_m, ax_3_k, ax_3_m]:
+    ax.tick_params(axis="both", which="major", length=8, direction="in", pad=7)
+    ax.tick_params(axis="both", which="minor", length=4, direction="in", pad=7)
     ax.xaxis.set_ticks_position("both")
     ax.yaxis.set_ticks_position("both")
-    ax.xaxis.set_major_formatter(nice_log_formatter)
-for ax in axs[0]:
-    ax.set_limits(0.1, 1e5, 0)
-for ax in axs[1]:
+for ax in [ax_2_k, ax_3_k]:
     ax.set_yscale("log")
+    ax.xaxis.set_ticks([0, 0.5, 1.0])
+    ax.xaxis.set_ticklabels(["", "0.5", "1"])
+    ax.yaxis.set_major_formatter(nice_log_formatter)
+    # set the plot choose x_max, then flip it
+    ax.set_limits(0, y_min=0.1, y_max=1e5)
+    ax.invert_xaxis()
+for ax in [ax_2_m, ax_3_m]:
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.xaxis.set_major_formatter(nice_log_formatter)
     ax.yaxis.set_major_formatter(nice_log_formatter)
     ax.set_limits(1e2, 1e6, 0.1, 1e5)
+    ax.tick_params(axis="y", which="both", labelright=True, labelleft=False)
 
 # add labels to the axes
 label_mass = "Mass [$M_\odot$]"
-label_kde_2d = "Normalized dN/dlog($\\Sigma_h$)"
-label_kde_3d = "Normalized dN/dlog($\\rho_h$)"
+label_kde_2d = "Normalized\ndN/dlog($\\Sigma_h$)"
+label_kde_3d = "Normalized\ndN/dlog($\\rho_h$)"
 label_3d = "Density [$M_\odot$/pc$^3$]"
 label_2d = "Surface Density [$M_\odot$/pc$^2$]"
-ax_3_k.add_labels(label_3d, label_kde_3d)
-ax_3_m.add_labels(label_mass, label_3d)
-ax_2_k.add_labels(label_2d, label_kde_2d)
-ax_2_m.add_labels(label_mass, label_2d)
+ax_3_k.add_labels(label_kde_3d, label_3d)
+ax_3_m.add_labels(label_mass, "")
+ax_2_k.add_labels(label_kde_2d, label_2d)
+ax_2_m.add_labels(label_mass, "")
 
 fig.savefig(plot_name)
 
