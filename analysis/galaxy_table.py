@@ -69,10 +69,12 @@ galaxy_table = table.Table.read(
     calzetti_path, format="ascii.commented_header", header_start=3
 )
 # get the sSFR data from the tables
-ssfr = dict()
+gal_ssfr = dict()
+gal_mass = dict()
 for row in galaxy_table:
     gal_name = format_galaxy_name(row["name"])
-    ssfr[gal_name] = row["sfr_uv_msun_per_year"] / row["m_star"]
+    gal_mass[gal_name] = row["m_star"]
+    gal_ssfr[gal_name] = row["sfr_uv_msun_per_year"] / row["m_star"]
 
 # ======================================================================================
 #
@@ -194,7 +196,8 @@ def get_iqr_string(cat):
 
 def handle_regular_galaxy(galaxy_name_fancy, home_dir, cat, out_file):
     n = len(cat)
-    ssfr_str = f"{np.log10(ssfr[galaxy_name_fancy.split('-')[0]]):.2f}"
+    mass_str = f"{np.log10(gal_mass[galaxy_name_fancy.split('-')[0]]):.2f}"
+    ssfr_str = f"{np.log10(gal_ssfr[galaxy_name_fancy.split('-')[0]]):.2f}"
     dist = utils.distance(home_dir).to("Mpc").value
     dist_err = utils.distance_error(home_dir).to("Mpc").value
     dist_decimals, err_decimals = distances_decimal_places[home_dir.name]
@@ -205,6 +208,7 @@ def handle_regular_galaxy(galaxy_name_fancy, home_dir, cat, out_file):
     out_file.write(
         f"\t\t{galaxy_name_fancy} & "
         f"{n} & "
+        f"{mass_str} & "
         f"{ssfr_str} & "
         f"{dist_str} & "
         f"{this_psf_size:.2f} & "
@@ -226,12 +230,14 @@ def handle_ngc5194_ngc5195(home_dir, cat, out_file):
 
     for gal_name in ["NGC 5194", "NGC 5195"]:
         gal_data[gal_name]["n"] = np.sum(gal_data[gal_name]["mask"])
-        gal_data[gal_name]["ssfr_str"] = f"{np.log10(ssfr[gal_name]):.2f}"
+        gal_data[gal_name]["mass_str"] = f"{np.log10(gal_mass[gal_name]):.2f}"
+        gal_data[gal_name]["ssfr_str"] = f"{np.log10(gal_ssfr[gal_name]):.2f}"
         gal_data[gal_name]["iqr_str"] = get_iqr_string(cat[gal_data[gal_name]["mask"]])
 
     out_file.write(
         f"\t\tNGC 5194/NGC 5195 & "
         f"{gal_data['NGC 5194']['n']}/{gal_data['NGC 5195']['n']} & "
+        f"{gal_data['NGC 5194']['mass_str']}/{gal_data['NGC 5195']['mass_str']}  & "
         f"{gal_data['NGC 5194']['ssfr_str']}/{gal_data['NGC 5195']['ssfr_str']}  & "
         f"{dist_str} & "
         f"{this_psf_size:.2f} & "
@@ -264,11 +270,12 @@ def handle_ngc5194_ngc5195(home_dir, cat, out_file):
 
 
 with open(output_name, "w") as out_file:
-    out_file.write("\t\\begin{tabular}{lrcccc}\n")
+    out_file.write("\t\\begin{tabular}{lrccccc}\n")
     out_file.write("\t\t\\toprule\n")
     out_file.write(
         "\t\tLEGUS Field & "
         "N & "
+        "log $M_\star$ ($\Msun$) & "
         "log sSFR (yr$^{-1}$) & "
         "Distance (Mpc) & "
         "PSF size (pc) & "
@@ -288,7 +295,7 @@ with open(output_name, "w") as out_file:
     # get the total values
     total_n = len(big_catalog)
     total_iqr = get_iqr_string(big_catalog)
-    out_file.write(f"\t\tTotal & {total_n} & --- & --- & --- & {total_iqr} \\\\ \n")
+    out_file.write(f"\t\tTotal & {total_n} {'& --- '*4} & {total_iqr} \\\\ \n")
 
     out_file.write("\t\t\\bottomrule\n")
     out_file.write("\t\end{tabular}\n")
