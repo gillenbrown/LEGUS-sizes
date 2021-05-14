@@ -234,39 +234,42 @@ def handle_ngc5194_ngc5195(home_dir, cat, out_file):
         gal_data[gal_name]["ssfr_str"] = f"{np.log10(gal_ssfr[gal_name]):.2f}"
         gal_data[gal_name]["iqr_str"] = get_iqr_string(cat[gal_data[gal_name]["mask"]])
 
+    # out_file.write(
+    #     f"\t\tNGC 5194/NGC 5195 & "
+    #     f"{gal_data['NGC 5194']['n']}/{gal_data['NGC 5195']['n']} & "
+    #     f"{gal_data['NGC 5194']['mass_str']}/{gal_data['NGC 5195']['mass_str']}  & "
+    #     f"{gal_data['NGC 5194']['ssfr_str']}/{gal_data['NGC 5195']['ssfr_str']}  & "
+    #     f"{dist_str} & "
+    #     f"{this_psf_size:.2f} & "
+    #     f"{total_iqr_str} "
+    #     f"\\\\ \n"
+    # )
+
     out_file.write(
-        f"\t\tNGC 5194/NGC 5195 & "
-        f"{gal_data['NGC 5194']['n']}/{gal_data['NGC 5195']['n']} & "
-        f"{gal_data['NGC 5194']['mass_str']}/{gal_data['NGC 5195']['mass_str']}  & "
-        f"{gal_data['NGC 5194']['ssfr_str']}/{gal_data['NGC 5195']['ssfr_str']}  & "
+        f"\t\tNGC 5194 & "
+        f"{gal_data['NGC 5194']['n']} & "
+        f"{gal_data['NGC 5194']['mass_str']} & "
+        f"{gal_data['NGC 5194']['ssfr_str']} & "
+        # "\multirow{2}{*}{" + dist_str + "} & "
+        # "\multirow{2}{*}{" + f"{this_psf_size:.2f}" + "} & "
         f"{dist_str} & "
         f"{this_psf_size:.2f} & "
-        f"{total_iqr_str} "
+        f"{gal_data['NGC 5194']['iqr_str']} "
         f"\\\\ \n"
     )
 
-    # out_file.write(
-    #     f"\t\tNGC 5194 & "
-    #     f"{gal_data['NGC 5194']['n']} & "
-    #     f"{gal_data['NGC 5194']['ssfr_str']} & "
-    #     "\multirow{2}{*}{" + dist_str + "} & "
-    #     "\multirow{2}{*}{" + f"{this_psf_size:.2f}" + "} & "
-    #     f"& {gal_data['NGC 5194']['iqr_str']} "
-    #     f"\\\\ \n"
-    # )
-    #
-    # out_file.write(
-    #     f"\t\tNGC 5195 & "
-    #     f"{gal_data['NGC 5195']['n']} & "
-    #     f"{gal_data['NGC 5195']['ssfr_str']} & "
-    #     "& "
-    #     "& "
-    #     f"& {gal_data['NGC 5195']['iqr_str']} "
-    #     f"\\\\ \n"
-    # )
-
-    # NGC 5194 & 2961 & 2.87e-10 & \multirow{2}{*}{7.40 $\pm$ 0.42}& \multirow{2}{*}{2.16} & 1.29 --- 2.18 --- 3.31 \\
-    # NGC 5195 & 2961 & 2.87e-10 & & & 1.29 --- 2.18 --- 3.31 \\
+    out_file.write(
+        f"\t\tNGC 5195 & "
+        f"{gal_data['NGC 5195']['n']} & "
+        f"{gal_data['NGC 5195']['mass_str']} & "
+        f"{gal_data['NGC 5195']['ssfr_str']} & "
+        # "& "
+        # "& "
+        f"{dist_str} & "
+        f"{this_psf_size:.2f} & "
+        f"{gal_data['NGC 5195']['iqr_str']} "
+        f"\\\\ \n"
+    )
 
 
 with open(output_name, "w") as out_file:
