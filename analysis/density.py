@@ -259,23 +259,23 @@ def write_fit_line(name, mean_2d, std_2d, mean_3d, std_3d):
 # Make the plot
 #
 # ======================================================================================
-fig = plt.figure(figsize=[16, 7])
+fig = plt.figure(figsize=[14, 10])
 gs = gridspec.GridSpec(
-    nrows=1,
-    ncols=5,
-    wspace=0,
-    hspace=0,
-    width_ratios=[2, 4, 1.8, 2, 4],  # dummy spacer column in middle
-    top=0.96,
-    right=0.96,
-    left=0.06,
-    bottom=0.15,
+    nrows=2,
+    ncols=2,
+    wspace=0.3,
+    hspace=0.015,
+    height_ratios=[1, 2],
+    top=0.94,
+    right=0.98,
+    left=0.08,
+    bottom=0.09,
 )
 # have two axes: one for the comparison, and one for the ratio
-ax_3_k = fig.add_subplot(gs[0], projection="bpl")
-ax_3_m = fig.add_subplot(gs[1], projection="bpl")
-ax_2_k = fig.add_subplot(gs[3], projection="bpl")
-ax_2_m = fig.add_subplot(gs[4], projection="bpl")
+ax_3_k = fig.add_subplot(gs[0, 0], projection="bpl")
+ax_3_m = fig.add_subplot(gs[1, 0], projection="bpl")
+ax_2_k = fig.add_subplot(gs[0, 1], projection="bpl")
+ax_2_m = fig.add_subplot(gs[1, 1], projection="bpl")
 ax_legend = ax_2_m
 
 density_grid = np.logspace(-2, 6, 1000)
@@ -300,9 +300,9 @@ for mask, name, color, zorder in zip(
     if color is None:
         continue
 
-    # plot the KDE histograms. These are horizontal, so the y is the density direction
-    ax_3_k.plot(kde_3d, density_grid, c=color)
-    ax_2_k.plot(kde_2d, density_grid, c=color)
+    # plot the KDE histograms
+    ax_3_k.plot(density_grid, kde_3d, c=color)
+    ax_2_k.plot(density_grid, kde_2d, c=color)
 
     # # then plot the fit to those histograms
     # plot_fit_2d = norm_2d * gaussian(np.log10(density_grid), mean_2d, variance_2d)
@@ -310,9 +310,9 @@ for mask, name, color, zorder in zip(
     # ax_2_k.plot(density_grid, plot_fit_2d, ls=":", c=color)
     # ax_3_k.plot(density_grid, plot_fit_3d, ls=":", c=color)
 
-    # plot the contours in the lower panels
-    contour(ax_3_m, mass[mask], density_3d[mask], color, zorder)
-    contour(ax_2_m, mass[mask], density_2d[mask], color, zorder)
+    # plot the contours in the lower panels. Mass is on the y axis
+    contour(ax_3_m, density_3d[mask], mass[mask], color, zorder)
+    contour(ax_2_m, density_2d[mask], mass[mask], color, zorder)
 
     # plot dummy lines for use in legend
     ax_legend.plot([0, 0], [0, 0], c=color, label=name)
@@ -349,22 +349,20 @@ for ax in [ax_2_k, ax_2_m, ax_3_k, ax_3_m]:
     ax.tick_params(axis="both", which="major", length=8, direction="in", pad=7)
     ax.tick_params(axis="both", which="minor", length=4, direction="in", pad=7)
     ax.xaxis.set_ticks_position("both")
-    ax.yaxis.set_ticks_position("both")
 for ax in [ax_2_k, ax_3_k]:
-    ax.set_yscale("log")
-    ax.xaxis.set_ticks([0, 0.5, 1.0])
-    ax.xaxis.set_ticklabels(["", "0.5", "1"])
-    ax.yaxis.set_major_formatter(nice_log_formatter)
-    # set the plot choose x_max, then flip it
-    ax.set_limits(0, y_min=0.1, y_max=1e5)
-    ax.invert_xaxis()
+    ax.set_xscale("log")
+    ax.yaxis.set_ticks([0, 0.5, 1.0])
+    ax.yaxis.set_ticklabels(["", "0.5", "1"])
+    ax.xaxis.set_major_formatter(nice_log_formatter)
+    ax.set_limits(0.1, 1e5, 0)
+    ax.tick_params(axis="x", which="both", labelbottom=False, labeltop=True)
 for ax in [ax_2_m, ax_3_m]:
+    ax.yaxis.set_ticks_position("both")
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.xaxis.set_major_formatter(nice_log_formatter)
     ax.yaxis.set_major_formatter(nice_log_formatter)
-    ax.set_limits(1e2, 1e6, 0.1, 1e5)
-    ax.tick_params(axis="y", which="both", labelright=True, labelleft=False)
+    ax.set_limits(0.1, 1e5, 1e2, 1e6)
 
 # add labels to the axes
 label_mass = "Mass [$M_\odot$]"
@@ -372,10 +370,10 @@ label_kde_2d = "Normalized\ndN/dlog($\\Sigma_h$)"
 label_kde_3d = "Normalized\ndN/dlog($\\rho_h$)"
 label_3d = "Density [$M_\odot$/pc$^3$]"
 label_2d = "Surface Density [$M_\odot$/pc$^2$]"
-ax_3_k.add_labels(label_kde_3d, label_3d)
-ax_3_m.add_labels(label_mass, "")
-ax_2_k.add_labels(label_kde_2d, label_2d)
-ax_2_m.add_labels(label_mass, "")
+ax_3_k.add_labels("", label_kde_3d)
+ax_3_m.add_labels(label_3d, label_mass)
+ax_2_k.add_labels("", label_kde_2d)
+ax_2_m.add_labels(label_2d, label_mass)
 
 fig.savefig(plot_name)
 
