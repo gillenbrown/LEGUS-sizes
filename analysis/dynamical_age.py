@@ -17,6 +17,10 @@ import betterplotlib as bpl
 
 bpl.set_style()
 
+mrr_dir = Path(__file__).resolve().parent / "mass_radius_relation"
+sys.path.append(str(mrr_dir))
+from mass_radius_utils_plotting import age_colors
+
 # ======================================================================================
 #
 # Load the catalogs that were passed in
@@ -142,7 +146,7 @@ fig, ax = bpl.subplots()
 for mask, name, color, zorder in zip(
     [mask_young, mask_med, mask_old],
     ["Age: 1-10 Myr", "Age: 10-100 Myr", "Age: 100 Myr - 1 Gyr"],
-    [bpl.color_cycle[0], bpl.color_cycle[5], bpl.color_cycle[3]],
+    age_colors,
     [5, 6, 7],
 ):
     plot_mass, plot_frac, plot_frac_err = bound_fraction(mask)

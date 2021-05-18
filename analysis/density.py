@@ -20,7 +20,7 @@ bpl.set_style()
 # import a colormap function from the mass-size relation plots
 code_home_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(code_home_dir / "analysis" / "mass_radius_relation"))
-from mass_radius_utils_plotting import create_color_cmap
+from mass_radius_utils_plotting import create_color_cmap, age_colors
 import mass_radius_utils_mle_fitting as mru_mle
 import mass_radius_utils as mru
 
@@ -283,7 +283,7 @@ density_grid = np.logspace(-2, 6, 1000)
 for mask, name, color, zorder in zip(
     [mask_all, mask_young, mask_med, mask_old],
     ["All", "Age: 1-10 Myr", "Age: 10-100 Myr", "Age: 100 Myr - 1 Gyr"],
-    [None, bpl.color_cycle[0], bpl.color_cycle[5], bpl.color_cycle[3]],
+    [None] + age_colors,
     [None, 3, 2, 1],
 ):
     # create the KDE histogram for the top panel

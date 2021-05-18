@@ -4,6 +4,12 @@ import betterplotlib as bpl
 
 bpl.set_style()
 
+# set up colors to use for age split
+color_young = bpl.color_cycle[0]
+color_med = "#729788"
+color_old = "#9F4144"
+age_colors = [color_young, color_med, color_old]
+
 # ======================================================================================
 #
 # Plotting functionality - percentiles

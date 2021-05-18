@@ -309,13 +309,13 @@ $(all_galaxies_iso_plot): $(final_cats) $(all_galaxies_iso_script)
 $(stacked_distribution_plot): $(final_cats) $(stacked_distribution_script)
 	python $(stacked_distribution_script) $@ $(final_cats)
 
-$(dynamical_age_plot) $(bound_fraction_plot) &: $(final_cats) $(dynamical_age_script)
+$(dynamical_age_plot) $(bound_fraction_plot) &: $(final_cats) $(dynamical_age_script) $(mass_radius_utils_plotting)
 	python $(dynamical_age_script) $(dynamical_age_plot) $(bound_fraction_plot) $(final_cats)
 
-$(density_plot) $(density_fits_txt) &: $(final_cats) $(density_script)
+$(density_plot) $(density_fits_txt) &: $(final_cats) $(density_script) $(mass_radius_utils_plotting)
 	python $(density_script) $(density_plot) $(density_fits_txt) $(final_cats)
 
-$(toy_model_plot): $(toy_model_script) $(mass_radius_table)
+$(toy_model_plot): $(toy_model_script) $(mass_radius_table) $(mass_radius_utils_plotting)
 	python $(toy_model_script) $@ $(mass_radius_table) $(final_cats)
 
 $(example_fit_plot): $(final_cats) $(example_plot_script)

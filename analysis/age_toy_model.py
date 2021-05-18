@@ -829,7 +829,6 @@ def fade_color(color, f_s=0.666, f_v=0.75):
 
 
 # set the values used for these fade parameters
-c1, c2, c3 = bpl.color_cycle[0], bpl.color_cycle[5], bpl.color_cycle[3]
 f_fill = 0.75
 f_line = 0.6
 
@@ -839,7 +838,7 @@ fig, ax = bpl.subplots()
 # colors are manually selected to look okay here
 for mask, color, name in zip(
     [mask_young, mask_med, mask_old],
-    [c1, c2, c3],
+    mru_p.age_colors,
     ["1-10 Myr Observed", "10-100 Myr Observed", "100 Myr - 1 Gyr Observed"],
 ):
     # make my own version of the contour function in my mass radius utils
@@ -907,7 +906,7 @@ plot_fit_restricted_range(
     mass_toy,
     reff_bin1_toy,
     mass_obs[mask_young],
-    bpl.color_cycle[0],
+    mru_p.color_young,
     1000,
     "1-10 Myr Observed",
 )
@@ -915,7 +914,7 @@ plot_fit_restricted_range(
     mass_toy,
     reff_bin2_toy,
     mass_obs[mask_med],
-    bpl.color_cycle[5],
+    mru_p.color_med,
     100,
     "10-100 Myr Observed",
 )
@@ -923,7 +922,7 @@ plot_fit_restricted_range(
     mass_toy,
     reff_bin3_toy,
     mass_obs[mask_old],
-    bpl.color_cycle[3],
+    mru_p.color_old,
     100,
     "100 Myr - 1 Gyr Observed",
 )
