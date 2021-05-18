@@ -832,7 +832,7 @@ def fade_color(color, f_s=0.666, f_v=0.75):
 f_fill = 0.75
 f_line = 0.6
 
-fig, ax = bpl.subplots()
+fig, ax = bpl.subplots(figsize=[8, 5.5])
 # plot the mean relation evolution for each model.
 # Start with contours for all the data sets
 # colors are manually selected to look okay here
@@ -970,7 +970,7 @@ for t_history, m_history, r_history, color, fs in zip(
         d_logr = log_r1 - log_r2
         theta = np.arctan2(d_logr, d_logm)
 
-        arrow_length = 0.02  # dex, chosen by experimentation
+        arrow_length = 0.03  # dex, chosen by experimentation
         arrow_d_logm = arrow_length * np.cos(theta)
         arrow_d_logr = arrow_length * np.sin(theta)
 
@@ -1003,13 +1003,13 @@ arrowprops = {
     "width": 1,
     "headwidth": 9,
     "headlength": 9,
-}
-for y, color in zip([12.6, 9.8, 7.6], [c_g16, c_g16m, c_g16t]):
+}  # 10.5 - 10.7,
+for y, color in zip([10.6, 7.9, 5.9], [c_g16, c_g16m, c_g16t]):
     arrowprops["facecolor"] = color
-    x0 = 190
+    x0 = 210
     ax.annotate("", xy=(x0, y), xytext=(x0 - 1, y), arrowprops=arrowprops, zorder=300)
 
 mru_p.format_mass_size_plot(ax)
-ax.legend(loc=2, fontsize=14, frameon=False)
+ax.legend(loc=2, fontsize=12, frameon=False)
 ax.set_limits(*plot_limits)
 fig.savefig(plot_name)

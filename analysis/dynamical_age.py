@@ -56,7 +56,8 @@ print(
 # make the simple plot
 #
 # ======================================================================================
-fig, ax = bpl.subplots()
+figsize = [8, 5.5]
+fig, ax = bpl.subplots(figsize=figsize)
 # make the colormap for masses
 # cmap = cm.get_cmap("gist_earth_r")
 # cmap = cmocean.cm.thermal_r
@@ -85,9 +86,9 @@ cbar.set_label("Mass [$M_\odot$]")
 # add the line for boundedness and label it. Have to use the limits to determine the
 # proper rotation of the labels
 ax.plot([1, 1e12], [1, 1e12], lw=2, c=bpl.almost_black, zorder=0)
-frac = 1.2
+frac = 1.25
 center = 4e5
-shared = {"ha": "center", "va": "center", "rotation": 51, "fontsize": 20}
+shared = {"ha": "center", "va": "center", "rotation": 51, "fontsize": 18}
 ax.add_text(x=center * frac, y=center / frac, text="Bound", **shared)
 ax.add_text(x=center / frac, y=center * frac, text="Unbound", **shared)
 
@@ -141,7 +142,7 @@ def bound_fraction(mask):
     )
 
 
-fig, ax = bpl.subplots()
+fig, ax = bpl.subplots(figsize=figsize)
 
 for mask, name, color, zorder in zip(
     [mask_young, mask_med, mask_old],
@@ -167,7 +168,7 @@ for mask, name, color, zorder in zip(
     ax.add_labels("Mass [$M_\odot$]", "Fraction of Bound Clusters")
 ax.set_xscale("log")
 ax.set_limits(1e2, 1e6, 0, 1.05)
-ax.legend()
+ax.legend(fontsize=14)
 ax.axhline(1.0, ls=":", lw=1, zorder=0)
 
 fig.savefig(mass_dependence_plot_name)

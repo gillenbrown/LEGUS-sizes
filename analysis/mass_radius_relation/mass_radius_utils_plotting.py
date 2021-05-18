@@ -406,6 +406,7 @@ def plot_mass_size_dataset_contour(
     cmap_min_saturation=0.1,
     cmap_max_value=0.8,
     levels=None,
+    alpha=0.6,
 ):
     # if the user did not specify levels, use 50 and 90 as the default
     if levels is None:
@@ -427,7 +428,7 @@ def plot_mass_size_dataset_contour(
         "log": True,
         "cmap": cmap,
     }
-    ax.density_contourf(mass, r_eff, alpha=0.6, zorder=zorder, **common)
+    ax.density_contourf(mass, r_eff, alpha=alpha, zorder=zorder, **common)
     ax.density_contour(mass, r_eff, zorder=zorder + 1, **common)
 
 

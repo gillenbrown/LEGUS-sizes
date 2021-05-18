@@ -31,7 +31,7 @@ mask_young = age < 1e7
 mask_med = np.logical_and(age >= 1e7, age < 1e8)
 mask_old = np.logical_and(age >= 1e8, age < 1e9)
 
-fig, ax = bpl.subplots()
+fig, ax = bpl.subplots(figsize=[8, 5.5])
 for age_mask, name, color, zorder in zip(
     [mask_young, mask_med, mask_old],
     ["Age: 1--10 Myr", "Age: 10--100 Myr", "Age: 100 Myr -- 1 Gyr"],
@@ -49,7 +49,12 @@ for age_mask, name, color, zorder in zip(
     )
 
     mru_p.plot_mass_size_dataset_contour(
-        ax, mass[age_mask], r_eff[age_mask], color, zorder=zorder
+        ax,
+        mass[age_mask],
+        r_eff[age_mask],
+        color,
+        zorder=zorder,
+        alpha=0.25,
     )
     mru_p.add_percentile_lines(
         ax,
@@ -71,7 +76,7 @@ for age_mask, name, color, zorder in zip(
         ls=":",
     )
     mru.write_fit_results(fit_out_file, name, fit, fit_history, mass[age_mask])
-mru_p.format_mass_size_plot(ax)
+mru_p.format_mass_size_plot(ax, legend_fontsize=13)
 fig.savefig(plot_name)
 
 # finalize output file
