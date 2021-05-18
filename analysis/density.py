@@ -259,17 +259,17 @@ def write_fit_line(name, mean_2d, std_2d, mean_3d, std_3d):
 # Make the plot
 #
 # ======================================================================================
-fig = plt.figure(figsize=[14, 10])
+fig = plt.figure(figsize=[14, 7])
 gs = gridspec.GridSpec(
     nrows=2,
     ncols=2,
     wspace=0.3,
     hspace=0.015,
-    height_ratios=[1, 2],
+    height_ratios=[1.3, 2],
     top=0.94,
     right=0.98,
     left=0.08,
-    bottom=0.09,
+    bottom=0.1,
 )
 # have two axes: one for the comparison, and one for the ratio
 ax_3_k = fig.add_subplot(gs[0, 0], projection="bpl")
@@ -366,10 +366,10 @@ for ax in [ax_2_m, ax_3_m]:
 
 # add labels to the axes
 label_mass = "Mass [$M_\odot$]"
-label_kde_2d = "Normalized\ndN/dlog($\\Sigma_h$)"
-label_kde_3d = "Normalized\ndN/dlog($\\rho_h$)"
-label_3d = "Density [$M_\odot$/pc$^3$]"
-label_2d = "Surface Density [$M_\odot$/pc$^2$]"
+label_kde_2d = "dN/dlog($\\Sigma_h$)"
+label_kde_3d = "dN/dlog($\\rho_h$)"
+label_3d = "$\\rho_h$ [$M_\odot$/pc$^3$]"
+label_2d = "$\\Sigma_h$ [$M_\odot$/pc$^2$]"
 ax_3_k.add_labels("", label_kde_3d)
 ax_3_m.add_labels(label_3d, label_mass)
 ax_2_k.add_labels("", label_kde_2d)
