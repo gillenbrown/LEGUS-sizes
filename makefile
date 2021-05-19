@@ -48,6 +48,7 @@ mask_script = $(pipeline_dir)make_mask_image.py
 fitting_script = $(pipeline_dir)fit.py
 fit_utils = $(pipeline_dir)fit_utils.py
 final_catalog_script = $(pipeline_dir)derived_properties.py
+public_catalog_script = $(pipeline_dir)public_catalog.py
 comparison_script = $(analysis_dir)ryon_comparison.py
 radii_def_plot_script = $(analysis_dir)radii_def_comp_plot.py
 parameters_dist_script = $(analysis_dir)parameter_distribution.py
@@ -144,6 +145,7 @@ endif
 #
 # ------------------------------------------------------------------------------
 galaxy_table = $(local_plots_dir)galaxy_table.txt
+public_catalog = cluster_sizes_brown_gnedin_21.txt
 psf_demo_image = $(local_plots_dir)psf_demo_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.pdf
 comparison_plot = $(local_plots_dir)comparison_plot.pdf
 param_dist_plot = $(local_plots_dir)parameter_distribution_size.pdf
@@ -175,7 +177,8 @@ mass_radius_table = $(local_plots_dir)mass_radius_fits_table.txt
 # Also do a comparison of the artificial star tests
 artificial_comparison = $(local_plots_dir)artificial_tests.pdf
 # then combine everything together
-outputs = $(galaxy_table) $(psf_demo_image) $(psf_comp_plots) \
+outputs = $(galaxy_table) $(public_catalog) \
+          $(psf_demo_image) $(psf_comp_plots) \
           $(comparison_plot) $(param_dist_plot) \
           $(all_galaxies_plot) $(all_galaxies_iso_plot) $(stacked_distribution_plot) \
           $(dynamical_age_plot) $(bound_fraction_plot) \
@@ -292,6 +295,9 @@ $(final_cats): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit) $$(dir %
 .SECONDEXPANSION:
 $(final_cats_ryon): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit_ryon) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask)
 	python $(final_catalog_script) $@ $(dir $@)$(fit_ryon) $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(fit_region_size) ryon_like
+
+$(public_catalog): $(public_catalog_script) $(final_cats)
+	python $(public_catalog_script) $@ $(final_cats)
 
 # Make the comparisons to Ryon+17's results and other comparison plots
 $(comparison_plot): $(comparison_script) $(final_cats) $(final_cats_ryon)
