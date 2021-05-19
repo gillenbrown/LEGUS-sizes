@@ -10,8 +10,8 @@ import betterplotlib as bpl
 bpl.set_style()
 
 # need to add the correct path to import utils
-code_home_dir = Path(__file__).resolve().parent.parent
-sys.path.append(str(code_home_dir / "pipeline"))
+this_dir = Path(__file__).resolve().parent
+sys.path.append(str(this_dir.parent / "pipeline"))
 import utils
 
 plot_name = Path(sys.argv[1])
@@ -21,8 +21,8 @@ plot_name = Path(sys.argv[1])
 # Load the various catalogs
 #
 # ======================================================================================
-ryon_628 = table.Table.read("ryon_results_ngc628.txt", format="ascii.cds")
-ryon_1313 = table.Table.read("ryon_results_ngc1313.txt", format="ascii.cds")
+ryon_628 = table.Table.read(this_dir / "ryon_results_ngc628.txt", format="ascii.cds")
+ryon_1313 = table.Table.read(this_dir / "ryon_results_ngc1313.txt", format="ascii.cds")
 # then make new columns, since Ryon's tables are in log radius, and I just want radius
 for cat in [ryon_628, ryon_1313]:
     cat["r_eff_ryon"] = 10 ** cat["logReff-gal"]
