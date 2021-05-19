@@ -359,12 +359,12 @@ def write_fit_line(name, mean_2d, std_2d, mean_3d, std_3d):
 # Make the plot
 #
 # ======================================================================================
-fig = plt.figure(figsize=[14, 7])
+fig = plt.figure(figsize=[14, 7.5])
 gs = gridspec.GridSpec(
     nrows=2,
     ncols=2,
     wspace=0.3,
-    hspace=0.015,
+    hspace=0.1,
     height_ratios=[1.3, 2],
     top=0.94,
     right=0.98,
@@ -441,18 +441,17 @@ for mask, name, color, zorder in zip(
 # ax_3_m.plot(test_masses, plot_fit_3d_o, ls=":", c=bpl.almost_black)
 # ax_2_m.plot(test_masses, plot_fit_2d_v, ls="--", c=bpl.almost_black, label="Vertical")
 # ax_3_m.plot(test_masses, plot_fit_3d_v, ls="--", c=bpl.almost_black)
-# ax_2_m.legend(frameon=False)
 
 # format axes
 ax_legend.legend(loc=2, fontsize=14, frameon=False)
 for ax in [ax_2_k, ax_2_m, ax_3_k, ax_3_m]:
-    ax.tick_params(axis="both", which="major", length=8, direction="in", pad=7)
-    ax.tick_params(axis="both", which="minor", length=4, direction="in", pad=7)
+    ax.tick_params(axis="both", which="major", length=8)  # , direction="in", pad=7)
+    ax.tick_params(axis="both", which="minor", length=4)  # , direction="in", pad=7)
     ax.xaxis.set_ticks_position("both")
 for ax in [ax_2_k, ax_3_k]:
     ax.set_xscale("log")
     ax.yaxis.set_ticks([0, 0.5, 1.0])
-    ax.yaxis.set_ticklabels(["", "0.5", "1"])
+    ax.yaxis.set_ticklabels(["0", "0.5", "1"])
     ax.xaxis.set_major_formatter(nice_log_formatter)
     ax.set_limits(0.1, 1e5, 0)
     ax.tick_params(axis="x", which="both", labelbottom=False, labeltop=True)
