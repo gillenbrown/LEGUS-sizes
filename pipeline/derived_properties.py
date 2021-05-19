@@ -52,7 +52,7 @@ else:
 
 size_dir = final_catalog_path.parent
 home_dir = size_dir.parent
-galaxy_name = home_dir.name
+field_name = home_dir.name
 image_data, _, _ = utils.get_drc_image(home_dir)
 fits_catalog = table.Table.read(fits_catalog_path, format="hdf5")
 sigma_data = fits.open(sigma_image_path)["PRIMARY"].data
@@ -79,27 +79,28 @@ else:
 # ======================================================================================
 # I would have done this in pre-processing, but I didn't think to do this until after
 # the fits were already done, so I'm doing it here
-if galaxy_name == "ngc4449":
+if field_name == "ngc4449":
     fits_catalog["from_ml"] = fits_catalog["class_whitmore"] == 5
-elif galaxy_name == "ngc5194-ngc5195-mosaic":
+elif field_name == "ngc5194-ngc5195-mosaic":
     fits_catalog["from_ml"] = fits_catalog["class_mode_human"] == 0
-elif galaxy_name == "ngc1566":
+elif field_name == "ngc1566":
     fits_catalog["from_ml"] = fits_catalog["class_hybrid_method"] == 0
 else:
     fits_catalog["from_ml"] = False
 
 # also throw out ones that are in NGC4449 and ML identified
-if galaxy_name == "ngc4449":
+if field_name == "ngc4449":
     fits_catalog.remove_rows(np.where(fits_catalog["from_ml"]))
 
 # ======================================================================================
 #
-# Note which galaxy each cluster belongs to
+# Note which galaxy and field each cluster belongs to
 #
 # ======================================================================================
-# This is only non-trivial for NGC5194-NGC5194, which are both in the same frame. I
-# manually split them.
-if galaxy_name == "ngc5194-ngc5195-mosaic":
+fits_catalog["field"] = field_name
+# Assigning a galaxy is only non-trivial for NGC5194-NGC5194, which are both in the
+# same frame. I manually split them.
+if field_name == "ngc5194-ngc5195-mosaic":
     # fmt: off
     ngc5195_ids = [
         20266, 20273, 20275, 20288, 20325, 20335, 20362, 20369, 20378, 20387,
@@ -113,7 +114,9 @@ if galaxy_name == "ngc5194-ngc5195-mosaic":
         if row["ID"] in ngc5195_ids:
             row["galaxy"] = "ngc5195"
 else:
-    fits_catalog["galaxy"] = galaxy_name
+    # For fields that are split, the first part before the hyphen will be the galaxy
+    # name, the other part will be the location. Keep only the galaxy name
+    fits_catalog["galaxy"] = field_name.split("-")[0]
 
 # and the distance in Mpc
 fits_catalog["distance_mpc"] = utils.distance(home_dir, ryon_like).to("Mpc").value
@@ -388,7 +391,7 @@ fits_catalog["surface_density_log_err"] = np.sqrt(d_log_m ** 2 + (2 * d_log_r) *
 #
 # ======================================================================================
 def create_plot_name(id):
-    name = f"{galaxy_name}_{id:04}_size_{snapshot_size}"
+    name = f"{field_name}_{id:04}_size_{snapshot_size}"
     if ryon_like:
         name += "_ryonlike"
     return name + ".png"

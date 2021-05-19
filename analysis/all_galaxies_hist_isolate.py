@@ -45,10 +45,6 @@ for item in sys.argv[2:]:
     # go through all galaxies in this field
     for galaxy in np.unique(cat["galaxy"]):
         galaxy_table = cat[cat["galaxy"] == galaxy]
-        # throw away the part after the hyphen, which will be the field for those split
-        galaxy = galaxy.split("-")[0]
-        # rename this in the split
-        galaxy_table["galaxy"] = galaxy
         # then store this part of the catalog. If one for this galaxy already exists,
         # append it
         if galaxy in galaxy_catalogs:
