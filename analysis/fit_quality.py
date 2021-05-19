@@ -34,7 +34,7 @@ big_catalog = table.vstack(catalogs, join_type="inner")
 # multiply the MAD by 100 to get it to percent
 # big_catalog["profile_mad"] *= 100
 
-success_mask = big_catalog["good_radius"].data
+success_mask = big_catalog["reliable_radius"].data
 n_good = np.sum(success_mask)
 
 # ======================================================================================

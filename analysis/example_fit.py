@@ -265,7 +265,7 @@ ax_big.axhline(row["local_background_best"], ls=":", label="Local Background")
 #     fontsize=18,
 # )
 
-r_eff = row["r_eff_pixels_rmax_15pix_best"]
+r_eff = row["r_eff_pixels"]
 ax_big.plot([r_eff, r_eff], [0, r_eff_y_max], c=bpl.almost_black, ls="--")
 ax_big.add_text(
     x=r_eff - 0.05,

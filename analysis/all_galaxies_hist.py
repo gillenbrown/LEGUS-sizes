@@ -29,13 +29,13 @@ for item in sys.argv[2:]:
     cat = table.Table.read(item, format="ascii.ecsv")
 
     # restrict to the clusters with reliable radii
-    cat = cat[cat["good_radius"]]
+    cat = cat[cat["reliable_radius"]]
 
     # calculate the mean error in log space, will be used for the KDE smothing
-    r_eff = cat["r_eff_pc_rmax_15pix_best"]
+    r_eff = cat["r_eff_pc"]
     log_r_eff = np.log10(r_eff)
-    log_err_lo = log_r_eff - np.log10(r_eff - cat["r_eff_pc_rmax_15pix_e-"])
-    log_err_hi = np.log10(r_eff + cat["r_eff_pc_rmax_15pix_e+"]) - log_r_eff
+    log_err_lo = log_r_eff - np.log10(r_eff - cat["r_eff_pc_e-"])
+    log_err_hi = np.log10(r_eff + cat["r_eff_pc_e+"]) - log_r_eff
 
     cat["r_eff_log"] = log_r_eff
     mean_log_err = 0.5 * (log_err_lo + log_err_hi)

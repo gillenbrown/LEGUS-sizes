@@ -35,13 +35,13 @@ for item in sys.argv[2:]:
 
 big_cat = table.vstack(cats, join_type="inner")
 # restrict to the clusters with reliable radii
-big_cat = big_cat[big_cat["good_radius"]]
+big_cat = big_cat[big_cat["reliable_radius"]]
 
 # calculate the mean error in log space, will be used for the KDE smothing
-r_eff = big_cat["r_eff_pc_rmax_15pix_best"]
+r_eff = big_cat["r_eff_pc"]
 log_r_eff = np.log10(r_eff)
-log_err_lo = log_r_eff - np.log10(r_eff - big_cat["r_eff_pc_rmax_15pix_e-"])
-log_err_hi = np.log10(r_eff + big_cat["r_eff_pc_rmax_15pix_e+"]) - log_r_eff
+log_err_lo = log_r_eff - np.log10(r_eff - big_cat["r_eff_pc_e-"])
+log_err_hi = np.log10(r_eff + big_cat["r_eff_pc_e+"]) - log_r_eff
 
 big_cat["r_eff_log"] = log_r_eff
 big_cat["r_eff_log_err"] = 0.5 * (log_err_lo + log_err_hi)

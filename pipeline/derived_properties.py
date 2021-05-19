@@ -273,19 +273,19 @@ else:
 #
 # ======================================================================================
 # add the columns we want to the table
-fits_catalog["r_eff_pixels_rmax_15pix_best"] = -99.9
-fits_catalog["r_eff_pixels_rmax_15pix_e+"] = -99.9
-fits_catalog["r_eff_pixels_rmax_15pix_e-"] = -99.9
-fits_catalog["r_eff_arcsec_rmax_15pix_best"] = -99.9
-fits_catalog["r_eff_arcsec_rmax_15pix_e+"] = -99.9
-fits_catalog["r_eff_arcsec_rmax_15pix_e-"] = -99.9
-fits_catalog["r_eff_pc_rmax_15pix_best"] = -99.9
-fits_catalog["r_eff_pc_rmax_15pix_e+"] = -99.9
-fits_catalog["r_eff_pc_rmax_15pix_e-"] = -99.9
+fits_catalog["r_eff_pixels"] = -99.9
+fits_catalog["r_eff_pixels_e+"] = -99.9
+fits_catalog["r_eff_pixels_e-"] = -99.9
+fits_catalog["r_eff_arcsec"] = -99.9
+fits_catalog["r_eff_arcsec_e+"] = -99.9
+fits_catalog["r_eff_arcsec_e-"] = -99.9
+fits_catalog["r_eff_pc"] = -99.9
+fits_catalog["r_eff_pc_e+"] = -99.9
+fits_catalog["r_eff_pc_e-"] = -99.9
 fits_catalog["crossing_time_yr"] = -99.9
 
 # first calculate the best fit value
-fits_catalog["r_eff_pixels_rmax_15pix_best"] = r_eff_func(
+fits_catalog["r_eff_pixels"] = r_eff_func(
     fits_catalog["power_law_slope_best"],
     fits_catalog["scale_radius_pixels_best"],
     fits_catalog["axis_ratio_best"],
@@ -305,32 +305,26 @@ for row in fits_catalog:
     lo, hi = np.percentile(all_r_eff_pixels, [15.85, 84.15])
     # subtract the middle to get the error range. If the best fit it outside the error
     # range, make the error in that direction zero.
-    row["r_eff_pixels_rmax_15pix_e+"] = max(hi - row["r_eff_pixels_rmax_15pix_best"], 0)
-    row["r_eff_pixels_rmax_15pix_e-"] = max(row["r_eff_pixels_rmax_15pix_best"] - lo, 0)
+    row["r_eff_pixels_e+"] = max(hi - row["r_eff_pixels"], 0)
+    row["r_eff_pixels_e-"] = max(row["r_eff_pixels"] - lo, 0)
 
     # First convert this to arcseconds
-    row["r_eff_arcsec_rmax_15pix_best"] = utils.pixels_to_arcsec(
-        row["r_eff_pixels_rmax_15pix_best"], home_dir
-    )
-    row["r_eff_arcsec_rmax_15pix_e+"] = utils.pixels_to_arcsec(
-        row["r_eff_pixels_rmax_15pix_e+"], home_dir
-    )
-    row["r_eff_arcsec_rmax_15pix_e-"] = utils.pixels_to_arcsec(
-        row["r_eff_pixels_rmax_15pix_e-"], home_dir
-    )
+    row["r_eff_arcsec"] = utils.pixels_to_arcsec(row["r_eff_pixels"], home_dir)
+    row["r_eff_arcsec_e+"] = utils.pixels_to_arcsec(row["r_eff_pixels_e+"], home_dir)
+    row["r_eff_arcsec_e-"] = utils.pixels_to_arcsec(row["r_eff_pixels_e-"], home_dir)
 
     # Then we can convert to pc.
     best, low_e, high_e = utils.arcsec_to_pc_with_errors(
         home_dir,
-        row["r_eff_arcsec_rmax_15pix_best"],
-        row["r_eff_arcsec_rmax_15pix_e-"],
-        row["r_eff_arcsec_rmax_15pix_e+"],
+        row["r_eff_arcsec"],
+        row["r_eff_arcsec_e-"],
+        row["r_eff_arcsec_e+"],
         ryon=ryon_like,
     )
 
-    row["r_eff_pc_rmax_15pix_best"] = best
-    row["r_eff_pc_rmax_15pix_e+"] = high_e
-    row["r_eff_pc_rmax_15pix_e-"] = low_e
+    row["r_eff_pc"] = best
+    row["r_eff_pc_e+"] = high_e
+    row["r_eff_pc_e-"] = low_e
 
 # ======================================================================================
 #
@@ -360,11 +354,11 @@ d_log_m = np.mean(
     axis=0,
 )
 
-r_eff = fits_catalog["r_eff_pc_rmax_15pix_best"]
+r_eff = fits_catalog["r_eff_pc"]
 d_log_r = np.mean(
     [
-        np.log10(r_eff) - np.log10(r_eff - fits_catalog["r_eff_pc_rmax_15pix_e-"]),
-        np.log10(r_eff + fits_catalog["r_eff_pc_rmax_15pix_e+"]) - np.log10(r_eff),
+        np.log10(r_eff) - np.log10(r_eff - fits_catalog["r_eff_pc_e-"]),
+        np.log10(r_eff + fits_catalog["r_eff_pc_e+"]) - np.log10(r_eff),
     ],
     axis=0,
 )
@@ -802,12 +796,14 @@ def plot_model_set(
 #
 # ======================================================================================
 # add the columns we want to the table
-fits_catalog["profile_diff_mad"] = -99.9
-fits_catalog["profile_diff_max"] = -99.9
-fits_catalog["profile_diff_last"] = -99.9
+# I have removed some of these for the public catalogs, since I don't use them anywhere
+# else
+# fits_catalog["profile_diff_mad"] = -99.9
+# fits_catalog["profile_diff_max"] = -99.9
+# fits_catalog["profile_diff_last"] = -99.9
 fits_catalog["profile_diff_reff"] = -99.9
-fits_catalog["estimated_local_background"] = -99.9
-fits_catalog["estimated_local_background_scatter"] = -99.9
+# fits_catalog["estimated_local_background"] = -99.9
+# fits_catalog["estimated_local_background_scatter"] = -99.9
 fits_catalog["estimated_local_background_diff_sigma"] = -99.9
 fits_catalog["fit_rms"] = -99.9
 # This is sort of copied from fit.py, as the process of getting the snapshot is
@@ -849,7 +845,7 @@ for row in fits_catalog:
         row["local_background_best"],
     ]
 
-    r_eff = row["r_eff_pixels_rmax_15pix_best"]
+    r_eff = row["r_eff_pixels"]
     # Determine the radius within to calculate the fitting quality estimates. Restrict
     # the maximum value to be 15 pixels, the radius of the box. Additionally, set the
     # minimum to be 1 pixel to make sure at least some pixels are included in the
@@ -877,12 +873,12 @@ for row in fits_catalog:
         False,
     )
 
-    row["profile_diff_mad"] = quality_metrics[0]
-    row["profile_diff_max"] = quality_metrics[1]
-    row["profile_diff_last"] = quality_metrics[2]
+    # row["profile_diff_mad"] = quality_metrics[0]
+    # row["profile_diff_max"] = quality_metrics[1]
+    # row["profile_diff_last"] = quality_metrics[2]
     row["profile_diff_reff"] = quality_metrics[3]
-    row["estimated_local_background"] = estimated_bg
-    row["estimated_local_background_scatter"] = bg_scatter
+    # row["estimated_local_background"] = estimated_bg
+    # row["estimated_local_background_scatter"] = bg_scatter
     # then calculate the difference in background
     diff = row["local_background_best"] - estimated_bg
     row["estimated_local_background_diff_sigma"] = diff / bg_scatter
@@ -893,40 +889,42 @@ for row in fits_catalog:
 # Quality cuts
 #
 # ======================================================================================
-# First determine the fractional errors for the cluters
-fits_catalog["fractional_err-"] = (
-    fits_catalog["r_eff_pc_rmax_15pix_e-"] / fits_catalog["r_eff_pc_rmax_15pix_best"]
-)
-fits_catalog["fractional_err+"] = (
-    fits_catalog["r_eff_pc_rmax_15pix_e+"] / fits_catalog["r_eff_pc_rmax_15pix_best"]
-)
-fits_catalog["fractional_err"] = np.maximum(
-    fits_catalog["fractional_err-"], fits_catalog["fractional_err+"]
-)
-del fits_catalog["fractional_err-"]
-del fits_catalog["fractional_err+"]
+# # First determine the fractional errors for the clusters
+# fits_catalog["fractional_err-"] = (
+#     fits_catalog["r_eff_pc_rmax_15pix_e-"] / fits_catalog["r_eff_pc_rmax_15pix_best"]
+# )
+# fits_catalog["fractional_err+"] = (
+#     fits_catalog["r_eff_pc_rmax_15pix_e+"] / fits_catalog["r_eff_pc_rmax_15pix_best"]
+# )
+# fits_catalog["fractional_err"] = np.maximum(
+#     fits_catalog["fractional_err-"], fits_catalog["fractional_err+"]
+# )
+# del fits_catalog["fractional_err-"]
+# del fits_catalog["fractional_err+"]
 
 # Then we determine which clusters are good. First we do simple checks based on the
 # parameter values
-fits_catalog["not_failure"] = True
-masks = []
-masks.append(fits_catalog["axis_ratio_best"] > 0.3)
-masks.append(fits_catalog["scale_radius_pixels_best"] > 0.1)
-masks.append(fits_catalog["scale_radius_pixels_best"] < 15.0)
-# include some buffer on the pixel boundaries, since some are very close to this
-# boundary and should be thrown out
-masks.append(fits_catalog["x_pix_snapshot_oversampled_best"] > 26.1)
-masks.append(fits_catalog["x_pix_snapshot_oversampled_best"] < 33.9)
-masks.append(fits_catalog["y_pix_snapshot_oversampled_best"] > 26.10)
-masks.append(fits_catalog["y_pix_snapshot_oversampled_best"] < 33.9)
-# then combine them all together before the quality cut
-for mask in masks:
-    fits_catalog["not_failure"] = np.logical_and(fits_catalog["not_failure"], mask)
+fits_catalog["radius_fit_failure"] = np.logical_or.reduce(
+    [
+        fits_catalog["axis_ratio_best"] < 0.3,
+        fits_catalog["scale_radius_pixels_best"] < 0.1,
+        fits_catalog["scale_radius_pixels_best"] > 15.0,
+        # include some buffer on the pixel boundaries, since some are very close to
+        # this boundary and should be thrown out
+        fits_catalog["x_pix_snapshot_oversampled_best"] < 26.1,
+        fits_catalog["x_pix_snapshot_oversampled_best"] > 33.9,
+        fits_catalog["y_pix_snapshot_oversampled_best"] < 26.10,
+        fits_catalog["y_pix_snapshot_oversampled_best"] > 33.9,
+    ]
+)
 
 # Then we use the boundaries for the quality measure of the cumulative distribution
-mask_pass_cut = fits_catalog["profile_diff_reff"] < 0.06421443429077568
-# then combine them all together
-fits_catalog["good_radius"] = np.logical_and(fits_catalog["not_failure"], mask_pass_cut)
+mask_good_reff = fits_catalog["profile_diff_reff"] < 0.06421443429077568
+
+# then combine both of these criteria
+fits_catalog["reliable_radius"] = np.logical_and(
+    ~fits_catalog["radius_fit_failure"], mask_good_reff
+)
 
 # also add a flag indicating which ones have reliable masses
 # I did investigate some weird errors that are present. There are clusters with a
@@ -934,7 +932,7 @@ fits_catalog["good_radius"] = np.logical_and(fits_catalog["not_failure"], mask_p
 # where the error range is improper (i.e. the min is higher than the best fit). I also
 # require the age to be nonzero. I don't ever use the age errors, so I don't require
 # the same proper error intervals.
-fits_catalog["good_fit"] = np.logical_and.reduce(
+fits_catalog["reliable_mass"] = np.logical_and.reduce(
     [
         fits_catalog["mass_msun"] > 0,
         fits_catalog["age_yr"] > 0,
@@ -948,8 +946,8 @@ fits_catalog["good_fit"] = np.logical_and.reduce(
 
 # Then add one back to the output catalog to be comparable to LEGUS results. This is
 # because of Python being zero indexed
-fits_catalog["x_pix_single_fitted_best"] = fits_catalog["x_fitted_best"] + 1
-fits_catalog["y_pix_single_fitted_best"] = fits_catalog["y_fitted_best"] + 1
+fits_catalog["x_pix_single_fitted"] = fits_catalog["x_fitted_best"] + 1
+fits_catalog["y_pix_single_fitted"] = fits_catalog["y_fitted_best"] + 1
 
 # ======================================================================================
 #

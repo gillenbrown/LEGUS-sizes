@@ -37,7 +37,7 @@ catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[3:]
 big_catalog = table.vstack(catalogs, join_type="inner")
 
 # restrict to clusters with good masses and radii
-good_mask = np.logical_and(big_catalog["good_radius"], big_catalog["good_fit"])
+good_mask = np.logical_and(big_catalog["reliable_radius"], big_catalog["reliable_mass"])
 big_catalog = big_catalog[good_mask]
 
 # ======================================================================================

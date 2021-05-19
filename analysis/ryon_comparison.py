@@ -54,9 +54,9 @@ for item in sys.argv[2:]:
 
         # rename the r_eff columns to be easier to use. Also rename the eta column,
         # since I'll use that later too
-        this_cat.rename_column("r_eff_pc_rmax_15pix_best", "r_eff")
-        this_cat.rename_column("r_eff_pc_rmax_15pix_e-", "r_eff_e-")
-        this_cat.rename_column("r_eff_pc_rmax_15pix_e+", "r_eff_e+")
+        this_cat.rename_column("r_eff_pc", "r_eff")
+        this_cat.rename_column("r_eff_pc_e-", "r_eff_e-")
+        this_cat.rename_column("r_eff_pc_e+", "r_eff_e+")
         this_cat.rename_column("power_law_slope_best", "eta")
 
         # modify the radii so they use the same distances as ryon
@@ -144,11 +144,11 @@ for field, cat in matches.items():
 
     # for my Ryon-like comparison, I need eta>1.3 and a good fit
     cat["mask_ryonlike"] = np.logical_and(
-        cat["good_radius_ryonlike"], cat["eta_ryonlike"] >= 1.3
+        cat["reliable_radius_ryonlike"], cat["eta_ryonlike"] >= 1.3
     )
 
     # for my full method, I only need the good radius
-    cat["mask_full"] = cat["good_radius_full"]
+    cat["mask_full"] = cat["reliable_radius_full"]
 
     # print the number of successfull clusters
     print(f"{field} - Ryon {np.sum(cat['mask_ryon'])}, me {np.sum(cat['mask_full'])}")

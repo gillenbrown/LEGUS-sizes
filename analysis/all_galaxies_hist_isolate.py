@@ -30,13 +30,13 @@ for item in sys.argv[2:]:
     cat = table.Table.read(item, format="ascii.ecsv")
 
     # restrict to the clusters with reliable radii
-    cat = cat[cat["good_radius"]]
+    cat = cat[cat["reliable_radius"]]
 
     # calculate the mean error in log space, will be used for the KDE smothing
-    r_eff = cat["r_eff_pc_rmax_15pix_best"]
+    r_eff = cat["r_eff_pc"]
     log_r_eff = np.log10(r_eff)
-    log_err_lo = log_r_eff - np.log10(r_eff - cat["r_eff_pc_rmax_15pix_e-"])
-    log_err_hi = np.log10(r_eff + cat["r_eff_pc_rmax_15pix_e+"]) - log_r_eff
+    log_err_lo = log_r_eff - np.log10(r_eff - cat["r_eff_pc_e-"])
+    log_err_hi = np.log10(r_eff + cat["r_eff_pc_e+"]) - log_r_eff
 
     cat["r_eff_log"] = log_r_eff
     mean_log_err = 0.5 * (log_err_lo + log_err_hi)
@@ -82,7 +82,7 @@ def make_cumulative_histogram(values):
     return sorted_values, ys / np.max(ys)
 
 
-r_values, cdf = make_cumulative_histogram(stacked_catalog["r_eff_pc_rmax_15pix_best"])
+r_values, cdf = make_cumulative_histogram(stacked_catalog["r_eff_pc"])
 cdf_func = interpolate.interp1d(
     r_values, cdf, kind="linear", bounds_error=False, fill_value=(0, 1)
 )
@@ -188,7 +188,7 @@ for idx, galaxy in enumerate(sorted_galaxies):
     )
     # calculate the KS test value. Compare to our base CDF each time.
     pvalue = stats.ks_1samp(
-        cat["r_eff_pc_rmax_15pix_best"],
+        cat["r_eff_pc"],
         cdf_func,
         alternative="two-sided",
     )[1]

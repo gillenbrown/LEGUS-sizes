@@ -65,7 +65,7 @@ def make_big_table(tables_loc_list):
     big_catalog = table.vstack(catalogs, join_type="inner")
 
     # filter out the clusters that can't be used in fitting the mass-radius relation
-    mask = np.logical_and(big_catalog["good_radius"], big_catalog["good_fit"])
+    mask = np.logical_and(big_catalog["reliable_radius"], big_catalog["reliable_mass"])
     return big_catalog[mask]
 
 
@@ -94,9 +94,9 @@ def get_my_radii(catalog, mask):
     :param mask: Mask to apply to the data, to restrict to certain clusters
     :return: Tuple with three elements: radius, lower radius error, upper radius error
     """
-    r_eff = catalog["r_eff_pc_rmax_15pix_best"][mask]
-    r_eff_err_lo = catalog["r_eff_pc_rmax_15pix_e-"][mask]
-    r_eff_err_hi = catalog["r_eff_pc_rmax_15pix_e+"][mask]
+    r_eff = catalog["r_eff_pc"][mask]
+    r_eff_err_lo = catalog["r_eff_pc_e-"][mask]
+    r_eff_err_hi = catalog["r_eff_pc_e+"][mask]
 
     return r_eff, r_eff_err_lo, r_eff_err_hi
 

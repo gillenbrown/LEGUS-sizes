@@ -18,10 +18,7 @@ import numpy as np
 catalog_name = Path(sys.argv[1]).resolve()
 field = sys.argv[2]
 # find the cluster catalog for the field of interest
-for cat_loc in sys.argv[3:]:
-    if field == Path(cat_loc).parent.parent.name:
-        cat_observed = table.Table.read(cat_loc, format="ascii.ecsv")
-        break
+cat_legus = table.Table.read(sys.argv[3], format="ascii.ecsv")
 
 # create the empty catalog we'll fill later
 catalog = table.Table([], names=[])
@@ -167,8 +164,8 @@ catalog["reff_pixels_true"] = r_eff_values
 # the image with actual data (i.e. not the edges or chip gaps).
 # They must also not be near other clusters, which I define as being outside of
 # 30 pixels from them.
-x_real = cat_observed["x"]
-y_real = cat_observed["y"]
+x_real = cat_legus["x"]
+y_real = cat_legus["y"]
 
 # I'll manually define the regions that are allowed. Then I can make use scipy to test
 # whether proposed points are in one of these regions
