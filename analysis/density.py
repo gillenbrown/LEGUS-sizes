@@ -194,32 +194,132 @@ def fit_mass_density_relation_orthogonal(
     return best_fit_result.x
 
 
-def fit_mass_density_relation_vertical(mass, density, density_log_err):
+def fit_mass_density_relation_vertical(
+    mass, mass_err_lo, mass_err_hi, density, density_log_err
+):
+    # note that mass errors are not used, but I put them here for consistency with
+    # the orthogonal fit function call.
     log_mass = np.log10(mass)
     log_density = np.log10(density)
 
     def to_minimize(params):
-        slope, norm = params
+        slope, norm, scatter = params
+        variance = density_log_err ** 2 + scatter ** 2
         expected_log_density = norm + slope * (log_mass - 4)
-        return np.sum(((expected_log_density - log_density) / density_log_err) ** 2)
 
-    fit = optimize.minimize(to_minimize, x0=[2, 0.4], method="Powell")
+        # calculate the negative log likelihood for each cluster (splitting in two
+        # terms), then return the sum over all clusters. Note that we return the
+        # negative log likelihood since we are minimizing this, which is equivalent
+        # to maximizing the likelihood
+        neg_log_likelihood = 0.5 * np.log(2 * np.pi * variance)
+        neg_log_likelihood += (expected_log_density - log_density) ** 2 / variance
+        return np.sum(neg_log_likelihood)
+
+    fit = optimize.minimize(to_minimize, x0=[0.4, 2, 1], method="Powell")
     assert fit.success
     return fit.x
 
 
-fit_2d_o = fit_mass_density_relation_orthogonal(
-    mass, m_err_lo, m_err_hi, density_2d, density_2d_log_err
-)
-fit_3d_o = fit_mass_density_relation_orthogonal(
-    mass, m_err_lo, m_err_hi, density_3d, density_3d_log_err
-)
-fit_2d_v = fit_mass_density_relation_vertical(mass, density_2d, density_2d_log_err)
-fit_3d_v = fit_mass_density_relation_vertical(mass, density_3d, density_3d_log_err)
+def bootstrap_fit(fit_func, mass, mass_err_lo, mass_err_hi, density, density_log_err):
+    """
+    Wrapper for a given fit function to do bootstrapping
+    """
+    # do the best fit using all data
+    best_fit_params = fit_func(mass, mass_err_lo, mass_err_hi, density, density_log_err)
 
-# print the slopes
-print(f"2D - orthogonal slope={fit_2d_o[0]:.2f}, vertical slope={fit_2d_v[0]:.2f}")
-print(f"3D - orthogonal slope={fit_3d_o[0]:.2f}, vertical slope={fit_3d_v[0]:.2f}")
+    # then do bootstrapping. Code copied from fitting mass-radius relation
+    n_variables = len(best_fit_params)
+    param_history = [[] for _ in range(n_variables)]
+    param_std_last = [np.inf for _ in range(n_variables)]
+
+    converge_criteria = 0.01  # fractional change in std required for convergence
+    converged = [False for _ in range(n_variables)]
+    check_spacing = 20  # how many iterations between checking the std
+    iteration = 0
+    while not all(converged):
+        iteration += 1
+
+        # create a new sample of x and y coordinates
+        sample_idxs = np.random.randint(0, len(mass), len(mass))
+
+        # fit to this set of data
+        this_result = fit_func(
+            mass[sample_idxs],
+            mass_err_lo[sample_idxs],
+            mass_err_hi[sample_idxs],
+            density[sample_idxs],
+            density_log_err[sample_idxs],
+        )
+        # store the results
+        for param_idx in range(n_variables):
+            param_history[param_idx].append(this_result[param_idx])
+
+        # then check if we're converged
+        if iteration % check_spacing == 0:
+            for param_idx in range(n_variables):
+                # calculate the new standard deviation
+                this_std = np.std(param_history[param_idx])
+                if this_std == 0:
+                    converged[param_idx] = True
+                else:  # actually calculate the change
+                    last_std = param_std_last[param_idx]
+                    diff = abs((this_std - last_std) / this_std)
+                    converged[param_idx] = diff < converge_criteria
+
+                # then set the new last value
+                param_std_last[param_idx] = this_std
+
+    return np.concatenate([best_fit_params, param_std_last])
+
+
+fit_2d_o = bootstrap_fit(
+    fit_mass_density_relation_orthogonal,
+    mass,
+    m_err_lo,
+    m_err_hi,
+    density_2d,
+    density_2d_log_err,
+)
+fit_3d_o = bootstrap_fit(
+    fit_mass_density_relation_orthogonal,
+    mass,
+    m_err_lo,
+    m_err_hi,
+    density_3d,
+    density_3d_log_err,
+)
+fit_2d_v = bootstrap_fit(
+    fit_mass_density_relation_vertical,
+    mass,
+    m_err_lo,
+    m_err_hi,
+    density_2d,
+    density_2d_log_err,
+)
+fit_3d_v = bootstrap_fit(
+    fit_mass_density_relation_vertical,
+    mass,
+    m_err_lo,
+    m_err_hi,
+    density_3d,
+    density_3d_log_err,
+)
+
+
+def print_parameters(name, params):
+    print(
+        f"{name+':':<14} "
+        f"slope={params[0]:.2f}+-{params[3]:.3f}  "
+        f"norm={params[1]:.2f}+-{params[4]:.3f}  "
+        f"sigma={params[2]:.2f}+-{params[5]:.3f}  "
+    )
+
+
+# print the parameters
+print_parameters("3D Orthogonal", fit_3d_o)
+print_parameters("3D Vertical", fit_3d_v)
+print_parameters("2D Orthogonal", fit_2d_o)
+print_parameters("2D Vertical", fit_2d_v)
 
 # ======================================================================================
 #
