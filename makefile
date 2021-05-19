@@ -362,6 +362,7 @@ $(mass_radius_table): $(mass_radius_final_table_script) $(mass_radius_legus_full
 # workflow from those other runs, slightly.
 # the artificial image needs the long name so the code can find it
 base_field = ngc628-c
+base_field_catalog = $(data_home)/$(base_field)/$(my_dirname)$(cat)
 artificial_catalog = $(artificial_dir)true_catalog.txt
 artificial_image = $(artificial_dir)hlsp_legus_hst_acs_artificial_f555w_v1_drc.fits
 artificial_psf = $(artificial_dir)$(my_dirname)$(psf_my)
@@ -375,9 +376,9 @@ $(artificial_psf): $(psfs_my)
 	cp $(data_home)/$(base_field)/$(my_dirname)$(psf_my) $@
 
 # Make the catalog with the true locations and parameters of the clusters
-# This depends on the final catalogs so I can sample realistic clusters
-$(artificial_catalog): $(final_cats) $(artificial_cluster_catalog_script)
-	python $(artificial_cluster_catalog_script) $@ $(base_field) $(final_cats)
+# This depends on the LEGUS catalog so I can avoid those clusters
+$(artificial_catalog): $(final_cats) $(artificial_cluster_catalog_script) $(base_field_catalog)
+	python $(artificial_cluster_catalog_script) $@ $(base_field) $(base_field_catalog)
 
 # the artificial image with fake clusters
 $(artificial_image): $(artificial_cluster_image_script) $(artificial_catalog)
