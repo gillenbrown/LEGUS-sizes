@@ -37,12 +37,12 @@ oversampling_factor = int(sys.argv[4])
 # Then calculate the error for the parameters of interest
 #
 # ======================================================================================
-reff = catalog["r_eff_pixels_rmax_15pix_best"]
+reff = catalog["r_eff_pixels"]
 reff_true = catalog["reff_pixels_true"]
 # get the ratio, and its errorbars
 reff_ratio = reff / reff_true
-catalog["r_eff_ratio_e+"] = catalog["r_eff_pixels_rmax_15pix_e+"] / reff_true
-catalog["r_eff_ratio_e-"] = catalog["r_eff_pixels_rmax_15pix_e-"] / reff_true
+catalog["r_eff_ratio_e+"] = catalog["r_eff_pixels_e+"] / reff_true
+catalog["r_eff_ratio_e-"] = catalog["r_eff_pixels_e-"] / reff_true
 
 # ======================================================================================
 #
@@ -172,15 +172,15 @@ for good_fit, symbol, size in zip([True, False], ["o", "x"], [good_size, bad_siz
         if take_cbar_log:
             cat_values = np.log10(cat_values)
         v_mask = cat_values == v
-        fit_mask = catalog["good_radius"] == good_fit
+        fit_mask = catalog["reliable_radius"] == good_fit
         mask = np.logical_and(v_mask, fit_mask)
 
         ax_c.errorbar(
             reff_true[mask],
             reff[mask],
             yerr=[
-                catalog["r_eff_pixels_rmax_15pix_e-"][mask],
-                catalog["r_eff_pixels_rmax_15pix_e+"][mask],
+                catalog["r_eff_pixels_e-"][mask],
+                catalog["r_eff_pixels_e+"][mask],
             ],
             fmt=symbol,
             alpha=1,
