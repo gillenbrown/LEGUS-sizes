@@ -191,7 +191,7 @@ def get_iqr_string(cat):
     mask = cat["reliable_radius"]
     r_eff = cat["r_eff_pc"][mask]
     values = np.percentile(r_eff, [25, 50, 75])
-    return f"{values[0]:.2f} --- {values[1]:.2f} --- {values[2]:.2f}"
+    return f"{values[0]:.2f} -- {values[1]:.2f} -- {values[2]:.2f}"
 
 
 def handle_regular_galaxy(galaxy_name_fancy, home_dir, cat, out_file):
@@ -282,7 +282,7 @@ with open(output_name, "w") as out_file:
         "log sSFR (yr$^{-1}$) & "
         "Distance (Mpc) & "
         "PSF size (pc) & "
-        "Cluster $\\reff$: 25---50---75th percentiles \\\\ \n"
+        "Cluster $\\reff$: 25--50--75th percentiles \\\\ \n"
     )
     out_file.write("\t\t\midrule\n")
     for home_dir, cat in catalogs.items():
@@ -298,7 +298,7 @@ with open(output_name, "w") as out_file:
     # get the total values
     total_n = len(big_catalog)
     total_iqr = get_iqr_string(big_catalog)
-    out_file.write(f"\t\tTotal & {total_n} {'& --- '*4} & {total_iqr} \\\\ \n")
+    out_file.write(f"\t\tTotal & {total_n} {'& -- '*4} & {total_iqr} \\\\ \n")
 
     out_file.write("\t\t\\bottomrule\n")
     out_file.write("\t\end{tabular}\n")
