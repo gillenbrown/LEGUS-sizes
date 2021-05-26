@@ -37,21 +37,22 @@ for cat in [ryon_628, ryon_1313]:
 # f stands for my full method, r is the ryon-like
 catalogs_f = {"ngc1313-e": None, "ngc1313-w": None, "ngc628-c": None, "ngc628-e": None}
 catalogs_r = catalogs_f.copy()
-# I have both ryon-like and non-ryon-like catalogs. I pass both in using a very long
-# list of catalogs.
-for item in sys.argv[2:]:
-    path = Path(item)
-    data_dir = path.parent.parent
-    galaxy_name = data_dir.name
-    if galaxy_name in catalogs_f:
-        # See if this will be a ryon-like catalog or not
-        if "ryonlike" in item:
-            suffix = "ryonlike"
-        else:
-            suffix = "full"
+# I have both ryon-like and non-ryon-like catalogs. The regular ones are passed in
+# via the public catalog, while the Ryon-like are passed in separately, since they have
+# no public catalog. First parse the public catalog
+public_catalog = table.Table.read(sys.argv[2], format="ascii.ecsv")
+for f in catalogs_f:
+    catalogs_f[f] = public_catalog[public_catalog["field"] == f]
+# then the Ryon-like
 
-        this_cat = table.Table.read(item, format="ascii.ecsv")
+for item in sys.argv[3:]:
+    galaxy_name = Path(item).parent.parent.name
+    catalogs_r[galaxy_name] = table.Table.read(item, format="ascii.ecsv")
 
+# then clean up the catalogs
+data_dir = this_dir.parent / "data"
+for cat_set, suffix in zip([catalogs_f, catalogs_r], ["full", "ryonlike"]):
+    for field, this_cat in cat_set.items():
         # rename the r_eff columns to be easier to use. Also rename the eta column,
         # since I'll use that later too
         this_cat.rename_column("r_eff_pc", "r_eff")
@@ -64,8 +65,8 @@ for item in sys.argv[2:]:
         # used in my work. The ryon-like catalogs have already done this, so there
         # is nothing needed there.
         if suffix == "full":
-            distance_ryon = utils.distance(data_dir, True).to("Mpc").value
-            distance_me = utils.distance(data_dir, False).to("Mpc").value
+            distance_ryon = utils.distance(data_dir / field, True).to("Mpc").value
+            distance_me = this_cat["galaxy_distance_mpc"][0]
             dist_factor = distance_ryon / distance_me
             this_cat["r_eff"] *= dist_factor
             this_cat["r_eff_e-"] *= dist_factor
@@ -77,12 +78,6 @@ for item in sys.argv[2:]:
             if col == "ID":  # don't rename ID
                 continue
             this_cat.rename_column(col, col + "_" + suffix)
-
-        # Then store these catalogs
-        if suffix == "ryonlike":
-            catalogs_r[galaxy_name] = this_cat
-        else:
-            catalogs_f[galaxy_name] = this_cat
 
 # check that none of these are empty
 for key in catalogs_f:
