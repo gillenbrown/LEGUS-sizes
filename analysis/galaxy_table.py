@@ -16,11 +16,7 @@ import numpy as np
 from scipy import interpolate, optimize
 from astropy.io import fits
 from astropy import table
-
-# need to add the correct path to import utils
-code_home_dir = Path(__file__).resolve().parent.parent
-sys.path.append(str(code_home_dir / "pipeline"))
-import utils
+from astropy import units as u
 
 # ======================================================================================
 #
@@ -31,50 +27,11 @@ output_name = Path(sys.argv[1])
 oversampling_factor = int(sys.argv[2])
 psf_width = int(sys.argv[3])
 psf_source = sys.argv[4]
+catalog = table.Table.read(sys.argv[5], format="ascii.ecsv")
 
-catalogs = dict()
-for item in sys.argv[5:]:
-    cat = table.Table.read(item, format="ascii.ecsv")
-    home_dir = Path(item).parent.parent
-    catalogs[home_dir] = cat
-
-big_catalog = table.vstack(list(catalogs.values()), join_type="inner")
-
-# ======================================================================================
-#
-# Load galaxy data
-#
-# ======================================================================================
-def format_galaxy_name(raw_name):
-    name = raw_name.lower()
-    # check one edge case
-    if name == "ngc5194-ngc5195-mosaic":
-        return "NGC 5194/NGC 5195"
-    if "ngc" in name:
-        return name.replace("ngc", "NGC ")
-    elif "ugca" in name:
-        return name.replace("ugca", "UGCA ")
-    elif "ugc" in name:
-        return name.replace("ugc", "UGC ")
-    elif "ic" in name:
-        return name.replace("ic", "IC ")
-    elif "eso" in name:
-        return name.replace("eso", "ESO ")
-    else:
-        raise ValueError(f"{name} wasn't handled properly.")
-
-
-calzetti_path = output_name.parent.parent / "analysis" / "calzetti_etal_15_table_1.txt"
-galaxy_table = table.Table.read(
-    calzetti_path, format="ascii.commented_header", header_start=3
-)
-# get the sSFR data from the tables
-gal_ssfr = dict()
-gal_mass = dict()
-for row in galaxy_table:
-    gal_name = format_galaxy_name(row["name"])
-    gal_mass[gal_name] = row["m_star"]
-    gal_ssfr[gal_name] = row["sfr_uv_msun_per_year"] / row["m_star"]
+# get some derived properties to use later
+home_dir = Path(sys.argv[5]).parent
+fields = np.unique(catalog["field"])
 
 # ======================================================================================
 #
@@ -130,7 +87,7 @@ def distance(x1, y1, x2, y2):
     return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
 
-def measure_psf_reff(home_dir):
+def measure_psf_reff(field_dir, distance_mpc):
     psf_name = (
         f"psf_"
         f"{psf_source}_stars_"
@@ -138,7 +95,7 @@ def measure_psf_reff(home_dir):
         f"{oversampling_factor}x_oversampled.fits"
     )
 
-    psf = fits.open(home_dir / "size" / psf_name)["PRIMARY"].data
+    psf = fits.open(field_dir / "size" / psf_name)["PRIMARY"].data
     # the center is the brightest pixel of the image
     x_cen, y_cen = np.unravel_index(np.argmax(psf), psf.shape)
     total = np.sum(psf)
@@ -174,19 +131,36 @@ def measure_psf_reff(home_dir):
 
     psf_size_pixels = optimize.minimize(to_minimize, x0=1.5, bounds=[[0, 5]]).x[0]
 
-    # then convert to pc
-    psf_size_arcsec = utils.pixels_to_arcsec(psf_size_pixels, home_dir)
-    return utils.arcsec_to_pc_with_errors(home_dir, psf_size_arcsec, 0, 0, False)[0]
+    # then convert to pc.
+    psf_size_radians = (psf_size_pixels * 39.62e-3 * u.arcsec).to("radian").value
+    return psf_size_radians * distance_mpc * 1e6
 
-
-# Then go ahead and calculate the effective radius
-psf_sizes = {home_dir: measure_psf_reff(home_dir) for home_dir in catalogs}
 
 # ======================================================================================
 #
 # Then we print this all as a nicely formatted latex table
 #
 # ======================================================================================
+def format_field_name(raw_name):
+    name = raw_name.lower()
+    # check one edge case
+    if name == "ngc5194-ngc5195-mosaic":
+        return "NGC 5194/NGC 5195"
+    # then format names nicely for the table
+    if "ngc" in name:
+        return name.replace("ngc", "NGC ")
+    elif "ugca" in name:
+        return name.replace("ugca", "UGCA ")
+    elif "ugc" in name:
+        return name.replace("ugc", "UGC ")
+    elif "ic" in name:
+        return name.replace("ic", "IC ")
+    elif "eso" in name:
+        return name.replace("eso", "ESO ")
+    else:
+        raise ValueError(f"{name} wasn't handled properly.")
+
+
 def get_iqr_string(cat):
     mask = cat["reliable_radius"]
     r_eff = cat["r_eff_pc"][mask]
@@ -194,19 +168,29 @@ def get_iqr_string(cat):
     return f"{values[0]:.2f} -- {values[1]:.2f} -- {values[2]:.2f}"
 
 
-def handle_regular_galaxy(galaxy_name_fancy, home_dir, cat, out_file):
+def write_field(out_file, field, galaxy=None):
+    cat = catalog[catalog["field"] == field]
+    # for NGC5194/NGC5195 we'll want to split the field. Otherwise don't do this
+    if galaxy is not None:
+        cat = cat[cat["galaxy"] == galaxy]
+        name = format_field_name(galaxy)
+    else:
+        name = format_field_name(field)
+
     n = len(cat)
-    mass_str = f"{np.log10(gal_mass[galaxy_name_fancy.split('-')[0]]):.2f}"
-    ssfr_str = f"{np.log10(gal_ssfr[galaxy_name_fancy.split('-')[0]]):.2f}"
-    dist = utils.distance(home_dir).to("Mpc").value
-    dist_err = utils.distance_error(home_dir).to("Mpc").value
-    dist_decimals, err_decimals = distances_decimal_places[home_dir.name]
+    # row is any row from that galaxy or field. Galaxy data is the same
+    row = cat[0]
+    mass_str = f"{np.log10(row['galaxy_stellar_mass']):.2f}"
+    ssfr_str = f"{np.log10(row['galaxy_ssfr']):.2f}"
+    dist = row["galaxy_distance_mpc"]
+    dist_err = row["galaxy_distance_mpc_err"]
+    dist_decimals, err_decimals = distances_decimal_places[field]
     dist_str = f"{dist:.{dist_decimals}f} $\pm$ {dist_err:.{err_decimals}f}"
-    this_psf_size = psf_sizes[home_dir]
+    this_psf_size = measure_psf_reff(home_dir / "data" / field, dist)
     iqr_str = get_iqr_string(cat)
 
     out_file.write(
-        f"\t\t{galaxy_name_fancy} & "
+        f"\t\t{name} & "
         f"{n} & "
         f"{mass_str} & "
         f"{ssfr_str} & "
@@ -217,59 +201,32 @@ def handle_regular_galaxy(galaxy_name_fancy, home_dir, cat, out_file):
     )
 
 
-def handle_ngc5194_ngc5195(home_dir, cat, out_file):
-    dist = utils.distance(home_dir).to("Mpc").value
-    dist_err = utils.distance_error(home_dir).to("Mpc").value
-    dist_str = f"{dist:.2f} $\pm$ {dist_err:.2f}"
-    this_psf_size = psf_sizes[home_dir]
-    total_iqr_str = get_iqr_string(cat)
-
-    gal_data = {"NGC 5194": dict(), "NGC 5195": dict()}
-    gal_data["NGC 5194"]["mask"] = cat["galaxy"] == "ngc5194"
-    gal_data["NGC 5195"]["mask"] = ~gal_data["NGC 5194"]["mask"]
-
-    for gal_name in ["NGC 5194", "NGC 5195"]:
-        gal_data[gal_name]["n"] = np.sum(gal_data[gal_name]["mask"])
-        gal_data[gal_name]["mass_str"] = f"{np.log10(gal_mass[gal_name]):.2f}"
-        gal_data[gal_name]["ssfr_str"] = f"{np.log10(gal_ssfr[gal_name]):.2f}"
-        gal_data[gal_name]["iqr_str"] = get_iqr_string(cat[gal_data[gal_name]["mask"]])
-
-    # out_file.write(
-    #     f"\t\tNGC 5194/NGC 5195 & "
-    #     f"{gal_data['NGC 5194']['n']}/{gal_data['NGC 5195']['n']} & "
-    #     f"{gal_data['NGC 5194']['mass_str']}/{gal_data['NGC 5195']['mass_str']}  & "
-    #     f"{gal_data['NGC 5194']['ssfr_str']}/{gal_data['NGC 5195']['ssfr_str']}  & "
-    #     f"{dist_str} & "
-    #     f"{this_psf_size:.2f} & "
-    #     f"{total_iqr_str} "
-    #     f"\\\\ \n"
-    # )
-
-    out_file.write(
-        f"\t\tNGC 5194 & "
-        f"{gal_data['NGC 5194']['n']} & "
-        f"{gal_data['NGC 5194']['mass_str']} & "
-        f"{gal_data['NGC 5194']['ssfr_str']} & "
-        # "\multirow{2}{*}{" + dist_str + "} & "
-        # "\multirow{2}{*}{" + f"{this_psf_size:.2f}" + "} & "
-        f"{dist_str} & "
-        f"{this_psf_size:.2f} & "
-        f"{gal_data['NGC 5194']['iqr_str']} "
-        f"\\\\ \n"
-    )
-
-    out_file.write(
-        f"\t\tNGC 5195 & "
-        f"{gal_data['NGC 5195']['n']} & "
-        f"{gal_data['NGC 5195']['mass_str']} & "
-        f"{gal_data['NGC 5195']['ssfr_str']} & "
-        # "& "
-        # "& "
-        f"{dist_str} & "
-        f"{this_psf_size:.2f} & "
-        f"{gal_data['NGC 5195']['iqr_str']} "
-        f"\\\\ \n"
-    )
+# saving for the fancy multirow, in case I ever want to do that again.
+# out_file.write(
+#     f"\t\tNGC 5194 & "
+#     f"{gal_data['NGC 5194']['n']} & "
+#     f"{gal_data['NGC 5194']['mass_str']} & "
+#     f"{gal_data['NGC 5194']['ssfr_str']} & "
+#     # "\multirow{2}{*}{" + dist_str + "} & "
+#     # "\multirow{2}{*}{" + f"{this_psf_size:.2f}" + "} & "
+#     f"{dist_str} & "
+#     f"{this_psf_size:.2f} & "
+#     f"{gal_data['NGC 5194']['iqr_str']} "
+#     f"\\\\ \n"
+# )
+#
+# out_file.write(
+#     f"\t\tNGC 5195 & "
+#     f"{gal_data['NGC 5195']['n']} & "
+#     f"{gal_data['NGC 5195']['mass_str']} & "
+#     f"{gal_data['NGC 5195']['ssfr_str']} & "
+#     # "& "
+#     # "& "
+#     f"{dist_str} & "
+#     f"{this_psf_size:.2f} & "
+#     f"{gal_data['NGC 5195']['iqr_str']} "
+#     f"\\\\ \n"
+# )
 
 
 with open(output_name, "w") as out_file:
@@ -285,19 +242,19 @@ with open(output_name, "w") as out_file:
         "Cluster $\\reff$: 25--50--75th percentiles \\\\ \n"
     )
     out_file.write("\t\t\midrule\n")
-    for home_dir, cat in catalogs.items():
-        galaxy = format_galaxy_name(home_dir.name)
+    for field in fields:
         # NGC 5194 and 5195 are in the same field, so they need to be handled separately
         # in the table.
-        if galaxy == "NGC 5194/NGC 5195":
-            handle_ngc5194_ngc5195(home_dir, cat, out_file)
+        if field == "ngc5194-ngc5195-mosaic":
+            write_field(out_file, field, "ngc5194")
+            write_field(out_file, field, "ngc5195")
         else:
-            handle_regular_galaxy(galaxy, home_dir, cat, out_file)
+            write_field(out_file, field)
 
     out_file.write("\t\t\midrule\n")
     # get the total values
-    total_n = len(big_catalog)
-    total_iqr = get_iqr_string(big_catalog)
+    total_n = len(catalog)
+    total_iqr = get_iqr_string(catalog)
     out_file.write(f"\t\tTotal & {total_n} {'& -- '*4} & {total_iqr} \\\\ \n")
 
     out_file.write("\t\t\\bottomrule\n")

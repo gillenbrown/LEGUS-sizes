@@ -330,8 +330,8 @@ $(example_fit_plot): $(final_cats) $(example_plot_script)
 $(fit_quality_plot): $(final_cats) $(fit_quality_script)
 	python $(fit_quality_script) $@ $(run_name) $(final_cats)
 
-$(galaxy_table): $(final_cats) $(galaxy_table_script)
-	python $(galaxy_table_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) $(psf_type) $(final_cats)
+$(galaxy_table): $(public_catalog) $(galaxy_table_script)
+	python $(galaxy_table_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) $(psf_type) $(public_catalog)
 
 # Various mass-radius relation plots
 # need make v4.3 for this to work (can be installed with conda)
@@ -383,7 +383,7 @@ $(artificial_psf): $(psfs_my)
 
 # Make the catalog with the true locations and parameters of the clusters
 # This depends on the LEGUS catalog so I can avoid those clusters
-$(artificial_catalog): $(final_cats) $(artificial_cluster_catalog_script) $(base_field_catalog)
+$(artificial_catalog): $(artificial_cluster_catalog_script) $(base_field_catalog)
 	python $(artificial_cluster_catalog_script) $@ $(base_field) $(base_field_catalog)
 
 # the artificial image with fake clusters
