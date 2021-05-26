@@ -13,11 +13,72 @@ from pathlib import Path
 from astropy import table
 import numpy as np
 
+import utils
+
 # Get the input arguments
 output_table = Path(sys.argv[1])
 # load the individual catalogs, then stack them together in one master catalog
-gal_catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[2:]]
-catalog = table.vstack(gal_catalogs, join_type="inner")
+catalog = table.vstack(
+    [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[2:]],
+    join_type="inner",
+)
+
+# ======================================================================================
+#
+# galaxy data
+#
+# ======================================================================================
+# then get the stellar mass, SFR, and galaxy distance
+home_dir = Path(__file__).parent.parent
+galaxy_table = table.Table.read(
+    home_dir / "pipeline" / "calzetti_etal_15_table_1.txt",
+    format="ascii.commented_header",
+    header_start=3,
+)
+# read the Calzetti table
+gal_mass = dict()
+gal_sfr = dict()
+for row in galaxy_table:
+    name = row["name"].lower()
+    gal_mass[name] = row["m_star"]
+    gal_sfr[name] = row["sfr_uv_msun_per_year"]
+
+# set dummy quantities
+catalog["galaxy_distance_mpc"] = -99.9
+catalog["galaxy_distance_mpc_err"] = -99.9
+catalog["galaxy_stellar_mass"] = -99.9
+catalog["galaxy_sfr"] = -99.9
+
+# then add these quantities for all columns
+for row in catalog:
+    # get the field and galaxy of this cluster
+    field = row["field"]
+    galaxy = row["galaxy"]
+
+    # then get the needed quantities and store them
+    dist = utils.distance(home_dir / "data" / field)
+    dist_err = utils.distance_error(home_dir / "data" / field)
+    row["galaxy_distance_mpc"] = dist.to("Mpc").value
+    row["galaxy_distance_mpc_err"] = dist_err.to("Mpc").value
+    row["galaxy_stellar_mass"] = gal_mass[galaxy]
+    row["galaxy_sfr"] = gal_sfr[galaxy]
+
+# then calculate specific star formation rate
+catalog["galaxy_ssfr"] = catalog["galaxy_sfr"] / catalog["galaxy_stellar_mass"]
+
+# validate that all clusters from the same galaxy have the same galaxy properties
+for gal in np.unique(catalog["galaxy"]):
+    mask = catalog["galaxy"] == gal
+    assert len(np.unique(catalog["galaxy_distance_mpc"][mask])) == 1
+    assert len(np.unique(catalog["galaxy_distance_mpc_err"][mask])) == 1
+    assert len(np.unique(catalog["galaxy_stellar_mass"][mask])) == 1
+    assert len(np.unique(catalog["galaxy_sfr"][mask])) == 1
+    assert len(np.unique(catalog["galaxy_ssfr"][mask])) == 1
+# double check the field distances too, since those are the same per field
+for field in np.unique(catalog["field"]):
+    mask = catalog["field"] == field
+    assert len(np.unique(catalog["galaxy_distance_mpc"][mask])) == 1
+    assert len(np.unique(catalog["galaxy_distance_mpc_err"][mask])) == 1
 
 # ======================================================================================
 #
@@ -80,7 +141,11 @@ new_col_order = [
     "field",
     "ID",
     "galaxy",
-    "distance_mpc",
+    "galaxy_distance_mpc",
+    "galaxy_distance_mpc_err",
+    "galaxy_stellar_mass",
+    "galaxy_sfr",
+    "galaxy_ssfr",
     "from_ml",
     "RA",
     "Dec",

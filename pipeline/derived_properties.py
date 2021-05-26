@@ -118,10 +118,6 @@ else:
     # name, the other part will be the location. Keep only the galaxy name
     fits_catalog["galaxy"] = field_name.split("-")[0]
 
-# and the distance in Mpc
-fits_catalog["distance_mpc"] = utils.distance(home_dir, ryon_like).to("Mpc").value
-
-
 # ======================================================================================
 #
 # Handle the final output arrays
