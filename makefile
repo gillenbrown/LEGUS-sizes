@@ -306,11 +306,11 @@ $(public_catalog): $(public_catalog_script) $(final_cats)
 $(comparison_plot): $(comparison_script) $(public_catalog) $(final_cats_ryon)
 	python $(comparison_script) $@ $(public_catalog) $(final_cats_ryon)
 
-$(all_galaxies_plot): $(final_cats) $(all_galaxies_script)
-	python $(all_galaxies_script) $@ $(final_cats)
+$(all_galaxies_plot): $(public_catalog) $(all_galaxies_script)
+	python $(all_galaxies_script) $@ $(public_catalog)
 
-$(all_galaxies_iso_plot): $(final_cats) $(all_galaxies_iso_script)
-	python $(all_galaxies_iso_script) $@ $(final_cats)
+$(all_galaxies_iso_plot): $(public_catalog) $(all_galaxies_iso_script)
+	python $(all_galaxies_iso_script) $@ $(public_catalog)
 
 $(stacked_distribution_plot): $(final_cats) $(stacked_distribution_script)
 	python $(stacked_distribution_script) $@ $(final_cats)

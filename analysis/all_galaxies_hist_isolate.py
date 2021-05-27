@@ -26,33 +26,26 @@ bpl.set_style()
 plot_name = Path(sys.argv[1])
 galaxy_catalogs = dict()
 
-for item in sys.argv[2:]:
-    cat = table.Table.read(item, format="ascii.ecsv")
+catalog = table.Table.read(sys.argv[2], format="ascii.ecsv")
 
-    # restrict to the clusters with reliable radii
-    cat = cat[cat["reliable_radius"]]
+# restrict to the clusters with reliable radii
+catalog = catalog[catalog["reliable_radius"]]
 
-    # calculate the mean error in log space, will be used for the KDE smothing
-    r_eff = cat["r_eff_pc"]
-    log_r_eff = np.log10(r_eff)
-    log_err_lo = log_r_eff - np.log10(r_eff - cat["r_eff_pc_e-"])
-    log_err_hi = np.log10(r_eff + cat["r_eff_pc_e+"]) - log_r_eff
+# calculate the mean error in log space, will be used for the KDE smothing
+r_eff = catalog["r_eff_pc"]
+log_r_eff = np.log10(r_eff)
+log_err_lo = log_r_eff - np.log10(r_eff - catalog["r_eff_pc_e-"])
+log_err_hi = np.log10(r_eff + catalog["r_eff_pc_e+"]) - log_r_eff
 
-    cat["r_eff_log"] = log_r_eff
-    mean_log_err = 0.5 * (log_err_lo + log_err_hi)
-    cat["r_eff_log_smooth"] = 1.75 * mean_log_err  # don't do average, it is too small
+catalog["r_eff_log"] = log_r_eff
+mean_log_err = 0.5 * (log_err_lo + log_err_hi)
+catalog["r_eff_log_smooth"] = 1.75 * mean_log_err  # don't do average, it is too small
 
-    # go through all galaxies in this field
-    for galaxy in np.unique(cat["galaxy"]):
-        galaxy_table = cat[cat["galaxy"] == galaxy]
-        # then store this part of the catalog. If one for this galaxy already exists,
-        # append it
-        if galaxy in galaxy_catalogs:
-            galaxy_catalogs[galaxy] = table.vstack(
-                [galaxy_catalogs[galaxy], galaxy_table], join_type="inner"
-            )
-        else:
-            galaxy_catalogs[galaxy] = galaxy_table
+# go through all galaxies
+for galaxy in np.unique(catalog["galaxy"]):
+    galaxy_table = catalog[catalog["galaxy"] == galaxy]
+    # then store this part of the catalog
+    galaxy_catalogs[galaxy] = galaxy_table
 
 # ======================================================================================
 #
