@@ -29,7 +29,7 @@ big_catalog = table.Table.read(sys.argv[2], format="ascii.ecsv")
 fig, axs = bpl.subplots(ncols=3, nrows=3, figsize=[15, 11])
 axs = axs.flatten()
 
-axs[0].hist(big_catalog["log_luminosity_best"], bins=np.linspace(1, 10, 41))
+axs[0].hist(big_catalog["log_luminosity"], bins=np.linspace(1, 10, 41))
 axs[0].add_labels("Log Luminosity [e$^-$]", "Number of Clusters")
 axs[0].set_limits(1, 10)
 
@@ -41,7 +41,7 @@ axs[2].add_labels("Y Position from center [pixels]", "Number of Clusters")
 
 x_min, x_max = 0.03, 200
 axs[3].hist(
-    big_catalog["scale_radius_pixels_best"],
+    big_catalog["scale_radius_pixels"],
     bins=np.logspace(np.log10(x_min), np.log10(x_max), 41),
 )
 axs[3].add_labels("Scale Radius [pixels]", "Number of Clusters")
@@ -50,20 +50,20 @@ axs[3].set_xscale("log")
 axs[3].axvline(0.1, ls=":")
 axs[3].axvline(15, ls=":")
 
-axs[4].hist(big_catalog["axis_ratio_best"], bin_size=0.05)
+axs[4].hist(big_catalog["axis_ratio"], bin_size=0.05)
 axs[4].add_labels("Axis ratio", "Number of Clusters")
 axs[4].set_limits(0, 1.05)
 
-axs[5].hist(big_catalog["position_angle_best"] % np.pi, bins=np.linspace(0, np.pi, 21))
+axs[5].hist(big_catalog["position_angle"] % np.pi, bins=np.linspace(0, np.pi, 21))
 axs[5].add_labels("Position Angle", "Number of Clusters")
 axs[5].set_limits(0, np.pi)
 
-axs[6].hist(big_catalog["power_law_slope_best"], bins=np.arange(0, 10, 0.5))
+axs[6].hist(big_catalog["power_law_slope"], bins=np.arange(0, 10, 0.5))
 axs[6].add_labels("$\eta$ (Power Law Slope)", "Number of Clusters")
 axs[6].set_limits(0, 10)
 axs[6].axvline(1, ls=":")
 
-axs[7].hist(big_catalog["local_background_best"], bin_size=100)
+axs[7].hist(big_catalog["local_background"], bin_size=100)
 axs[7].add_labels("Local Background", "Number of Clusters")
 axs[7].set_limits(-100, 1000)
 

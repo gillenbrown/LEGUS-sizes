@@ -57,8 +57,8 @@ for row in catalog:
 
 # Then get the snapshot of this cluster. Have to subtract one to account for the
 # difference in zero vs one indexing between the catalog and Python
-x_cen = int(np.ceil(row["x_fitted_best"])) - 1
-y_cen = int(np.ceil(row["y_fitted_best"])) - 1
+x_cen = int(np.ceil(row["x_fitted"])) - 1
+y_cen = int(np.ceil(row["y_fitted"])) - 1
 
 # Get the snapshot, based on the size desired
 x_min = x_cen - 15
@@ -74,8 +74,8 @@ mask_snapshot = fit_utils.handle_mask(mask_snapshot, row["ID"])
 
 # then have new centers for the fit within this snapshot. See the code in fit.py to
 # correct for the oversampling factor. Also have to correct for indexing here too.
-x_cen_snap = row["x_fitted_best"] - x_min - 1
-y_cen_snap = row["y_fitted_best"] - y_min - 1
+x_cen_snap = row["x_fitted"] - x_min - 1
+y_cen_snap = row["y_fitted"] - y_min - 1
 x_cen_snap_oversampled = (x_cen_snap + 0.25) * 2
 y_cen_snap_oversampled = (y_cen_snap + 0.25) * 2
 
@@ -85,14 +85,14 @@ y_cen_snap_oversampled = (y_cen_snap + 0.25) * 2
 #
 # ======================================================================================
 models = fit_utils.create_model_image(
-    row["log_luminosity_best"],
+    row["log_luminosity"],
     x_cen_snap_oversampled,
     y_cen_snap_oversampled,
-    row["scale_radius_pixels_best"],
-    row["axis_ratio_best"],
-    row["position_angle_best"],
-    row["power_law_slope_best"],
-    row["local_background_best"],
+    row["scale_radius_pixels"],
+    row["axis_ratio"],
+    row["position_angle"],
+    row["power_law_slope"],
+    row["local_background"],
     psf,
     snapshot_size_oversampled,
     oversampling_factor,
@@ -252,10 +252,10 @@ ax_big.plot(
 )
 
 
-ax_big.axhline(row["local_background_best"], ls=":", label="Local Background")
+ax_big.axhline(row["local_background"], ls=":", label="Local Background")
 # ax_big.add_text(
 #     x=5.5,
-#     y=row["local_background_best"] * 1.1,
+#     y=row["local_background"] * 1.1,
 #     text="Local Background",
 #     ha="left",
 #     va="bottom",

@@ -58,7 +58,7 @@ for cat_set, suffix in zip([catalogs_f, catalogs_r], ["full", "ryonlike"]):
         this_cat.rename_column("r_eff_pc", "r_eff")
         this_cat.rename_column("r_eff_pc_e-", "r_eff_e-")
         this_cat.rename_column("r_eff_pc_e+", "r_eff_e+")
-        this_cat.rename_column("power_law_slope_best", "eta")
+        this_cat.rename_column("power_law_slope", "eta")
 
         # modify the radii so they use the same distances as ryon
         # scale the radii by the ratio of the distances as used in Ryon and as

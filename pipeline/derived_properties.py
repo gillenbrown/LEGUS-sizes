@@ -957,6 +957,11 @@ fits_catalog["reliable_mass"] = np.logical_and.reduce(
     ]
 )
 
+# ======================================================================================
+#
+# Cleanup
+#
+# ======================================================================================
 # Then add one back to the output catalog to be comparable to LEGUS results. This is
 # because of Python being zero indexed
 fits_catalog["x_fitted_best"] += 1
@@ -966,12 +971,21 @@ fits_catalog["y_fitted_best"] += 1
 del fits_catalog["x"]
 del fits_catalog["y"]
 
+# Delete the columns with distributions that we don't need anymore. These are the full
+# histories. These have the cleaner names. We'll delete them, then rename the best
+# fit columns to take the cleaner name.
+fits_catalog.remove_columns(dist_cols)
+
+# rename all the columns holding best fit parameters, which have "best" in their name.
+# removing "best" makes them cleaner
+for col in fits_catalog.colnames:
+    if "_best" in col:
+        fits_catalog.rename_column(col, col.replace("_best", ""))
+
+
 # ======================================================================================
 #
 # Then save the table
 #
 # ======================================================================================
-# Delete the columns with distributions that we don't need anymore
-fits_catalog.remove_columns(dist_cols)
-
 fits_catalog.write(str(final_catalog_path), format="ascii.ecsv", overwrite=True)

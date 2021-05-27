@@ -44,25 +44,25 @@ n_good = np.sum(success_mask)
 # ======================================================================================
 # I'll have several things that need to be tracked for each parameter
 params = {
-    "log_luminosity_best": "Log Luminosity [e$^-$]",
+    "log_luminosity": "Log Luminosity [e$^-$]",
     "dx_from_snap_center": "X Difference from Center",
     "dy_from_snap_center": "Y Difference from Center",
-    "scale_radius_pixels_best": "Scale Radius [pixels]",
-    "axis_ratio_best": "Axis Ratio",
-    "position_angle_best": "Position Angle",
-    "power_law_slope_best": "$\eta$ (Power Law Slope)",
-    "local_background_best": "Local Background [e$^-$]",
+    "scale_radius_pixels": "Scale Radius [pixels]",
+    "axis_ratio": "Axis Ratio",
+    "position_angle": "Position Angle",
+    "power_law_slope": "$\eta$ (Power Law Slope)",
+    "local_background": "Local Background [e$^-$]",
 }
-plot_params = ["scale_radius_pixels_best", "axis_ratio_best", "power_law_slope_best"]
+plot_params = ["scale_radius_pixels", "axis_ratio", "power_law_slope"]
 param_limits = {
-    "log_luminosity_best": (1, 8),
+    "log_luminosity": (1, 8),
     "dx_from_snap_center": (-2.5, 2.5),
     "dy_from_snap_center": (-2.5, 2.5),
-    "scale_radius_pixels_best": (0.05, 20),
-    "axis_ratio_best": (-0.05, 1.05),
-    "position_angle_best": (0, np.pi),
-    "power_law_slope_best": (0, 3),
-    "local_background_best": (-500, 1000),
+    "scale_radius_pixels": (0.05, 20),
+    "axis_ratio": (-0.05, 1.05),
+    "position_angle": (0, np.pi),
+    "power_law_slope": (0, 3),
+    "local_background": (-500, 1000),
 }
 # put things on these limits
 for param in param_limits:
@@ -73,24 +73,24 @@ for param in param_limits:
         0.99 * param_limits[param][1]
     )
 param_scale = {
-    "log_luminosity_best": "linear",
+    "log_luminosity": "linear",
     "dx_from_snap_center": "linear",
     "dy_from_snap_center": "linear",
-    "scale_radius_pixels_best": "log",
-    "axis_ratio_best": "linear",
-    "position_angle_best": "linear",
-    "power_law_slope_best": "linear",
-    "local_background_best": "linear",
+    "scale_radius_pixels": "log",
+    "axis_ratio": "linear",
+    "position_angle": "linear",
+    "power_law_slope": "linear",
+    "local_background": "linear",
 }
 param_bins = {
-    "log_luminosity_best": np.arange(1, 8, 0.5),
+    "log_luminosity": np.arange(1, 8, 0.5),
     "dx_from_snap_center": np.arange(-2.5, 2.5, 0.125),
     "dy_from_snap_center": np.arange(-2.5, 2.5, 0.125),
-    "scale_radius_pixels_best": np.logspace(-2, 2, 41),
-    "axis_ratio_best": np.arange(-0.1, 1.1, 0.05),
-    "position_angle_best": np.arange(0, 3.5, 0.1),
-    "power_law_slope_best": np.arange(0, 5, 0.1),
-    "local_background_best": np.arange(-300, 1500, 100),
+    "scale_radius_pixels": np.logspace(-2, 2, 41),
+    "axis_ratio": np.arange(-0.1, 1.1, 0.05),
+    "position_angle": np.arange(0, 3.5, 0.1),
+    "power_law_slope": np.arange(0, 5, 0.1),
+    "local_background": np.arange(-300, 1500, 100),
 }
 
 indicators = {
@@ -184,10 +184,10 @@ for ax, param in zip(axs, plot_params):
         label=f"Failure (N={len(big_catalog) - n_good:,})",
     )
 
-    if param == "axis_ratio_best":
+    if param == "axis_ratio":
         ax.legend(loc=2)
     ax.add_labels(x_label=params[param])
-    if param == "scale_radius_pixels_best":
+    if param == "scale_radius_pixels":
         ax.add_labels(y_label="Cumulative Number of Clusters")
         ax.axvline(0.1, ls=":")
         ax.axvline(15, ls=":")
@@ -255,7 +255,7 @@ for idx_p, param in enumerate(plot_params):
         ax.add_labels(y_label="Number of Clusters")
     ax.set_limits(*param_limits[param])
     ax.set_xscale(param_scale[param])
-    if param == "axis_ratio_best":
+    if param == "axis_ratio":
         ax.legend(loc=2)
     # set ticks on top and bottom
     ax.tick_params(
@@ -376,8 +376,8 @@ fig.savefig(plot_name)
 fig, axs = bpl.subplots(ncols=3, figsize=[20, 6])
 axs = axs.flatten()
 
-x_param = "power_law_slope_best"
-y_param = "scale_radius_pixels_best"
+x_param = "power_law_slope"
+y_param = "scale_radius_pixels"
 for ax, color_ind in zip(axs, indicators):
 
     if color_ind == "profile_mad":
@@ -524,8 +524,8 @@ fig.savefig(plot_name.parent / "corner.png", dpi=100)
 
 # for row in big_catalog:
 #     if (
-#         row["scale_radius_pixels_best"] < 1e-6
-#         # and row["power_law_slope_best"] > 1
+#         row["scale_radius_pixels"] < 1e-6
+#         # and row["power_law_slope"] > 1
 #         # and row["profile_mad"] < 1
 #     ):
 #         print(row["galaxy"], row["ID"])

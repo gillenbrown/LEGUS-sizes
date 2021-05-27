@@ -94,15 +94,14 @@ catalog.remove_columns(
     [
         "estimated_local_background_diff_sigma",
         "fit_rms",
-        "x_pix_snapshot_oversampled_best",
-        "y_pix_snapshot_oversampled_best",
+        "x_pix_snapshot_oversampled",
+        "y_pix_snapshot_oversampled",
         "x_pix_snapshot_oversampled_e-",
         "x_pix_snapshot_oversampled_e+",
         "y_pix_snapshot_oversampled_e-",
         "y_pix_snapshot_oversampled_e+",
     ]
 )
-
 
 # set the order for the leftover columns
 new_col_order = [
@@ -142,30 +141,30 @@ new_col_order = [
     "chi_2_reduced",
     "Q_probability",
     "N_filters",
-    "x_fitted_best",
+    "x_fitted",
     "x_fitted_e+",
     "x_fitted_e-",
-    "y_fitted_best",
+    "y_fitted",
     "y_fitted_e+",
     "y_fitted_e-",
     "dx_from_snap_center",
     "dy_from_snap_center",
-    "log_luminosity_best",
+    "log_luminosity",
     "log_luminosity_e+",
     "log_luminosity_e-",
-    "scale_radius_pixels_best",
+    "scale_radius_pixels",
     "scale_radius_pixels_e+",
     "scale_radius_pixels_e-",
-    "axis_ratio_best",
+    "axis_ratio",
     "axis_ratio_e+",
     "axis_ratio_e-",
-    "position_angle_best",
+    "position_angle",
     "position_angle_e+",
     "position_angle_e-",
-    "power_law_slope_best",
+    "power_law_slope",
     "power_law_slope_e+",
     "power_law_slope_e-",
-    "local_background_best",
+    "local_background",
     "local_background_e+",
     "local_background_e-",
     "r_eff_pixels",
@@ -205,9 +204,9 @@ catalog = catalog[new_col_order]
 # validate that a user can reconstruct the fit failures from the parameters in the table
 mask_test = np.logical_or.reduce(
     [
-        catalog["axis_ratio_best"] < 0.3,
-        catalog["scale_radius_pixels_best"] < 0.1,
-        catalog["scale_radius_pixels_best"] > 15.0,
+        catalog["axis_ratio"] < 0.3,
+        catalog["scale_radius_pixels"] < 0.1,
+        catalog["scale_radius_pixels"] > 15.0,
         abs(catalog["dx_from_snap_center"]) > 1.95,
         abs(catalog["dy_from_snap_center"]) > 1.95,
     ]
