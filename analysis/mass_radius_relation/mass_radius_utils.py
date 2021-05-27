@@ -47,26 +47,18 @@ def write_fit_results(fit_out_file, name, best_fit_params, fit_history, masses):
 # Data handling
 #
 # ======================================================================================
-def make_big_table(tables_loc_list):
+def make_big_table(table_loc):
     """
     Read all the catalogs passed in, stack them together, and throw out bad clusters
 
-    :param tables_loc_list: List of strings holding the paths to all the catalogs
+    :param table_loc: string holding the paths to the catalog
     :return: One astropy table with all the good clusters from this sample
     """
-    catalogs = []
-    for item in tables_loc_list:
-        this_cat = table.Table.read(item, format="ascii.ecsv")
-        gal_dir = Path(item).parent.parent
-        this_cat["distance"] = utils.distance(gal_dir).to("Mpc").value
-        catalogs.append(this_cat)
-
-    # then stack them together in one master catalog
-    big_catalog = table.vstack(catalogs, join_type="inner")
+    catalogs = table.Table.read(table_loc, format="ascii.ecsv")
 
     # filter out the clusters that can't be used in fitting the mass-radius relation
-    mask = np.logical_and(big_catalog["reliable_radius"], big_catalog["reliable_mass"])
-    return big_catalog[mask]
+    mask = np.logical_and(catalogs["reliable_radius"], catalogs["reliable_mass"])
+    return catalogs[mask]
 
 
 # get some commonly used items from the table and transform them to log properly

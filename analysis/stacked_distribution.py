@@ -23,17 +23,12 @@ plot_name = Path(sys.argv[1])
 # Read the catalogs
 #
 # ======================================================================================
-cats = []
 # Here we stack everything except for a few outliers which we exclude
-for item in sys.argv[2:]:
-    field = Path(item).parent.parent.name
-    if field in ["ngc1566", "ngc7793-e", "ngc7793-w"]:
-        continue
-    # otherwise make the table
-    cats.append(table.Table.read(item, format="ascii.ecsv"))
+big_cat = table.Table.read(sys.argv[2], format="ascii.ecsv")
+mask_not_1566 = big_cat["galaxy"] != "ngc1566"
+mask_not_7793 = big_cat["galaxy"] != "ngc7793"
+big_cat = big_cat[np.logical_and(mask_not_1566, mask_not_7793)]
 
-
-big_cat = table.vstack(cats, join_type="inner")
 # restrict to the clusters with reliable radii
 big_cat = big_cat[big_cat["reliable_radius"]]
 

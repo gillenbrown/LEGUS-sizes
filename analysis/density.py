@@ -31,10 +31,7 @@ import mass_radius_utils as mru
 # ======================================================================================
 plot_name = Path(sys.argv[1]).resolve()
 fits_output_name = Path(sys.argv[2]).resolve()
-
-catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[3:]]
-# then stack them together in one master catalog
-big_catalog = table.vstack(catalogs, join_type="inner")
+big_catalog = table.Table.read(sys.argv[3], format="ascii.ecsv")
 
 # restrict to clusters with good masses and radii
 good_mask = np.logical_and(big_catalog["reliable_radius"], big_catalog["reliable_mass"])

@@ -19,7 +19,7 @@ bpl.set_style()
 plot_name = Path(sys.argv[1])
 output_name = Path(sys.argv[2])
 fit_out_file = open(output_name, "w")
-big_catalog = mru.make_big_table(sys.argv[3:])
+big_catalog = mru.make_big_table(sys.argv[3])
 
 # Filter out clusters older than 1 Gyr
 mask = big_catalog["age_yr"] < 1e9

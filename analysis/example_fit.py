@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 from astropy import table, nddata
+from astropy import units as u
 from astropy.io import fits
 from scipy import signal
 from matplotlib import pyplot as plt
@@ -27,14 +28,16 @@ oversampling_factor = int(sys.argv[2])
 psf_size = int(sys.argv[3])
 snapshot_size = int(sys.argv[4])
 snapshot_size_oversampled = snapshot_size * oversampling_factor
+catalog = table.Table.read(sys.argv[5], format="ascii.ecsv")
 
 # ======================================================================================
 #
 # Load the data we need
 #
 # ======================================================================================
-# Use NGC6503 ID 0059
-galaxy = "ngc1566"  # "ngc5194-ngc5195-mosaic"
+# Use NGC1566 ID 2364
+galaxy = "ngc1566"
+field = "ngc1566"
 cluster_id = 2364
 
 data_dir = legus_home_dir / "data" / galaxy
@@ -47,16 +50,9 @@ psf_name = f"psf_my_stars_{psf_size}_pixels_{oversampling_factor}x_oversampled.f
 psf = fits.open(data_dir / "size" / psf_name)["PRIMARY"].data
 psf_cen = int((psf.shape[1] - 1.0) / 2.0)
 
-
-cat_name = (
-    f"final_catalog_final_{snapshot_size}_pixels_psf_"
-    f"my_stars_{psf_size}_pixels_{oversampling_factor}x_oversampled.txt"
-)
-cat_path = data_dir / "size" / cat_name
-cat = table.Table.read(str(cat_path), format="ascii.ecsv")
 # then find the correct row
-for row in cat:
-    if row["ID"] == cluster_id:
+for row in catalog:
+    if row["ID"] == cluster_id and row["galaxy"] == galaxy and row["field"] == field:
         break
 
 # Then get the snapshot of this cluster
@@ -295,8 +291,8 @@ ax_big.add_labels("Radius [pixels]", "Pixel Value [e$^-$]")
 ax_big.set_limits(0, radial_plot_x_max, radial_plot_y_min, radial_plot_y_max)
 
 # then add a second scale on top translating into parsecs
-arcsec = utils.pixels_to_arcsec(radial_plot_x_max, data_dir)
-max_pc, _, _ = utils.arcsec_to_pc_with_errors(data_dir, arcsec, 0, 0)
-ax_big.twin_axis_simple("x", lower_lim=0, upper_lim=max_pc, label="Radius [pc]")
+plot_limit_arcsec = radial_plot_x_max * row["pixel_scale"] * u.arcsec
+plot_limit_pc = plot_limit_arcsec.to(u.radian).value * row["galaxy_distance_mpc"] * 1e6
+ax_big.twin_axis_simple("x", lower_lim=0, upper_lim=plot_limit_pc, label="Radius [pc]")
 
 fig.savefig(plot_name)

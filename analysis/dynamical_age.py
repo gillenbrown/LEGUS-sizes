@@ -28,10 +28,7 @@ from mass_radius_utils_plotting import age_colors
 # ======================================================================================
 time_comp_plot_name = Path(sys.argv[1]).resolve()
 mass_dependence_plot_name = Path(sys.argv[2]).resolve()
-
-catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[3:]]
-# then stack them together in one master catalog
-big_catalog = table.vstack(catalogs, join_type="inner")
+big_catalog = table.Table.read(sys.argv[3], format="ascii.ecsv")
 
 # restrict to clusters with good masses and radii
 mask = np.logical_and(big_catalog["reliable_radius"], big_catalog["reliable_mass"])

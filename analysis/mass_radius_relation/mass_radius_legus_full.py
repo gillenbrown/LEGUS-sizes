@@ -18,7 +18,7 @@ bpl.set_style()
 plot_name = Path(sys.argv[1])
 output_name = Path(sys.argv[2])
 fit_out_file = open(output_name, "w")
-big_catalog = mru.make_big_table(sys.argv[3:])
+big_catalog = mru.make_big_table(sys.argv[3])
 
 # start parsing my catalogs
 # No clusters to filter out here

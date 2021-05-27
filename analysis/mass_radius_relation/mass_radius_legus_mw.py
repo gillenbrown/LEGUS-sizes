@@ -17,7 +17,7 @@ bpl.set_style()
 # load the parameters the user passed in
 output_name = Path(sys.argv[1])
 fit_out_file = open(output_name, "w")
-big_catalog = mru.make_big_table(sys.argv[2:])
+big_catalog = mru.make_big_table(sys.argv[2])
 
 # Filter out clusters older than 1 Gyr
 mask = big_catalog["age_yr"] < 1e9

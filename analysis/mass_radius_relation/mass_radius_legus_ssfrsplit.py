@@ -19,33 +19,14 @@ bpl.set_style()
 plot_name = Path(sys.argv[1])
 output_name = Path(sys.argv[2])
 fit_out_file = open(output_name, "w")
-big_catalog = mru.make_big_table(sys.argv[3:])
-
-# Load galaxy sSFR data
-calzetti_path = plot_name.parent.parent / "analysis" / "calzetti_etal_15_table_1.txt"
-galaxy_table = table.Table.read(
-    calzetti_path, format="ascii.commented_header", header_start=3
-)
-# Add the data to my cluster tables
-for col in ["galaxy_SFR", "galaxy_m_star", "galaxy_t_type", "galaxy_sSFR"]:
-    big_catalog[col] = np.nan
-for row in big_catalog:  # need to account for NGC 5194/NGC5195 in same catalog
-    # throw away east-west-north-south field splits
-    this_gal = row["galaxy"].split("-")[0].upper()
-    for row_g in galaxy_table:
-        if row_g["name"] == this_gal:
-            row["galaxy_SFR"] = row_g["sfr_uv_msun_per_year"]
-            row["galaxy_m_star"] = row_g["m_star"]
-            row["galaxy_t_type"] = row_g["morphology_t_type"]
-            row["galaxy_sSFR"] = row_g["sfr_uv_msun_per_year"] / row_g["m_star"]
-            break
+big_catalog = mru.make_big_table(sys.argv[3])
 
 # filter out clusters 1 Gyr or older
 mask = big_catalog["age_yr"] < 1e9
 mass, mass_err_lo, mass_err_hi = mru.get_my_masses(big_catalog, mask)
 r_eff, r_eff_err_lo, r_eff_err_hi = mru.get_my_radii(big_catalog, mask)
 age, _, _ = mru.get_my_ages(big_catalog, mask)
-ssfr = big_catalog["galaxy_sSFR"][mask]
+ssfr = big_catalog["galaxy_ssfr"][mask]
 
 # Then actually make the fit and plot it
 cut_ssfr = 3e-10

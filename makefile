@@ -296,8 +296,12 @@ $(final_cats): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit) $$(dir %
 $(final_cats_ryon): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit_ryon) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask)
 	python $(final_catalog_script) $@ $(dir $@)$(fit_ryon) $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(fit_region_size) ryon_like
 
+# two plots that use the raw fit parameters
 $(param_dist_plot): $(parameters_dist_script) $(final_cats)
 	python $(parameters_dist_script) $@ $(final_cats)
+
+$(fit_quality_plot): $(fit_quality_script) $(final_cats)
+	python $(fit_quality_script) $@ $(run_name) $(final_cats)
 
 $(public_catalog): $(public_catalog_script) $(final_cats)
 	python $(public_catalog_script) $@ $(final_cats)
@@ -312,49 +316,46 @@ $(all_galaxies_plot): $(public_catalog) $(all_galaxies_script)
 $(all_galaxies_iso_plot): $(public_catalog) $(all_galaxies_iso_script)
 	python $(all_galaxies_iso_script) $@ $(public_catalog)
 
-$(stacked_distribution_plot): $(final_cats) $(stacked_distribution_script)
-	python $(stacked_distribution_script) $@ $(final_cats)
+$(stacked_distribution_plot): $(public_catalog) $(stacked_distribution_script)
+	python $(stacked_distribution_script) $@ $(public_catalog)
 
-$(dynamical_age_plot) $(bound_fraction_plot) &: $(final_cats) $(dynamical_age_script) $(mass_radius_utils_plotting)
-	python $(dynamical_age_script) $(dynamical_age_plot) $(bound_fraction_plot) $(final_cats)
+$(dynamical_age_plot) $(bound_fraction_plot) &: $(public_catalog) $(dynamical_age_script) $(mass_radius_utils_plotting)
+	python $(dynamical_age_script) $(dynamical_age_plot) $(bound_fraction_plot) $(public_catalog)
 
-$(density_plot) $(density_fits_txt) &: $(final_cats) $(density_script) $(mass_radius_utils_plotting)
-	python $(density_script) $(density_plot) $(density_fits_txt) $(final_cats)
+$(density_plot) $(density_fits_txt) &: $(public_catalog) $(density_script) $(mass_radius_utils_plotting)
+	python $(density_script) $(density_plot) $(density_fits_txt) $(public_catalog)
 
-$(toy_model_plot): $(toy_model_script) $(mass_radius_table) $(mass_radius_utils_plotting)
-	python $(toy_model_script) $@ $(mass_radius_table) $(final_cats)
+$(toy_model_plot): $(toy_model_script) $(mass_radius_table) $(mass_radius_utils_plotting) $(public_catalog)
+	python $(toy_model_script) $@ $(mass_radius_table) $(public_catalog)
 
-$(example_fit_plot): $(final_cats) $(example_plot_script)
-	python $(example_plot_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) $(fit_region_size)
-
-$(fit_quality_plot): $(final_cats) $(fit_quality_script)
-	python $(fit_quality_script) $@ $(run_name) $(final_cats)
+$(example_fit_plot): $(public_catalog) $(example_plot_script)
+	python $(example_plot_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) $(fit_region_size) $(public_catalog)
 
 $(galaxy_table): $(public_catalog) $(galaxy_table_script)
 	python $(galaxy_table_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) $(psf_type) $(public_catalog)
 
 # Various mass-radius relation plots
 # need make v4.3 for this to work (can be installed with conda)
-$(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) &: $(final_cats) $(mass_radius_legus_full_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_plotting)
-	python $(mass_radius_legus_full_script) $(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) $(final_cats)
+$(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) &: $(public_catalog) $(mass_radius_legus_full_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_plotting)
+	python $(mass_radius_legus_full_script) $(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) $(public_catalog)
 
-$(mass_radius_legus_young_plot) $(mass_radius_legus_young_txt) &: $(final_cats) $(mass_radius_legus_young_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_plotting)
-	python $(mass_radius_legus_young_script) $(mass_radius_legus_young_plot) $(mass_radius_legus_young_txt) $(final_cats)
+$(mass_radius_legus_young_plot) $(mass_radius_legus_young_txt) &: $(public_catalog) $(mass_radius_legus_young_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_plotting)
+	python $(mass_radius_legus_young_script) $(mass_radius_legus_young_plot) $(mass_radius_legus_young_txt) $(public_catalog)
 
-$(mass_radius_legus_agesplit_plot) $(mass_radius_legus_agesplit_txt) &: $(final_cats) $(mass_radius_legus_agesplit_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_plotting)
-	python $(mass_radius_legus_agesplit_script) $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_agesplit_txt) $(final_cats)
+$(mass_radius_legus_agesplit_plot) $(mass_radius_legus_agesplit_txt) &: $(public_catalog) $(mass_radius_legus_agesplit_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_plotting)
+	python $(mass_radius_legus_agesplit_script) $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_agesplit_txt) $(public_catalog)
 
-$(mass_radius_legus_ssfrsplit_plot) $(mass_radius_legus_ssfrsplit_txt) &: $(final_cats) $(mass_radius_legus_ssfrsplit_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_plotting)
-	python $(mass_radius_legus_ssfrsplit_script) $(mass_radius_legus_ssfrsplit_plot) $(mass_radius_legus_ssfrsplit_txt) $(final_cats)
+$(mass_radius_legus_ssfrsplit_plot) $(mass_radius_legus_ssfrsplit_txt) &: $(public_catalog) $(mass_radius_legus_ssfrsplit_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_plotting)
+	python $(mass_radius_legus_ssfrsplit_script) $(mass_radius_legus_ssfrsplit_plot) $(mass_radius_legus_ssfrsplit_txt) $(public_catalog)
 
-$(mass_radius_legus_mw_txt) &: $(final_cats) $(mass_radius_legus_mw_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_external_data)
-	python $(mass_radius_legus_mw_script) $(mass_radius_legus_mw_txt) $(final_cats)
+$(mass_radius_legus_mw_txt) &: $(public_catalog) $(mass_radius_legus_mw_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_external_data)
+	python $(mass_radius_legus_mw_script) $(mass_radius_legus_mw_txt) $(public_catalog)
 
-$(mass_radius_legus_external_txt) &: $(final_cats) $(mass_radius_legus_external_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_external_data)
-	python $(mass_radius_legus_external_script) $(mass_radius_legus_external_txt) $(final_cats)
+$(mass_radius_legus_external_txt) &: $(public_catalog) $(mass_radius_legus_external_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_external_data)
+	python $(mass_radius_legus_external_script) $(mass_radius_legus_external_txt) $(public_catalog)
 
-$(mass_radius_legus_mw_external_plot) $(mass_radius_legus_mw_external_txt) &: $(final_cats) $(mass_radius_legus_mw_external_script) $(mass_radius_utils) $(mass_radius_utils_plotting) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_external_data)
-	python $(mass_radius_legus_mw_external_script) $(mass_radius_legus_mw_external_plot) $(mass_radius_legus_mw_external_txt) $(final_cats)
+$(mass_radius_legus_mw_external_plot) $(mass_radius_legus_mw_external_txt) &: $(public_catalog) $(mass_radius_legus_mw_external_script) $(mass_radius_utils) $(mass_radius_utils_plotting) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_external_data)
+	python $(mass_radius_legus_mw_external_script) $(mass_radius_legus_mw_external_plot) $(mass_radius_legus_mw_external_txt) $(public_catalog)
 
 # combine all tables into the final one
 $(mass_radius_table): $(mass_radius_final_table_script) $(mass_radius_legus_full_txt) $(mass_radius_legus_young_txt) $(mass_radius_legus_agesplit_txt) $(mass_radius_legus_mw_txt)  $(mass_radius_legus_external_txt)  $(mass_radius_legus_mw_external_txt)
