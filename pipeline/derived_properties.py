@@ -118,6 +118,9 @@ else:
     # name, the other part will be the location. Keep only the galaxy name
     fits_catalog["galaxy"] = field_name.split("-")[0]
 
+# add the pixel scale
+fits_catalog["pixel_scale"] = utils.get_pixel_scale_arcsec(home_dir)
+
 # ======================================================================================
 #
 # Handle the final output arrays

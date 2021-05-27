@@ -146,6 +146,7 @@ new_col_order = [
     "galaxy_stellar_mass",
     "galaxy_sfr",
     "galaxy_ssfr",
+    "pixel_scale",
     "from_ml",
     "RA",
     "Dec",

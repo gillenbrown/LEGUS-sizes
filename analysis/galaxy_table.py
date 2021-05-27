@@ -87,7 +87,8 @@ def distance(x1, y1, x2, y2):
     return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
 
-def measure_psf_reff(field_dir, distance_mpc):
+def measure_psf_reff(field_dir, distance_mpc, pixel_scale):
+    # pixel scale is in arcseconds per pixel
     psf_name = (
         f"psf_"
         f"{psf_source}_stars_"
@@ -132,7 +133,7 @@ def measure_psf_reff(field_dir, distance_mpc):
     psf_size_pixels = optimize.minimize(to_minimize, x0=1.5, bounds=[[0, 5]]).x[0]
 
     # then convert to pc.
-    psf_size_radians = (psf_size_pixels * 39.62e-3 * u.arcsec).to("radian").value
+    psf_size_radians = (psf_size_pixels * pixel_scale * u.arcsec).to("radian").value
     return psf_size_radians * distance_mpc * 1e6
 
 
@@ -186,7 +187,7 @@ def write_field(out_file, field, galaxy=None):
     dist_err = row["galaxy_distance_mpc_err"]
     dist_decimals, err_decimals = distances_decimal_places[field]
     dist_str = f"{dist:.{dist_decimals}f} $\pm$ {dist_err:.{err_decimals}f}"
-    this_psf_size = measure_psf_reff(home_dir / "data" / field, dist)
+    psf_size = measure_psf_reff(home_dir / "data" / field, dist, row["pixel_scale"])
     iqr_str = get_iqr_string(cat)
 
     out_file.write(
@@ -195,7 +196,7 @@ def write_field(out_file, field, galaxy=None):
         f"{mass_str} & "
         f"{ssfr_str} & "
         f"{dist_str} & "
-        f"{this_psf_size:.2f} & "
+        f"{psf_size:.2f} & "
         f"{iqr_str} "
         f"\\\\ \n"
     )
