@@ -296,15 +296,15 @@ $(final_cats): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit) $$(dir %
 $(final_cats_ryon): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit_ryon) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask)
 	python $(final_catalog_script) $@ $(dir $@)$(fit_ryon) $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(fit_region_size) ryon_like
 
-# two plots that use the raw fit parameters
-$(param_dist_plot): $(parameters_dist_script) $(final_cats)
-	python $(parameters_dist_script) $@ $(final_cats)
-
+# one plot that uses some debugging quantities that we don't want in the public catalog
 $(fit_quality_plot): $(fit_quality_script) $(final_cats)
 	python $(fit_quality_script) $@ $(run_name) $(final_cats)
 
 $(public_catalog): $(public_catalog_script) $(final_cats)
 	python $(public_catalog_script) $@ $(final_cats)
+
+$(param_dist_plot): $(parameters_dist_script) $(public_catalog)
+	python $(parameters_dist_script) $@ $(public_catalog)
 
 # Make the comparisons to Ryon+17's results and other comparison plots
 $(comparison_plot): $(comparison_script) $(public_catalog) $(final_cats_ryon)

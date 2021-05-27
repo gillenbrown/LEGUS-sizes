@@ -45,8 +45,8 @@ n_good = np.sum(success_mask)
 # I'll have several things that need to be tracked for each parameter
 params = {
     "log_luminosity_best": "Log Luminosity [e$^-$]",
-    "x_pix_snapshot_oversampled_best": "X Center",
-    "y_pix_snapshot_oversampled_best": "Y Center",
+    "dx_from_snap_center": "X Difference from Center",
+    "dy_from_snap_center": "Y Difference from Center",
     "scale_radius_pixels_best": "Scale Radius [pixels]",
     "axis_ratio_best": "Axis Ratio",
     "position_angle_best": "Position Angle",
@@ -56,8 +56,8 @@ params = {
 plot_params = ["scale_radius_pixels_best", "axis_ratio_best", "power_law_slope_best"]
 param_limits = {
     "log_luminosity_best": (1, 8),
-    "x_pix_snapshot_oversampled_best": (25, 35),
-    "y_pix_snapshot_oversampled_best": (25, 35),
+    "dx_from_snap_center": (-2.5, 2.5),
+    "dy_from_snap_center": (-2.5, 2.5),
     "scale_radius_pixels_best": (0.05, 20),
     "axis_ratio_best": (-0.05, 1.05),
     "position_angle_best": (0, np.pi),
@@ -74,8 +74,8 @@ for param in param_limits:
     )
 param_scale = {
     "log_luminosity_best": "linear",
-    "x_pix_snapshot_oversampled_best": "linear",
-    "y_pix_snapshot_oversampled_best": "linear",
+    "dx_from_snap_center": "linear",
+    "dy_from_snap_center": "linear",
     "scale_radius_pixels_best": "log",
     "axis_ratio_best": "linear",
     "position_angle_best": "linear",
@@ -84,8 +84,8 @@ param_scale = {
 }
 param_bins = {
     "log_luminosity_best": np.arange(1, 8, 0.5),
-    "x_pix_snapshot_oversampled_best": np.arange(25, 35, 0.25),
-    "y_pix_snapshot_oversampled_best": np.arange(25, 35, 0.25),
+    "dx_from_snap_center": np.arange(-2.5, 2.5, 0.125),
+    "dy_from_snap_center": np.arange(-2.5, 2.5, 0.125),
     "scale_radius_pixels_best": np.logspace(-2, 2, 41),
     "axis_ratio_best": np.arange(-0.1, 1.1, 0.05),
     "position_angle_best": np.arange(0, 3.5, 0.1),

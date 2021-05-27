@@ -904,6 +904,19 @@ for row in fits_catalog:
 # del fits_catalog["fractional_err-"]
 # del fits_catalog["fractional_err+"]
 
+# transform the oversampled coords into an offset from the center
+def oversampled_to_offset(oversampled):
+    return (oversampled - 0.5 * snapshot_size_oversampled) / oversampling_factor
+
+
+fits_catalog["dx_from_snap_center"] = oversampled_to_offset(
+    fits_catalog["x_pix_snapshot_oversampled_best"]
+)
+fits_catalog["dy_from_snap_center"] = oversampled_to_offset(
+    fits_catalog["y_pix_snapshot_oversampled_best"]
+)
+
+
 # Then we determine which clusters are good. First we do simple checks based on the
 # parameter values
 fits_catalog["radius_fit_failure"] = np.logical_or.reduce(
@@ -913,10 +926,8 @@ fits_catalog["radius_fit_failure"] = np.logical_or.reduce(
         fits_catalog["scale_radius_pixels_best"] > 15.0,
         # include some buffer on the pixel boundaries, since some are very close to
         # this boundary and should be thrown out
-        fits_catalog["x_pix_snapshot_oversampled_best"] < 26.1,
-        fits_catalog["x_pix_snapshot_oversampled_best"] > 33.9,
-        fits_catalog["y_pix_snapshot_oversampled_best"] < 26.10,
-        fits_catalog["y_pix_snapshot_oversampled_best"] > 33.9,
+        abs(fits_catalog["dx_from_snap_center"]) > 1.95,
+        abs(fits_catalog["dy_from_snap_center"]) > 1.95,
     ]
 )
 

@@ -19,9 +19,7 @@ bpl.set_style()
 #
 # ======================================================================================
 plot_name = sys.argv[1]
-catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[2:]]
-# then stack them together in one master catalog
-big_catalog = table.vstack(catalogs, join_type="inner")
+big_catalog = table.Table.read(sys.argv[2], format="ascii.ecsv")
 
 # ======================================================================================
 #
@@ -35,11 +33,11 @@ axs[0].hist(big_catalog["log_luminosity_best"], bins=np.linspace(1, 10, 41))
 axs[0].add_labels("Log Luminosity [e$^-$]", "Number of Clusters")
 axs[0].set_limits(1, 10)
 
-axs[1].hist(big_catalog["x_pix_snapshot_oversampled_best"], bin_size=0.25)
-axs[1].add_labels("X Position [pixels]", "Number of Clusters")
+axs[1].hist(big_catalog["dx_from_snap_center"], bin_size=0.1)
+axs[1].add_labels("X Position from center [pixels]", "Number of Clusters")
 
-axs[2].hist(big_catalog["y_pix_snapshot_oversampled_best"], bin_size=0.25)
-axs[2].add_labels("Y Position [pixels]", "Number of Clusters")
+axs[2].hist(big_catalog["dy_from_snap_center"], bin_size=0.1)
+axs[2].add_labels("Y Position from center [pixels]", "Number of Clusters")
 
 x_min, x_max = 0.03, 200
 axs[3].hist(

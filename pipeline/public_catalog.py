@@ -66,20 +66,6 @@ for row in catalog:
 # then calculate specific star formation rate
 catalog["galaxy_ssfr"] = catalog["galaxy_sfr"] / catalog["galaxy_stellar_mass"]
 
-# validate that all clusters from the same galaxy have the same galaxy properties
-for gal in np.unique(catalog["galaxy"]):
-    mask = catalog["galaxy"] == gal
-    assert len(np.unique(catalog["galaxy_distance_mpc"][mask])) == 1
-    assert len(np.unique(catalog["galaxy_distance_mpc_err"][mask])) == 1
-    assert len(np.unique(catalog["galaxy_stellar_mass"][mask])) == 1
-    assert len(np.unique(catalog["galaxy_sfr"][mask])) == 1
-    assert len(np.unique(catalog["galaxy_ssfr"][mask])) == 1
-# double check the field distances too, since those are the same per field
-for field in np.unique(catalog["field"]):
-    mask = catalog["field"] == field
-    assert len(np.unique(catalog["galaxy_distance_mpc"][mask])) == 1
-    assert len(np.unique(catalog["galaxy_distance_mpc_err"][mask])) == 1
-
 # ======================================================================================
 #
 # a bit of into about the sample
@@ -97,24 +83,6 @@ print(f"{len(np.unique(catalog['field']))} different fields")
 print(f"{len(np.unique(catalog['galaxy']))} different galaxies")
 # for gal in np.unique(catalog["galaxy"]):
 #     print(f"\t- {gal}")
-
-# and do some validation
-for col in catalog.colnames:
-    try:
-        assert np.sum(np.isnan(catalog[col])) == 0
-        assert np.sum(np.isinf(catalog[col])) == 0
-        assert np.sum(np.isneginf(catalog[col])) == 0
-    except TypeError:  # can't check if strings are nans
-        continue
-    except AssertionError:
-        # density and crossing time have nans where the mass is bad
-        assert "density" in col or "crossing_time" in col
-        # check that there are no nans where the mass is good
-        mask_good_mass = catalog["reliable_mass"]
-        assert np.sum(np.isnan(catalog[col][mask_good_mass])) == 0
-        assert np.sum(np.isinf(catalog[col][mask_good_mass])) == 0
-        assert np.sum(np.isneginf(catalog[col][mask_good_mass])) == 0
-
 
 # ======================================================================================
 #
@@ -182,6 +150,8 @@ new_col_order = [
     "y_fitted_best",
     "y_fitted_e+",
     "y_fitted_e-",
+    "dx_from_snap_center",
+    "dy_from_snap_center",
     "log_luminosity_best",
     "log_luminosity_e+",
     "log_luminosity_e-",
@@ -231,5 +201,57 @@ assert sorted(new_col_order) == sorted(catalog.colnames)
 # then apply this order
 catalog = catalog[new_col_order]
 
-# then write the catalog!
+# ======================================================================================
+#
+# Catalog validation
+#
+# ======================================================================================
+# validate that a user can reconstruct the fit failures from the parameters in the table
+mask_test = np.logical_or.reduce(
+    [
+        catalog["axis_ratio_best"] < 0.3,
+        catalog["scale_radius_pixels_best"] < 0.1,
+        catalog["scale_radius_pixels_best"] > 15.0,
+        abs(catalog["dx_from_snap_center"]) > 1.95,
+        abs(catalog["dy_from_snap_center"]) > 1.95,
+    ]
+)
+assert np.array_equal(mask_test, catalog["radius_fit_failure"])
+
+# validate that there aren't nans or infinities where they don't belong
+for col in catalog.colnames:
+    try:
+        assert np.sum(np.isnan(catalog[col])) == 0
+        assert np.sum(np.isinf(catalog[col])) == 0
+        assert np.sum(np.isneginf(catalog[col])) == 0
+    except TypeError:  # can't check if strings are nans
+        continue
+    except AssertionError:
+        # density and crossing time have nans where the mass is bad
+        assert "density" in col or "crossing_time" in col
+        # check that there are no nans where the mass is good
+        mask_good_mass = catalog["reliable_mass"]
+        assert np.sum(np.isnan(catalog[col][mask_good_mass])) == 0
+        assert np.sum(np.isinf(catalog[col][mask_good_mass])) == 0
+        assert np.sum(np.isneginf(catalog[col][mask_good_mass])) == 0
+
+# validate that all clusters from the same galaxy have the same galaxy properties
+for gal in np.unique(catalog["galaxy"]):
+    mask = catalog["galaxy"] == gal
+    assert len(np.unique(catalog["galaxy_distance_mpc"][mask])) == 1
+    assert len(np.unique(catalog["galaxy_distance_mpc_err"][mask])) == 1
+    assert len(np.unique(catalog["galaxy_stellar_mass"][mask])) == 1
+    assert len(np.unique(catalog["galaxy_sfr"][mask])) == 1
+    assert len(np.unique(catalog["galaxy_ssfr"][mask])) == 1
+# double check the field distances too, since those are the same per field
+for field in np.unique(catalog["field"]):
+    mask = catalog["field"] == field
+    assert len(np.unique(catalog["galaxy_distance_mpc"][mask])) == 1
+    assert len(np.unique(catalog["galaxy_distance_mpc_err"][mask])) == 1
+
+# ======================================================================================
+#
+# write the catalog!
+#
+# ======================================================================================
 catalog.write(output_table, format="ascii.ecsv")
