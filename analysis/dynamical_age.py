@@ -15,6 +15,9 @@ from matplotlib import colors
 from matplotlib import cm
 import betterplotlib as bpl
 
+# set random seed for reproducibility
+np.random.seed(123)
+
 bpl.set_style()
 
 mrr_dir = Path(__file__).resolve().parent / "mass_radius_relation"

@@ -10,6 +10,9 @@ from astropy import table
 from scipy import spatial, optimize
 import numpy as np
 
+# set random seed for reproducibility
+np.random.seed(123)
+
 # ======================================================================================
 #
 # Load the catalogs that were passed in

@@ -11,6 +11,9 @@ import numpy as np
 
 import utils, fit_utils
 
+# set random seed for reproducibility
+np.random.seed(123)
+
 # ======================================================================================
 #
 # Load the parameters that were passed in

@@ -15,6 +15,9 @@ from matplotlib import pyplot as plt
 from matplotlib import ticker, gridspec
 import betterplotlib as bpl
 
+# set random seed for reproducibility
+np.random.seed(123)
+
 bpl.set_style()
 
 # import a colormap function from the mass-size relation plots

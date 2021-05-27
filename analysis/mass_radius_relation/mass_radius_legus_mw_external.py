@@ -13,6 +13,9 @@ import mass_radius_utils_mle_fitting as mru_mle
 import mass_radius_utils_plotting as mru_p
 import mass_radius_utils_external_data as mru_d
 
+# set random seed for reproducibility
+np.random.seed(123)
+
 bpl.set_style()
 
 # load the parameters the user passed in

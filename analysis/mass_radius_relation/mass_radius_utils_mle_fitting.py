@@ -3,6 +3,9 @@ from scipy import optimize
 
 import mass_radius_utils as mru
 
+# set random seed for reproducibility
+np.random.seed(123)
+
 # ======================================================================================
 #
 # Simple fitting of the mass-size model
