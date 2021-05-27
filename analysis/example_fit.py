@@ -55,9 +55,10 @@ for row in catalog:
     if row["ID"] == cluster_id and row["galaxy"] == galaxy and row["field"] == field:
         break
 
-# Then get the snapshot of this cluster
-x_cen = int(np.ceil(row["x_fitted_best"]))
-y_cen = int(np.ceil(row["y_fitted_best"]))
+# Then get the snapshot of this cluster. Have to subtract one to account for the
+# difference in zero vs one indexing between the catalog and Python
+x_cen = int(np.ceil(row["x_fitted_best"])) - 1
+y_cen = int(np.ceil(row["y_fitted_best"])) - 1
 
 # Get the snapshot, based on the size desired
 x_min = x_cen - 15
@@ -72,9 +73,9 @@ mask_snapshot = mask[y_min:y_max, x_min:x_max]
 mask_snapshot = fit_utils.handle_mask(mask_snapshot, row["ID"])
 
 # then have new centers for the fit within this snapshot. See the code in fit.py to
-# correct for the oversampling factor
-x_cen_snap = row["x_fitted_best"] - x_min
-y_cen_snap = row["y_fitted_best"] - y_min
+# correct for the oversampling factor. Also have to correct for indexing here too.
+x_cen_snap = row["x_fitted_best"] - x_min - 1
+y_cen_snap = row["y_fitted_best"] - y_min - 1
 x_cen_snap_oversampled = (x_cen_snap + 0.25) * 2
 y_cen_snap_oversampled = (y_cen_snap + 0.25) * 2
 

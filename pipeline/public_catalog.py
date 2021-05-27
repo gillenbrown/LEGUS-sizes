@@ -142,8 +142,6 @@ new_col_order = [
     "chi_2_reduced",
     "Q_probability",
     "N_filters",
-    "x",
-    "y",
     "x_fitted_best",
     "x_fitted_e+",
     "x_fitted_e-",
@@ -190,8 +188,6 @@ new_col_order = [
     "radius_fit_failure",
     "reliable_radius",
     "reliable_mass",
-    "x_pix_single_fitted",
-    "y_pix_single_fitted",
 ]
 
 # check that I got all columns listed

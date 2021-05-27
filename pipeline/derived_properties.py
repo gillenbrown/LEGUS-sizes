@@ -959,8 +959,12 @@ fits_catalog["reliable_mass"] = np.logical_and.reduce(
 
 # Then add one back to the output catalog to be comparable to LEGUS results. This is
 # because of Python being zero indexed
-fits_catalog["x_pix_single_fitted"] = fits_catalog["x_fitted_best"] + 1
-fits_catalog["y_pix_single_fitted"] = fits_catalog["y_fitted_best"] + 1
+fits_catalog["x_fitted_best"] += 1
+fits_catalog["y_fitted_best"] += 1
+# can also delete the regular "x" and "y" columns, which are just to handle the zero
+# indexing of python vs the 1 indexing of fits
+del fits_catalog["x"]
+del fits_catalog["y"]
 
 # ======================================================================================
 #
