@@ -186,14 +186,9 @@ outputs = $(galaxy_table) $(public_catalog) \
           $(dynamical_age_plot) $(bound_fraction_plot) \
           $(density_plot) $(density_fits_txt) \
           $(fit_quality_plot) $(toy_model_plot) $(example_fit_plot) \
-          $(mass_radius_legus_full_plot) $(mass_radius_legus_full_txt) \
-          $(mass_radius_legus_young_plot) $(mass_radius_legus_young_txt) \
-          $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_agesplit_txt) \
-          $(mass_radius_legus_ssfrsplit_plot) $(mass_radius_legus_ssfrsplit_txt) \
-          $(mass_radius_legus_mw_txt) \
-          $(mass_radius_legus_external_txt) \
-          $(mass_radius_legus_mw_external_plot) $(mass_radius_legus_mw_external_txt) \
-          $(mass_radius_table) \
+          $(mass_radius_legus_full_plot) $(mass_radius_legus_young_plot) \
+          $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_ssfrsplit_plot) \
+          $(mass_radius_legus_mw_external_plot) $(mass_radius_table) \
           $(artificial_comparison) \
           $(readme)
 
