@@ -17,10 +17,77 @@ import utils
 
 # Get the input arguments
 output_table = Path(sys.argv[1])
-# load the individual catalogs, then stack them together in one master catalog
-catalog = table.vstack(
-    [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[2:]],
-    join_type="inner",
+catalogs = [table.Table.read(item, format="ascii.ecsv") for item in sys.argv[2:]]
+
+# ======================================================================================
+#
+# handling class
+#
+# ======================================================================================
+# this is ugly, sorry
+for cat in catalogs:
+    # manually do the sorting of classes depending on the field.
+    # `pipeline/format_catalogs.py` was referenced to get this right.
+    assert len(np.unique(cat["field"])) == 1
+    field = cat["field"][0]
+
+    # set dummy column to make sure the string is long enough
+    cat["morphology_class_source"] = " " * 20
+
+    if field == "ngc5194-ngc5195-mosaic":
+        # Here we use the class_mode_human, but then supplement it with the ML
+        # classification for ones that weren't classified by humans
+        mask_ml = cat["class_mode_human"] == 0
+        mask_h = ~mask_ml
+
+        # then fill in appropriately. First use dummy for class, will fill in
+        cat["morphology_class"] = -99
+        cat["morphology_class"][mask_h] = cat["class_mode_human"][mask_h]
+        cat["morphology_class"][mask_ml] = cat["class_ml"][mask_ml]
+        cat["morphology_class_source"][mask_h] = "human_mode"
+        cat["morphology_class_source"][mask_ml] = "ml"
+
+        # check my work
+        mask_ml_check = cat["morphology_class_source"] == "ml"
+        assert np.array_equal(np.unique(cat["class_mode_human"][mask_ml_check]), [0])
+
+    # note that NGC4449 is another case where we originally selected ML clusters, but
+    # now it only has human selected clusters. We threw out the ML clusters in derived
+    # properties. Double check this
+    elif field == "ngc4449":
+        for c in np.unique(cat["class_whitmore"]):
+            assert c in [1, 2]
+        cat.rename_column("class_whitmore", "morphology_class")
+        cat["morphology_class_source"] = "human_mode"
+
+    elif field == "ngc1566":
+        # Here we simply use the hybrid method, as the documentation says it is the one
+        # to use
+        cat.rename_column("class_hybrid", "morphology_class")
+        cat["morphology_class_source"] = "hybrid"
+
+    else:  # normal catalogs
+        if "class_mode_human" in cat.colnames:
+            class_col = "class_mode_human"
+        elif "class_linden_whitmore" in cat.colnames:
+            class_col = "class_linden_whitmore"
+        elif "class_whitmore" in cat.colnames:
+            class_col = "class_whitmore"
+        else:
+            raise ValueError(f"No class found for {field}")
+
+        cat.rename_column(class_col, "morphology_class")
+        cat["morphology_class_source"] = "human_mode"
+
+
+# then stack them together in one master catalog
+catalog = table.vstack(catalogs, join_type="inner")
+
+# validate what I've done with the classes
+assert np.array_equal(np.unique(catalog["morphology_class"]), [1, 2])
+assert np.array_equal(
+    np.unique(catalog["morphology_class_source"]),
+    ["human_mode", "hybrid", "ml"],
 )
 
 # ======================================================================================
@@ -114,7 +181,6 @@ new_col_order = [
     "galaxy_sfr",
     "galaxy_ssfr",
     "pixel_scale",
-    "from_ml",
     "RA",
     "Dec",
     "x_pix_single",
@@ -126,6 +192,8 @@ new_col_order = [
     "mag_F814W",
     "photoerr_F814W",
     "CI",
+    "morphology_class",
+    "morphology_class_source",
     "age_yr",
     "age_yr_max",
     "age_yr_min",

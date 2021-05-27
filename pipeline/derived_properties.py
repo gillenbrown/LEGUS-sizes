@@ -74,23 +74,13 @@ else:
 
 # ======================================================================================
 #
-# Note whether each cluster comes from the human of ML selection
+# Throw out ML clusters from NGC4449
 #
 # ======================================================================================
 # I would have done this in pre-processing, but I didn't think to do this until after
-# the fits were already done, so I'm doing it here
+# the fits were already done, so I'm doing it here.
 if field_name == "ngc4449":
-    fits_catalog["from_ml"] = fits_catalog["class_whitmore"] == 5
-elif field_name == "ngc5194-ngc5195-mosaic":
-    fits_catalog["from_ml"] = fits_catalog["class_mode_human"] == 0
-elif field_name == "ngc1566":
-    fits_catalog["from_ml"] = fits_catalog["class_hybrid_method"] == 0
-else:
-    fits_catalog["from_ml"] = False
-
-# also throw out ones that are in NGC4449 and ML identified
-if field_name == "ngc4449":
-    fits_catalog.remove_rows(np.where(fits_catalog["from_ml"]))
+    fits_catalog.remove_rows(np.where(fits_catalog["class_whitmore"] == 5))
 
 # ======================================================================================
 #
