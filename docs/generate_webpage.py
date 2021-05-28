@@ -9,50 +9,16 @@ Takes the following command line arguments:
 - the public catalog.
 """
 import sys
+import re
 from pathlib import Path
 from astropy import table
 
 # Get the input arguments
-output = Path(sys.argv[1])
+out_file = open(sys.argv[1], "w")
 catalog = table.Table.read(sys.argv[2], format="ascii.ecsv")
 
 # set up the column names to make sure I include all of them, and that I do so in order
 unused_colnames = catalog.colnames.copy()
-
-# ======================================================================================
-#
-# write the introductory information to the header
-#
-# ======================================================================================
-out_file = open(output, "w")
-
-out_file.write(
-    "# LEGUS-sizes\n"
-    "This repository holds the code and the catalog used in Brown & Gnedin 2021. "
-    "The catalog is the `cluster_sizes_brown_gnedin_21.txt` file here. I'll first "
-    "describe the catalog, then describe the code used to generate the catalog.\n"
-    "\n"
-    "## Cluster Catalog\n"
-    "The cluster catalog contains quantities calculated by LEGUS such as masses and "
-    "radii ("
-    "[Calzetti et al. 2015]"
-    "(https://ui.adsabs.harvard.edu/abs/2015AJ....149...51C/abstract), "
-    "[Adamo et al. 2017]"
-    "(https://ui.adsabs.harvard.edu/abs/2017ApJ...841..131A/abstract), "
-    "[Cook et al. 2019]"
-    "(https://ui.adsabs.harvard.edu/abs/2019MNRAS.484.4897C/abstract)"
-    ") as well as the radii and other derived quantities from this paper. "
-    "If using quantities from those papers, please cite them appropriately.\n"
-    "\n"
-    "I will not give a detailed description of the columns that come from LEGUS. "
-    "Reference the papers above or the "
-    "[public LEGUS catalogs]"
-    "(https://archive.stsci.edu/prepds/legus/dataproducts-public.html) "
-    "for more on that data.\n"
-    "\n"
-    "I do include all properties needed to duplicate the analysis done in the paper."
-    "\n"
-)
 
 # ======================================================================================
 #
@@ -68,15 +34,7 @@ groups = {
     "pixel_scale": ["pixel_scale"],
     "ra_dec": ["RA", "Dec"],
     "xy_legus": ["x_pix_single", "y_pix_single"],
-    "photometry": [
-        "mag_F275W",
-        "photoerr_F275W",
-        "mag_F336W",
-        "photoerr_F336W",
-        "mag_F814W",
-        "photoerr_F814W",
-    ],
-    "ci": ["CI"],
+    "eta": ["power_law_slope", "power_law_slope_e-", "power_law_slope_e+"],
 }
 
 # ======================================================================================
@@ -99,21 +57,20 @@ descriptions = {
     "galaxy_props": "Stellar masses, star formation rates, and  specific star "
     "formation rates of the host galaxy, from "
     "[Calzetti et al. 2015]"
-    "(https://ui.adsabs.harvard.edu/abs/2015AJ....149...51C/abstract)."
+    "(https://ui.adsabs.harvard.edu/abs/2015AJ....149...51C/abstract). "
     "SFR is obtained from *GALEX* far-UV corrected for dust attenuation, as described "
     "in "
     "[Lee et al. 2009](https://ui.adsabs.harvard.edu/abs/2009ApJ...706..599L/abstract)"
     ", and stellar mass from extinction-corrected B-band luminosity and color "
     "information, as described in "
     "[Bothwell et al. 2009]"
-    "(https://ui.adsabs.harvard.edu/abs/2009MNRAS.400..154B/abstract)"
+    "(https://ui.adsabs.harvard.edu/abs/2009MNRAS.400..154B/abstract) "
     "and using the mass-to-light ratio models of "
     "[Bell & de Jong 2001]"
-    "(https://ui.adsabs.harvard.edu/abs/2001ApJ...550..212B/abstract).",
+    "(https://ui.adsabs.harvard.edu/abs/2001ApJ...550..212B/abstract). ",
     "pixel_scale": "Pixel scale for the image. All are nearly 39.62 mas/pixel.",
     "ra_dec": "Right ascension and declination from the LEGUS catalog.",
     "xy_legus": "X/Y pixel position of the cluster from the LEGUS catalog.",
-    "photometry": "LEGUS photometry.",
     "ci": "Concentration Index (CI), defined as the which is the magnitude difference "
     "between apertures of radius 1 pixel and 3 pixels. A cut was used to separate "
     "stars from clusters.",
@@ -124,31 +81,52 @@ descriptions = {
 # write these to the catalog!
 #
 # ======================================================================================
-for group_name, group in groups.items():
-    # validate that we got the colnames in order as we write them
-    for col in group:
-        assert col == unused_colnames[0]
-        del unused_colnames[0]
+# What I'll do is have placeholders for specific column. I'll identify those
+# placeholders and replace them with the actual column name
+template_flag = "__template__"
+template_regex = re.compile(f"{template_flag}\w*{template_flag}")
 
-    # then go through and write the column names to the file.
-    out_file.write("**")
-    for idx_c in range(len(group)):
-        out_file.write(f"`{group[idx_c]}`")
-        # if we are not at the last column name of the group, we need to write a comma
-        if idx_c != len(group) - 1:
-            out_file.write(", ")
-        # if we are the last column name, put the newline
+with open(sys.argv[3], "r") as template:
+    for line in template:
+        # see if this is a line where a template should be inserted
+        if template_regex.match(line.strip()):
+            # grab the name of the group being indicated here
+            group_name = line.strip().replace(template_flag, "")
+            # then get the columns that belong to this group
+            group = groups[group_name]
+
+            # validate that we got the colnames in order as we write them
+            for col in group:
+                try:
+                    assert col == unused_colnames[0]
+                except AssertionError:
+                    raise RuntimeError(f"{col} bad order, should be:", unused_colnames)
+                # if successful, delete the column
+                del unused_colnames[0]
+
+            # then go through and write the column names to the file.
+            out_file.write("**")
+            for idx_c in range(len(group)):
+                out_file.write(f"`{group[idx_c]}`")
+                # if we are not at the last column name of the group, we need to
+                # write a comma
+                if idx_c != len(group) - 1:
+                    out_file.write(", ")
+                # if we are the last column name, put the newline
+                else:
+                    out_file.write("**\n\n")
+
+            # then write the description
+            out_file.write(descriptions[group_name])
+            out_file.write("\n\n")
+        # if it does not match the template, just write the line
         else:
-            out_file.write("**\n")
-
-    # then write the description
-    out_file.write(descriptions[group_name])
-    out_file.write("\n\n")
+            out_file.write(line)
 
 # check that we got everything
 try:
     assert len(unused_colnames) == 0
 except AssertionError:
-    print(unused_colnames)
-    raise RuntimeError
+    raise RuntimeError("These coluns are unused:", unused_colnames)
+
 out_file.close()
