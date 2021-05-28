@@ -300,7 +300,7 @@ plot_colors = [
 for p, ax in zip(params_to_compare, axs):
     ax.scatter(
         catalog[p + "_true"],
-        catalog[p + "_best"],
+        catalog[p],
         alpha=1,
         c=plot_colors,
     )
