@@ -1,5 +1,5 @@
 """
-generate_readme.py
+generate_webpage.py
 
 Generate the readme file. I only do this programatically to make the formatting easier
 on me and to make sure I document all columns in the public catalog.
