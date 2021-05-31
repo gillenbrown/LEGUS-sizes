@@ -29,15 +29,15 @@ big_catalog = table.Table.read(sys.argv[2], format="ascii.ecsv")
 fig, axs = bpl.subplots(ncols=3, nrows=3, figsize=[15, 11])
 axs = axs.flatten()
 
-axs[0].hist(big_catalog["log_luminosity"], bins=np.linspace(1, 10, 41))
-axs[0].add_labels("Log Luminosity [e$^-$]", "Number of Clusters")
+axs[0].hist(big_catalog["mu_0"], bins=np.linspace(1, 10, 41))
+axs[0].add_labels("Peak Pixel Value [e$^-$]", "Number of Clusters")
 axs[0].set_limits(1, 10)
 
-axs[1].hist(big_catalog["dx_from_snap_center"], bin_size=0.1)
-axs[1].add_labels("X Position from center [pixels]", "Number of Clusters")
+axs[1].hist(big_catalog["x_fitted"] - big_catalog["x_pix_single"], bin_size=0.1)
+axs[1].add_labels("X Position from LEGUS [pixels]", "Number of Clusters")
 
-axs[2].hist(big_catalog["dy_from_snap_center"], bin_size=0.1)
-axs[2].add_labels("Y Position from center [pixels]", "Number of Clusters")
+axs[2].hist(big_catalog["y_fitted"] - big_catalog["y_pix_single"], bin_size=0.1)
+axs[2].add_labels("Y Position from LEGUS [pixels]", "Number of Clusters")
 
 x_min, x_max = 0.03, 200
 axs[3].hist(
@@ -67,7 +67,7 @@ axs[7].hist(big_catalog["local_background"], bin_size=100)
 axs[7].add_labels("Local Background", "Number of Clusters")
 axs[7].set_limits(-100, 1000)
 
-axs[8].hist(big_catalog["num_boostrapping_iterations"], bin_size=5)
+axs[8].hist(big_catalog["num_bootstrap_iterations"], bin_size=5)
 axs[8].add_labels("Number of Bootstrapping Iterations", "Number of Clusters")
 axs[8].set_limits(0)
 

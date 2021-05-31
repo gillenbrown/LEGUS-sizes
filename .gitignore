@@ -8,8 +8,11 @@ pipeline/test_fit.py
 *.idea
 
 # temporary images used in PSF selection
-*.png
-*.pdf
+testing/*.png
+testing/*.pdf
+analysis/*.png
+analysis/*.pdf
+analysis/*/*.png
 
 # output plots
 outputs*/*

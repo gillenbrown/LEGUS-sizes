@@ -72,6 +72,10 @@ if ryon_like:
 else:
     radial_weighting = "annulus"
 
+
+# rename the bootstrapping column
+fits_catalog.rename_column("num_boostrapping_iterations", "num_bootstrap_iterations")
+
 # ======================================================================================
 #
 # Throw out ML clusters from NGC4449
@@ -149,6 +153,47 @@ for col in dist_cols:
     # don't do anything with them here
     del fits_catalog[col + "_x0_variations"]
 del fits_catalog["log_likelihood_x0_variations"]
+
+# ======================================================================================
+#
+# Convert luminosity back into peak pixel value
+#
+# ======================================================================================
+# code copied from fit_utils.py
+def calculate_mu_0(log_l, eta, a):
+    # use all the other parameters to turn luminosity into mu (assume 15 pixel
+    # maximum radius).
+    mu_0_term_a = 10 ** (log_l) * (eta - 1) / (np.pi * a ** 2)
+    mu_0_term_b = 1 - (1 + (15 / a) ** 2) ** (1 - eta)
+    # sometimes parameters can conspire to make the bottom term essentially or
+    # identically zero. Guard against this. We do need to be careful about the sign,
+    # since this can be negative.
+    if mu_0_term_b == 0:
+        mu_0_term_b = 1e-15
+    mu_0_term_b = np.sign(mu_0_term_b) * max(abs(mu_0_term_b), 1e-15)
+
+    # then combine the two terms
+    return mu_0_term_a / mu_0_term_b
+
+
+fits_catalog["mu_0_best"] = -99.9
+fits_catalog["mu_0"] = np.array(-99.9, dtype="object")
+for row in fits_catalog:
+    row["mu_0_best"] = calculate_mu_0(
+        row["log_luminosity_best"],
+        row["power_law_slope_best"],
+        row["scale_radius_pixels_best"],
+    )
+    row["mu_0"] = [
+        calculate_mu_0(
+            row["log_luminosity"][idx],
+            row["power_law_slope"][idx],
+            row["scale_radius_pixels"][idx],
+        )
+        for idx in range(row["num_bootstrap_iterations"])
+    ]
+
+dist_cols.append("mu_0")
 
 # ======================================================================================
 #
@@ -368,8 +413,8 @@ fits_catalog["crossing_time_log_err"] = np.sqrt(
 
 # Then calculate the surface density and 3D density. This is in solar mass per cubic
 # parsec or square parsec.
-fits_catalog["3d_density"] = 3 * m / (8 * np.pi * r_eff ** 3)
-fits_catalog["3d_density_log_err"] = np.sqrt(d_log_m ** 2 + (3 * d_log_r) ** 2)
+fits_catalog["density"] = 3 * m / (8 * np.pi * r_eff ** 3)
+fits_catalog["density_log_err"] = np.sqrt(d_log_m ** 2 + (3 * d_log_r) ** 2)
 
 fits_catalog["surface_density"] = m / (2 * np.pi * r_eff ** 2)
 fits_catalog["surface_density_log_err"] = np.sqrt(d_log_m ** 2 + (2 * d_log_r) ** 2)
