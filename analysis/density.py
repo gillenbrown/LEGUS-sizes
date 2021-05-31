@@ -45,8 +45,8 @@ big_catalog = big_catalog[good_mask]
 # Get the quantities we'll need for the plot
 #
 # ======================================================================================
-density_3d = big_catalog["3d_density"]
-density_3d_log_err = big_catalog["3d_density_log_err"]
+density_3d = big_catalog["density"]
+density_3d_log_err = big_catalog["density_log_err"]
 density_2d = big_catalog["surface_density"]
 density_2d_log_err = big_catalog["surface_density_log_err"]
 

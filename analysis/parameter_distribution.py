@@ -33,11 +33,11 @@ axs[0].hist(big_catalog["log_luminosity"], bins=np.linspace(1, 10, 41))
 axs[0].add_labels("Log Luminosity [e$^-$]", "Number of Clusters")
 axs[0].set_limits(1, 10)
 
-axs[1].hist(big_catalog["dx_from_snap_center"], bin_size=0.1)
-axs[1].add_labels("X Position from center [pixels]", "Number of Clusters")
+axs[1].hist(big_catalog["x_fitted"] - big_catalog["x_pix_single"], bin_size=0.1)
+axs[1].add_labels("X Position from LEGUS [pixels]", "Number of Clusters")
 
-axs[2].hist(big_catalog["dy_from_snap_center"], bin_size=0.1)
-axs[2].add_labels("Y Position from center [pixels]", "Number of Clusters")
+axs[2].hist(big_catalog["y_fitted"] - big_catalog["y_pix_single"], bin_size=0.1)
+axs[2].add_labels("Y Position from LEGUS [pixels]", "Number of Clusters")
 
 x_min, x_max = 0.03, 200
 axs[3].hist(

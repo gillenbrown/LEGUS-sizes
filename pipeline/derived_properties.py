@@ -368,8 +368,8 @@ fits_catalog["crossing_time_log_err"] = np.sqrt(
 
 # Then calculate the surface density and 3D density. This is in solar mass per cubic
 # parsec or square parsec.
-fits_catalog["3d_density"] = 3 * m / (8 * np.pi * r_eff ** 3)
-fits_catalog["3d_density_log_err"] = np.sqrt(d_log_m ** 2 + (3 * d_log_r) ** 2)
+fits_catalog["density"] = 3 * m / (8 * np.pi * r_eff ** 3)
+fits_catalog["density_log_err"] = np.sqrt(d_log_m ** 2 + (3 * d_log_r) ** 2)
 
 fits_catalog["surface_density"] = m / (2 * np.pi * r_eff ** 2)
 fits_catalog["surface_density_log_err"] = np.sqrt(d_log_m ** 2 + (2 * d_log_r) ** 2)

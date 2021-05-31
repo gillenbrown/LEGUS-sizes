@@ -182,6 +182,9 @@ catalog.remove_columns(
         "chi_2_F814W",
         "chi_2_reduced",
         "N_filters",
+        "Q_probability",
+        "dx_from_snap_center",
+        "dy_from_snap_center",
     ]
 )
 
@@ -208,15 +211,12 @@ new_col_order = [
     "mass_msun",
     "mass_msun_min",
     "mass_msun_max",
-    "Q_probability",
     "x_fitted",
     "x_fitted_e-",
     "x_fitted_e+",
     "y_fitted",
     "y_fitted_e-",
     "y_fitted_e+",
-    "dx_from_snap_center",
-    "dy_from_snap_center",
     "log_luminosity",
     "log_luminosity_e-",
     "log_luminosity_e+",
@@ -235,8 +235,9 @@ new_col_order = [
     "local_background",
     "local_background_e-",
     "local_background_e+",
-    "profile_diff_reff",
+    "num_boostrapping_iterations",
     "radius_fit_failure",
+    "profile_diff_reff",
     "reliable_radius",
     "reliable_mass",
     "r_eff_pixels",
@@ -248,11 +249,10 @@ new_col_order = [
     "r_eff_pc",
     "r_eff_pc_e-",
     "r_eff_pc_e+",
-    "num_boostrapping_iterations",
     "crossing_time_yr",
     "crossing_time_log_err",
-    "3d_density",
-    "3d_density_log_err",
+    "density",
+    "density_log_err",
     "surface_density",
     "surface_density_log_err",
 ]
@@ -269,18 +269,6 @@ catalog = catalog[new_col_order]
 # Catalog validation
 #
 # ======================================================================================
-# validate that a user can reconstruct the fit failures from the parameters in the table
-mask_test = np.logical_or.reduce(
-    [
-        catalog["axis_ratio"] < 0.3,
-        catalog["scale_radius_pixels"] < 0.1,
-        catalog["scale_radius_pixels"] > 15.0,
-        abs(catalog["dx_from_snap_center"]) > 1.95,
-        abs(catalog["dy_from_snap_center"]) > 1.95,
-    ]
-)
-assert np.array_equal(mask_test, catalog["radius_fit_failure"])
-
 # validate that there aren't nans or infinities where they don't belong
 for col in catalog.colnames:
     try:
