@@ -31,10 +31,38 @@ groups = {
     "galaxy": ["galaxy"],
     "distance": ["galaxy_distance_mpc", "galaxy_distance_mpc_err"],
     "galaxy_props": ["galaxy_stellar_mass", "galaxy_sfr", "galaxy_ssfr"],
-    "pixel_scale": ["pixel_scale"],
+    # "pixel_scale": ["pixel_scale"],
     "ra_dec": ["RA", "Dec"],
     "xy_legus": ["x_pix_single", "y_pix_single"],
+    "morphology": ["morphology_class"],
+    "morphology_source": ["morphology_class_source"],
+    "age": ["age_yr", "age_yr_min", "age_yr_max"],
+    "mass": ["mass_msun", "mass_msun_min", "mass_msun_max"],
+    "xy": [
+        "x_fitted",
+        "x_fitted_e-",
+        "x_fitted_e+",
+        "y_fitted",
+        "y_fitted_e-",
+        "y_fitted_e+",
+    ],
+    "mu": ["mu_0", "mu_0_e-", "mu_0_e+"],
+    "a": ["scale_radius_pixels", "scale_radius_pixels_e-", "scale_radius_pixels_e+"],
+    "q": ["axis_ratio", "axis_ratio_e-", "axis_ratio_e+"],
+    "theta": ["position_angle", "position_angle_e-", "position_angle_e+"],
     "eta": ["power_law_slope", "power_law_slope_e-", "power_law_slope_e+"],
+    "bg": ["local_background", "local_background_e-", "local_background_e+"],
+    "bootstrap": ["num_bootstrap_iterations"],
+    "fit_failure": ["radius_fit_failure"],
+    "prof_diff": ["profile_diff_reff"],
+    "reliable_radius": ["reliable_radius"],
+    "reliable_mass": ["reliable_mass"],
+    "r_eff_pix": ["r_eff_pixels", "r_eff_pixels_e-", "r_eff_pixels_e+"],
+    "r_eff_arcsec": ["r_eff_arcsec", "r_eff_arcsec_e-", "r_eff_arcsec_e+"],
+    "r_eff_pc": ["r_eff_pc", "r_eff_pc_e-", "r_eff_pc_e+"],
+    "crossing_time": ["crossing_time_yr", "crossing_time_log_err"],
+    "density": ["density", "density_log_err"],
+    "surface_density": ["surface_density", "surface_density_log_err"],
 }
 
 # ======================================================================================
@@ -47,7 +75,7 @@ descriptions = {
     "over multiple fields (NGC 1313, NGC 4395, NGC 628, and NGC 7793), and that one "
     "field contains multiple galaxies (NGC 5194 and NGC 5195).",
     "id": "The cluster ID assigned by LEGUS. This was done on a field-by-field basis.",
-    "galaxy": "The galaxy the cluster belongs to. NGC 5194 and NGC 5195 are separated"
+    "galaxy": "The galaxy the cluster belongs to. NGC 5194 and NGC 5195 are separated "
     "manually (see Figure 1 of the paper). ",
     "distance": "Distance to the galaxy and its error. We use the TRGB distances to "
     "all LEGUS galaxies provided by "
@@ -68,13 +96,89 @@ descriptions = {
     "and using the mass-to-light ratio models of "
     "[Bell & de Jong 2001]"
     "(https://ui.adsabs.harvard.edu/abs/2001ApJ...550..212B/abstract). ",
-    "pixel_scale": "Pixel scale for the image. All are nearly 39.62 mas/pixel.",
+    # "pixel_scale": "Pixel scale for the image. All are nearly 39.62 mas/pixel.",
     "ra_dec": "Right ascension and declination from the LEGUS catalog.",
     "xy_legus": "X/Y pixel position of the cluster from the LEGUS catalog.",
-    "ci": "Concentration Index (CI), defined as the which is the magnitude difference "
-    "between apertures of radius 1 pixel and 3 pixels. A cut was used to separate "
-    "stars from clusters.",
+    # "ci": "Concentration Index (CI), defined as the which is the magnitude difference "
+    # "between apertures of radius 1 pixel and 3 pixels. A cut was used to separate "
+    # "stars from clusters.",
+    "morphology": "Visual classification of the morphology of the clusters by LEGUS "
+    "team members. Three or more team members visually inspect each cluster candidate, "
+    "classifying it into one of the following four classes. Class 1 objects are "
+    "compact and centrally concentrated with a homogeneous color. Class 2 clusters "
+    "have slightly elongated density profiles and a less symmetric light distribution. "
+    "Class 3 clusters are likely compact associations, having asymmetric profiles or "
+    "multiple peaks on top of diffuse underlying wings. Class 4 objects are stars or "
+    "artifacts. Note that a handful of galaxies have classifications from machine "
+    "learning. See the `morphology_class_source` attribute to see which galaxies this "
+    "applies to.",
+    "morphology_source": "The source of the classification of the morphology in the "
+    "`morphology` attribute. When available, we use the mode of the classifications "
+    "from multiple team members, called `human_mode` in this column. Additionally, "
+    "machine learning classifications (`ml`) are available for several galaxies "
+    "For NGC 5194 and NGC 5195, we use the human classifications for clusters where "
+    "those are available, and supplement with machine learning classifications for "
+    "clusters not inspected by humans. In NGC 1566, we use the hybrid classification "
+    "system (`hybrid`) created by the LEGUS team, where some clusters are inspected "
+    "by humans only, some by machine learning only, and some with a machine learning "
+    "classification verified by humans.",
+    "age": "Cluster age (in years) and its minimum and maximum allowed value from "
+    "LEGUS. This uses the deterministic SED fitting method presented in "
+    "[Adamo et al. 2017]"
+    "(https://ui.adsabs.harvard.edu/abs/2017ApJ...841..131A/abstract).",
+    "mass": "Cluster mass (in solar masses) and its minimum and maximum allowed value "
+    "from LEGUS using the same SED fitting as `age`. ",
+    "xy": "The x/y pixel position. ",
+    "mu": "The central pixel value $\mu_0$, in units of electrons. Note that this is "
+    "the peak pixel value of the raw profile before convolution with the PSF and "
+    "rebinning (see Equation 8), so it may not be directly useful.",
+    "a": "Scale radius $a$, in units of pixels.",
+    "q": "Axis ratio $q$, defined as the ratio of the minor to major axis, such that "
+    "$0 < q \leq 1$.",
+    "theta": "Position angle $\\theta$.",
+    "eta": "Power law slope $\eta$.",
+    "bg": "Value of the local background, in units of electrons.",
+    "bootstrap": "Number of bootstrap iterations done to calculate errors on "
+    "fit parameters.",
+    "fit_failure": "Whether a given cluster is identified as having a failed radius "
+    "fit. We define this as as a scale radius $a < 0.1$ pixels, $a > 15$ pixels, or an "
+    "axis ratio $q < 0.3$. We also exclude any clusters where the fitted center is "
+    "more than 2 pixels away from the central pixel identified by LEGUS.",
+    "prof_diff": "Our metric to evaluate the fit quality, defined in Equation 16. "
+    "It uses the cumulative light profile to estimate the half-light radius of the "
+    "cluster non-parametrically, then compares the enclosed light of the model and "
+    "data within this radius. This value is the fractional error of the enclosed "
+    "light of the model. We use this quantity to determine whether the radius fit "
+    "is reliable (Section 2.6).",
+    "reliable_radius": "Whether or not this cluster radius is deemed to be reliable. "
+    "To be reliable, a cluster must not have a failed fit (see above), and must not "
+    "be in the worst 10th percentile of `prof_diff`. See Section 2.6 for more on this. "
+    "Our analysis in the paper only uses clusters deemed to be reliable.",
+    "reliable_mass": "Whether or not we consider this cluster to have a reliable "
+    "measurement of the mass. This relies on a consideration of the Q statistic "
+    "(see Section 3.3 for more on this). For any analysis using masses or ages, we "
+    "only consider clusters with reliable masses.",
+    "r_eff_pix": "The cluster effective radius, or more precisely the projected "
+    "half light radius, in units of pixels. See Section 2.5 for more on how this is "
+    "calculated.",
+    "r_eff_arcsec": "The cluster effective radius, or more precisely the projected "
+    "half light radius, in units of arcseconds. We provide this to make it easier for "
+    "future users (i.e. you) to modify the galaxy distance estimates assumed in this "
+    "paper.",
+    "r_eff_pc": "The cluster effective radius, or more precisely the projected "
+    "half light radius, in units of parsecs. The galaxy distances in this table were "
+    "used to convert from arcseconds to parsecs.",
+    "crossing_time": "The cluster crossing time, as defined by "
+    "[Gieles & Portegies Zwart 2011]"
+    "(https://ui.adsabs.harvard.edu/abs/2011MNRAS.410L...6G/abstract) "
+    "(our equation 21). ",
+    "density": "The cluster average 3D mass density within the half light radius, as "
+    "defined by Equation 22, in units of $M_\odot pc^{-3}$",
+    "surface_density": "The cluster average surface mass density within the half "
+    "light radius, as defined by Equation 22, in units of $M_\odot pc^{-2}$",
 }
+
+assert sorted(list(groups.keys())) == sorted(list(descriptions.keys()))
 
 # ======================================================================================
 #
