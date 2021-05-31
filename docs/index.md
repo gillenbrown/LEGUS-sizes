@@ -11,7 +11,49 @@ In what follows we demonstrate how to load and use the data, then detail what ea
 
 ## Reading the Data
 
+The catalog is written with Astropy in the `.ecsv` format, which can be read by any `.csv` reader, but allows for preservation of data types when read by Astropy. Here is an example of how to reconstruct the data shown in Figure 11.
+
+```python
+from astropy import table
+import matplotlib.pyplot as plt
+import numpy as np
+
+catalog = table.Table.read("cluster_sizes_brown_gnedin_21.txt", format="ascii.ecsv")
+
+# parse the LEGUS mass errors
+catalog["mass_msun_e-"] = catalog["mass_msun"] - catalog["mass_msun_min"]
+catalog["mass_msun_e+"] = catalog["mass_msun_max"] - catalog["mass_msun"]
+
+# get the clusters with reliable radii and masses.
+mask = np.logical_and(catalog["reliable_radius"], catalog["reliable_mass"])
+subset = catalog[mask]
+
+# plot the data
+fig, ax = plt.subplots()
+ax.errorbar(
+    x=subset["mass_msun"],
+    y=subset["r_eff_pc"],
+    fmt="o",
+    markersize=2,
+    xerr=[subset["mass_msun_e-"], subset["mass_msun_e+"]],
+    yerr=[subset["r_eff_pc_e-"], subset["r_eff_pc_e+"]],
+    lw=0.3,
+)
+
+# plot formatting
+ax.set_xscale("log")
+ax.set_yscale("log")
+ax.set_xlim(1e2, 1e6)
+ax.set_ylim(0.1, 40)
+ax.set_xlabel("Mass [$M_\odot$]")
+ax.set_ylabel("Radius [pc]")
+
+```
+![mass radius relation example](example_mrr.png)
+
 ## Catalog Columns
+
+Here we detail the meaning of all columns in the data table.
 
 ### Basic Cluster Properties
 
@@ -80,8 +122,6 @@ Cluster mass (in solar masses) and its minimum and maximum allowed value from LE
 The catalog includes all the fit parameters and their errors. The EFF profile takes the basic form:
 
 ![EFF profile](eff.png)
-
-<img src="eff.png" alt="EFF profile" width="200"/>
 
 We generalize this (Equations 2-4) to include ellipticity by including an axis ratio and position angle. 
 

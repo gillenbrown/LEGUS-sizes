@@ -50,6 +50,7 @@ fitting_script = $(pipeline_dir)fit.py
 fit_utils = $(pipeline_dir)fit_utils.py
 final_catalog_script = $(pipeline_dir)derived_properties.py
 public_catalog_script = $(pipeline_dir)public_catalog.py
+example_mrr_plot_script = $(docs_dir)example_plot.py
 webpage_script = $(docs_dir)generate_webpage.py
 comparison_script = $(analysis_dir)ryon_comparison.py
 radii_def_plot_script = $(analysis_dir)radii_def_comp_plot.py
@@ -143,12 +144,13 @@ endif
 
 # ------------------------------------------------------------------------------
 #
-# Various plots and tables that will be here in this directory
+# Various plots and tables that will be the outputs
 #
 # ------------------------------------------------------------------------------
 galaxy_table = $(local_plots_dir)galaxy_table.txt
 public_catalog = cluster_sizes_brown_gnedin_21.txt
 webpage_template = $(docs_dir)index_template.md
+example_mrr_plot = $(docs_dir)example_mrr.png
 webpage = $(docs_dir)/index.md
 psf_demo_image = $(local_plots_dir)psf_demo_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.pdf
 comparison_plot = $(local_plots_dir)comparison_plot.pdf
@@ -303,9 +305,6 @@ $(fit_quality_plot): $(fit_quality_script) $(final_cats)
 $(public_catalog): $(public_catalog_script) $(final_cats)
 	python $(public_catalog_script) $@ $(final_cats)
 
-$(webpage): $(webpage_script) $(public_catalog) $(webpage_template)
-	python $(webpage_script) $@ $(public_catalog) $(webpage_template)
-
 $(param_dist_plot): $(parameters_dist_script) $(public_catalog)
 	python $(parameters_dist_script) $@ $(public_catalog)
 
@@ -412,3 +411,12 @@ $(artificial_final_cat): $(final_catalog_script) $(fit_utils) $(artificial_fit) 
 
 $(artificial_comparison): $(artificial_final_cat) $(artificial_comparison_script)
 	python $(artificial_comparison_script) $@ $(artificial_final_cat) $(artificial_psf) $(psf_oversampling_factor)
+
+# ------------------------------------------------------------------------------
+#  Documentation
+# ------------------------------------------------------------------------------
+$(example_mrr_plot): $(example_mrr_plot_script) $(public_catalog)
+	python $(example_mrr_plot_script) $@ $(public_catalog)
+
+$(webpage): $(webpage_script) $(public_catalog) $(webpage_template) $(example_mrr_plot)
+	python $(webpage_script) $@ $(public_catalog) $(webpage_template) $(example_mrr_plot_script)

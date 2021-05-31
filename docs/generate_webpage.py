@@ -16,9 +16,40 @@ from astropy import table
 # Get the input arguments
 out_file = open(sys.argv[1], "w")
 catalog = table.Table.read(sys.argv[2], format="ascii.ecsv")
+template_loc = sys.argv[3]
+example_script_loc = sys.argv[4]
+
+# get the name of the catalog
+public_cat_name = Path(sys.argv[2]).resolve().name
 
 # set up the column names to make sure I include all of them, and that I do so in order
 unused_colnames = catalog.colnames.copy()
+
+# ======================================================================================
+#
+# read in the example script ahead of time so it can be inserted later
+#
+# ======================================================================================
+example_script_text = ""
+with open(example_script_loc, "r") as example:
+    # I want to ignore some lines, which I've noted in the script with tags
+    ignore = False
+    for line in example:
+        # check for the flags
+        if line.strip() == "# ignore":
+            ignore = True
+        elif line.strip() == "# end ignore":
+            ignore = False
+            continue  # don't write this flag line
+
+        # then we can use this to hold the lines
+        if not ignore:
+            example_script_text += line
+
+# I also have a placeholder for the name of the catalog, which needs to be replaced
+example_script_text = example_script_text.replace(
+    "cat_loc_replace", f'"{public_cat_name}"'
+)
 
 # ======================================================================================
 #
@@ -190,7 +221,7 @@ assert sorted(list(groups.keys())) == sorted(list(descriptions.keys()))
 template_flag = "__template__"
 template_regex = re.compile(f"{template_flag}\w*{template_flag}")
 
-with open(sys.argv[3], "r") as template:
+with open(template_loc, "r") as template:
     for line in template:
         # see if this is a line where a template should be inserted
         if template_regex.match(line.strip()):
@@ -223,7 +254,11 @@ with open(sys.argv[3], "r") as template:
             # then write the description
             out_file.write(descriptions[group_name])
             out_file.write("\n\n")
-        # if it does not match the template, just write the line
+        # I also have the code example
+        elif line.strip() == "__insert_code_here__":
+            out_file.write(example_script_text)
+
+        # if it does not match any templates, just write the line
         else:
             out_file.write(line)
 

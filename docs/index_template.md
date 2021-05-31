@@ -11,7 +11,16 @@ In what follows we demonstrate how to load and use the data, then detail what ea
 
 ## Reading the Data
 
+The catalog is written with Astropy in the `.ecsv` format, which can be read by any `.csv` reader, but allows for preservation of data types when read by Astropy. Here is an example of how to reconstruct the data shown in Figure 11.
+
+```python
+__insert_code_here__
+```
+![mass radius relation example](example_mrr.png)
+
 ## Catalog Columns
+
+Here we detail the meaning of all columns in the data table.
 
 ### Basic Cluster Properties
 
@@ -47,8 +56,6 @@ __template__mass__template__
 The catalog includes all the fit parameters and their errors. The EFF profile takes the basic form:
 
 ![EFF profile](eff.png)
-
-<img src="eff.png" alt="EFF profile" width="200"/>
 
 We generalize this (Equations 2-4) to include ellipticity by including an axis ratio and position angle. 
 
