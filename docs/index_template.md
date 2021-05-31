@@ -2,7 +2,10 @@
 
 This page summarizes the cluster catalogs generated in Brown & Gnedin 2021. The catalog includes the radii, all EFF fit parameters, densities, errors on all these parameters, and a few key LEGUS properties such as mass and age. All data needed to replicate plots 10-17 is included in this catalog. Any references below to equations or figures are from our paper.
 
-To download the catalog, go here:  TODO
+The catalog can easily be downloaded with `wget`: 
+```
+wget https://raw.githubusercontent.com/gillenbrown/LEGUS-sizes/master/cluster_sizes_brown_gnedin_21.txt
+```
 
 In what follows we demonstrate how to load and use the data, then detail what each column in the data is.
 
