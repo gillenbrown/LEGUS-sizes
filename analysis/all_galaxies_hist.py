@@ -24,6 +24,11 @@ catalog = table.Table.read(sys.argv[2], format="ascii.ecsv")
 # restrict to the clusters with reliable radii
 catalog = catalog[catalog["reliable_radius"]]
 
+# add the pixel scale to be used below
+catalog["pixel_scale"] = catalog["r_eff_arcsec"] / catalog["r_eff_pixels"]
+for item in catalog["pixel_scale"]:
+    assert np.isclose(item, 39.62e-3, atol=0, rtol=1e-2)
+
 # calculate the mean error in log space, will be used for the KDE smothing
 r_eff = catalog["r_eff_pc"]
 log_r_eff = np.log10(r_eff)

@@ -32,6 +32,9 @@ catalog = table.Table.read(sys.argv[5], format="ascii.ecsv")
 # get some derived properties to use later
 home_dir = Path(sys.argv[5]).parent
 fields = np.unique(catalog["field"])
+catalog["pixel_scale"] = catalog["r_eff_arcsec"] / catalog["r_eff_pixels"]
+for item in catalog["pixel_scale"]:
+    assert np.isclose(item, 39.62e-3, atol=0, rtol=1e-2)
 
 # ======================================================================================
 #

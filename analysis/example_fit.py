@@ -30,6 +30,11 @@ snapshot_size = int(sys.argv[4])
 snapshot_size_oversampled = snapshot_size * oversampling_factor
 catalog = table.Table.read(sys.argv[5], format="ascii.ecsv")
 
+# add the pixel scale for use later
+catalog["pixel_scale"] = catalog["r_eff_arcsec"] / catalog["r_eff_pixels"]
+for item in catalog["pixel_scale"]:
+    assert np.isclose(item, 39.62e-3, atol=0, rtol=1e-2)
+
 # ======================================================================================
 #
 # Load the data we need
@@ -84,8 +89,16 @@ y_cen_snap_oversampled = (y_cen_snap + 0.25) * 2
 # Creating the EFF profile
 #
 # ======================================================================================
+# The fit utils uses log luminosity rather than mu_0, which is what is in the output
+# file. Convert back to that.
+def mu_to_logl(mu_0, eta, a):
+    logl_term_a = mu_0 * (np.pi * a ** 2) / (eta - 1)
+    logl_term_b = 1 - (1 + (15 / a) ** 2) ** (1 - eta)
+    return np.log10(logl_term_a * logl_term_b)
+
+
 models = fit_utils.create_model_image(
-    row["log_luminosity"],
+    mu_to_logl(row["mu_0"], row["power_law_slope"], row["scale_radius_pixels"]),
     x_cen_snap_oversampled,
     y_cen_snap_oversampled,
     row["scale_radius_pixels"],
