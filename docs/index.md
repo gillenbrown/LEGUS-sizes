@@ -85,7 +85,7 @@ Stellar masses, star formation rates, and  specific star formation rates of the 
 ### LEGUS Cluster Properties
 
 These properties come from the LEGUS catalogs. If using quantities from those papers, please cite them appropriately:
- [Calzetti et al. 2015](https://ui.adsabs.harvard.edu/abs/2015AJ....149...51C/abstract), [Adamo et al. 2017](https://ui.adsabs.harvard.edu/abs/2017ApJ...841..131A/abstract), [Cook et al. 2019](https://ui.adsabs.harvard.edu/abs/2019MNRAS.484.4897C/abstract)
+ [Calzetti et al. 2015](https://ui.adsabs.harvard.edu/abs/2015AJ....149...51C/abstract), [Adamo et al. 2017](https://ui.adsabs.harvard.edu/abs/2017ApJ...841..131A/abstract), [Cook et al. 2019](https://ui.adsabs.harvard.edu/abs/2019MNRAS.484.4897C/abstract).
 
 **`RA`, `Dec`**
 
@@ -104,7 +104,7 @@ Visual classification of the morphology of the clusters by LEGUS team members. T
 
 **`morphology_class_source`**
 
-The source of the classification of the morphology in the `morphology` attribute. When available, we use the mode of the classifications from multiple team members, called `human_mode` in this column. Additionally, machine learning classifications (`ml`) are available for several galaxies For NGC 5194 and NGC 5195, we use the human classifications for clusters where those are available, and supplement with machine learning classifications for clusters not inspected by humans. In NGC 1566, we use the hybrid classification system (`hybrid`) created by the LEGUS team, where some clusters are inspected by humans only, some by machine learning only, and some with a machine learning classification verified by humans.
+The source of the classification of the morphology in the `morphology` attribute. When available, we use the mode of the classifications from multiple team members, called `human_mode` in this column. Additionally, machine learning classifications (`ml`) are available for several galaxies. For NGC 5194 and NGC 5195, we use the human classifications for clusters where those are available, and supplement with machine learning classifications for clusters not inspected by humans. In NGC 1566, we use the hybrid classification system (`hybrid`) created by the LEGUS team, where some clusters are inspected by humans only, some by machine learning only, and some with a machine learning classification verified by humans.
 
 
 **`age_yr`, `age_yr_min`, `age_yr_max`**
@@ -114,7 +114,7 @@ Cluster age (in years) and its minimum and maximum allowed value from LEGUS. Thi
 
 **`mass_msun`, `mass_msun_min`, `mass_msun_max`**
 
-Cluster mass (in solar masses) and its minimum and maximum allowed value from LEGUS using the same SED fitting as `age`. 
+Cluster mass (in solar masses) and its minimum and maximum allowed value from LEGUS using the same SED fitting as `age_yr`. 
 
 
 ### Fit Parameters
@@ -174,14 +174,14 @@ Number of bootstrap iterations done to calculate errors on fit parameters.
 Whether a given cluster is identified as having a failed radius fit. We define this as as a scale radius a < 0.1 pixels, a > 15 pixels, or an axis ratio q < 0.3. We also exclude any clusters where the fitted center is more than 2 pixels away from the central pixel identified by LEGUS.
 
 
-**`profile_diff_reff`**
+**`fit_quality_metric`**
 
 Our metric to evaluate the fit quality, defined in Equation 16. It uses the cumulative light profile to estimate the half-light radius of the cluster non-parametrically, then compares the enclosed light of the model and data within this radius. This value is the fractional error of the enclosed light of the model. We use this quantity to determine whether the radius fit is reliable (Section 2.6).
 
 
 **`reliable_radius`**
 
-Whether or not this cluster radius is deemed to be reliable. To be reliable, a cluster must not have a failed fit (see above), and must not be in the worst 10th percentile of `prof_diff_reff`. See Section 2.6 for more on this. Our analysis in the paper only uses clusters deemed to be reliable.
+Whether or not this cluster radius is deemed to be reliable. To be reliable, a cluster must not have a failed fit (see above), and must not be in the worst 10th percentile of `fit_quality_metric`. See Section 2.6 for more on this. Our analysis in the paper only uses clusters deemed to be reliable.
 
 
 **`reliable_mass`**

@@ -85,7 +85,7 @@ groups = {
     "bg": ["local_background", "local_background_e-", "local_background_e+"],
     "bootstrap": ["num_bootstrap_iterations"],
     "fit_failure": ["radius_fit_failure"],
-    "prof_diff": ["profile_diff_reff"],
+    "prof_diff": ["fit_quality_metric"],
     "reliable_radius": ["reliable_radius"],
     "reliable_mass": ["reliable_mass"],
     "r_eff_pix": ["r_eff_pixels", "r_eff_pixels_e-", "r_eff_pixels_e+"],
@@ -182,7 +182,7 @@ descriptions = {
     "is reliable (Section 2.6).",
     "reliable_radius": "Whether or not this cluster radius is deemed to be reliable. "
     "To be reliable, a cluster must not have a failed fit (see above), and must not "
-    "be in the worst 10th percentile of `prof_diff_reff`. See Section 2.6 for more "
+    "be in the worst 10th percentile of `fit_quality_metric`. See Section 2.6 for more "
     "on this. Our analysis in the paper only uses clusters deemed to be reliable.",
     "reliable_mass": "Whether or not we consider this cluster to have a reliable "
     "measurement of the mass. This relies on a consideration of the Q statistic "

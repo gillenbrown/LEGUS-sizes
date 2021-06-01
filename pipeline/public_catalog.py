@@ -192,6 +192,9 @@ catalog.remove_columns(
     ]
 )
 
+# rename the quality metric
+catalog.rename_column("profile_diff_reff", "fit_quality_metric")
+
 # set the order for the leftover columns
 new_col_order = [
     "field",
@@ -240,7 +243,7 @@ new_col_order = [
     "local_background_e+",
     "num_bootstrap_iterations",
     "radius_fit_failure",
-    "profile_diff_reff",
+    "fit_quality_metric",
     "reliable_radius",
     "reliable_mass",
     "r_eff_pixels",
