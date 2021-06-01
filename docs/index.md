@@ -29,10 +29,7 @@ catalog["mass_e-"] = catalog["mass_msun"] - catalog["mass_msun_min"]
 catalog["mass_e+"] = catalog["mass_msun_max"] - catalog["mass_msun"]
 
 # get the clusters with reliable radii and masses.
-mask = np.logical_and(
-    catalog["reliable_radius"],
-    catalog["reliable_mass"]
-)
+mask = catalog["reliable_radius"] & catalog["reliable_mass"]
 subset = catalog[mask]
 
 # plot the data
