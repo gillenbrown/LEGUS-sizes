@@ -134,27 +134,27 @@ The x/y pixel position.
 
 **`mu_0`, `mu_0_e-`, `mu_0_e+`**
 
-The central pixel value $\mu_0$, in units of electrons. Note that this is the peak pixel value of the raw profile before convolution with the PSF and rebinning (see Equation 8), so it may not be directly useful.
+The central pixel value μ<sub>0</sub>, in units of electrons. Note that this is the peak pixel value of the raw profile before convolution with the PSF and rebinning (see Equation 8), so it may not be directly useful.
 
 
 **`scale_radius_pixels`, `scale_radius_pixels_e-`, `scale_radius_pixels_e+`**
 
-Scale radius $a$, in units of pixels.
+Scale radius a, in units of pixels.
 
 
 **`axis_ratio`, `axis_ratio_e-`, `axis_ratio_e+`**
 
-Axis ratio $q$, defined as the ratio of the minor to major axis, such that $0 < q \leq 1$.
+Axis ratio q, defined as the ratio of the minor to major axis, such that 0 < q ≤ 1.
 
 
 **`position_angle`, `position_angle_e-`, `position_angle_e+`**
 
-Position angle $\theta$.
+Position angle θ.
 
 
 **`power_law_slope`, `power_law_slope_e-`, `power_law_slope_e+`**
 
-Power law slope $\eta$.
+Power law slope η.
 
 
 **`local_background`, `local_background_e-`, `local_background_e+`**
@@ -171,7 +171,7 @@ Number of bootstrap iterations done to calculate errors on fit parameters.
 
 **`radius_fit_failure`**
 
-Whether a given cluster is identified as having a failed radius fit. We define this as as a scale radius $a < 0.1$ pixels, $a > 15$ pixels, or an axis ratio $q < 0.3$. We also exclude any clusters where the fitted center is more than 2 pixels away from the central pixel identified by LEGUS.
+Whether a given cluster is identified as having a failed radius fit. We define this as as a scale radius a < 0.1 pixels, a > 15 pixels, or an axis ratio q < 0.3. We also exclude any clusters where the fitted center is more than 2 pixels away from the central pixel identified by LEGUS.
 
 
 **`profile_diff_reff`**
@@ -213,11 +213,11 @@ The cluster crossing time, as defined by [Gieles & Portegies Zwart 2011](https:/
 
 **`density`, `density_log_err`**
 
-The cluster average 3D mass density within the half light radius, as defined by Equation 22, in units of $M_\odot pc^{-3}$
+The cluster average 3D mass density within the half light radius, as defined by Equation 22, in units of M<sub>⊙</sub>pc<sup>-3</sup>.
 
 
 **`surface_density`, `surface_density_log_err`**
 
-The cluster average surface mass density within the half light radius, as defined by Equation 22, in units of $M_\odot pc^{-2}$
+The cluster average surface mass density within the half light radius, as defined by Equation 22, in units of M<sub>⊙</sub>pc<sup>-2</sup>.
 
 

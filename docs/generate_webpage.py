@@ -160,20 +160,20 @@ descriptions = {
     "mass": "Cluster mass (in solar masses) and its minimum and maximum allowed value "
     "from LEGUS using the same SED fitting as `age`. ",
     "xy": "The x/y pixel position. ",
-    "mu": "The central pixel value $\mu_0$, in units of electrons. Note that this is "
-    "the peak pixel value of the raw profile before convolution with the PSF and "
-    "rebinning (see Equation 8), so it may not be directly useful.",
-    "a": "Scale radius $a$, in units of pixels.",
-    "q": "Axis ratio $q$, defined as the ratio of the minor to major axis, such that "
-    "$0 < q \leq 1$.",
-    "theta": "Position angle $\\theta$.",
-    "eta": "Power law slope $\eta$.",
+    "mu": "The central pixel value μ<sub>0</sub>, in units of electrons. Note that "
+    "this is the peak pixel value of the raw profile before convolution with the PSF "
+    "and rebinning (see Equation 8), so it may not be directly useful.",
+    "a": "Scale radius a, in units of pixels.",
+    "q": "Axis ratio q, defined as the ratio of the minor to major axis, such that "
+    "0 < q ≤ 1.",
+    "theta": "Position angle θ.",
+    "eta": "Power law slope η.",
     "bg": "Value of the local background, in units of electrons.",
     "bootstrap": "Number of bootstrap iterations done to calculate errors on "
     "fit parameters.",
     "fit_failure": "Whether a given cluster is identified as having a failed radius "
-    "fit. We define this as as a scale radius $a < 0.1$ pixels, $a > 15$ pixels, or an "
-    "axis ratio $q < 0.3$. We also exclude any clusters where the fitted center is "
+    "fit. We define this as as a scale radius a < 0.1 pixels, a > 15 pixels, or an "
+    "axis ratio q < 0.3. We also exclude any clusters where the fitted center is "
     "more than 2 pixels away from the central pixel identified by LEGUS.",
     "prof_diff": "Our metric to evaluate the fit quality, defined in Equation 16. "
     "It uses the cumulative light profile to estimate the half-light radius of the "
@@ -204,9 +204,10 @@ descriptions = {
     "(https://ui.adsabs.harvard.edu/abs/2011MNRAS.410L...6G/abstract) "
     "(our equation 21). ",
     "density": "The cluster average 3D mass density within the half light radius, as "
-    "defined by Equation 22, in units of $M_\odot pc^{-3}$",
+    "defined by Equation 22, in units of M<sub>⊙</sub>pc<sup>-3</sup>.",
     "surface_density": "The cluster average surface mass density within the half "
-    "light radius, as defined by Equation 22, in units of $M_\odot pc^{-2}$",
+    "light radius, as defined by Equation 22, in units of "
+    "M<sub>⊙</sub>pc<sup>-2</sup>.",
 }
 
 assert sorted(list(groups.keys())) == sorted(list(descriptions.keys()))
