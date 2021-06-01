@@ -6,6 +6,7 @@ The catalog can easily be downloaded with `wget`:
 ```
 wget https://raw.githubusercontent.com/gillenbrown/LEGUS-sizes/master/cluster_sizes_brown_gnedin_21.txt
 ```
+It can also be directly accessed at that URL. 
 
 In what follows we demonstrate how to load and use the data, then detail what each column in the data is.
 
@@ -189,7 +190,9 @@ Whether or not this cluster radius is deemed to be reliable. To be reliable, a c
 Whether or not we consider this cluster to have a reliable measurement of the mass. This relies on a consideration of the Q statistic (see Section 3.3 for more on this). For any analysis using masses or ages, we only consider clusters with reliable masses.
 
 
-### Derived Properties
+### Effective Radius
+
+Here we include the effective radius and its errors. The errors are marginalized over all other fit parameters. We calculate the effective radius of each bootstrap iteration, then use the percentiles to determine the upper and lower errors. The lower error is the best fit value minus the 16th percentile value, while the upper error is the 84th percentile value minus the best fit value. The errors for R<sub>eff</sub> in pixels and arcseconds only include the uncertainty in radius, while the errors for R<sub>eff</sub> also include the uncertainty in galaxy distance.
 
 **`r_eff_pixels`, `r_eff_pixels_e-`, `r_eff_pixels_e+`**
 
@@ -205,6 +208,10 @@ The cluster effective radius, or more precisely the projected half light radius,
 
 The cluster effective radius, or more precisely the projected half light radius, in units of parsecs. The galaxy distances in this table were used to convert from arcseconds to parsecs.
 
+
+### Derived Properties
+
+We also calculate some quantities that use both the mass and radius. For the errors on these quantities, we symmetrize both the mass and radius errors, then propagate them analytically. Note that the errors are on the log space quantity, so the error range given here should be interpreted as log<sub>10</sub>(`quantity`) ± `quantity_log_err`. 
 
 **`crossing_time_yr`, `crossing_time_log_err`**
 
