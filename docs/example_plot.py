@@ -39,6 +39,5 @@ ax.set_xlim(1e2, 1e6)
 ax.set_ylim(0.1, 40)
 ax.set_xlabel("Mass [$M_\odot$]")
 ax.set_ylabel("Radius [pc]")
-
 # ignore
 fig.savefig(plot_name, bbox_inches="tight")

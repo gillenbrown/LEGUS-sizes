@@ -48,7 +48,6 @@ ax.set_xlim(1e2, 1e6)
 ax.set_ylim(0.1, 40)
 ax.set_xlabel("Mass [$M_\odot$]")
 ax.set_ylabel("Radius [pc]")
-
 ```
 ![mass radius relation example](example_mrr.png)
 
@@ -75,12 +74,12 @@ The galaxy the cluster belongs to. NGC 5194 and NGC 5195 are separated manually 
 
 **`galaxy_distance_mpc`, `galaxy_distance_mpc_err`**
 
-Distance to the galaxy and its error. We use the TRGB distances to all LEGUS galaxies provided by [Sabbi et al. 2018](https://ui.adsabs.harvard.edu/abs/2018ApJS..235...23S/abstract), except for NGC 1566. See the end of Section 2.4 for more on distances used.
+Distance to the galaxy and its error, in Mpc. We use the TRGB distances to all LEGUS galaxies provided by [Sabbi et al. 2018](https://ui.adsabs.harvard.edu/abs/2018ApJS..235...23S/abstract), except for NGC 1566. See the end of Section 2.4 for more on distances used.
 
 
 **`galaxy_stellar_mass`, `galaxy_sfr`, `galaxy_ssfr`**
 
-Stellar masses, star formation rates, and  specific star formation rates of the host galaxy, from [Calzetti et al. 2015](https://ui.adsabs.harvard.edu/abs/2015AJ....149...51C/abstract). See the caption of Table 1 for more details.
+Stellar masses, star formation rates, and specific star formation rates of the host galaxy, from [Calzetti et al. 2015](https://ui.adsabs.harvard.edu/abs/2015AJ....149...51C/abstract). See the caption of Table 1 for more details. Stellar masses are in M<sub>⊙</sub>, star formation rates are in M<sub>⊙</sub>yr<sup>-1</sup>, and specific star formation rates are in yr<sup>-1</sup>.
 
 
 ### LEGUS Cluster Properties
@@ -110,12 +109,12 @@ The source of the classification of the morphology in the `morphology` attribute
 
 **`age_yr`, `age_yr_min`, `age_yr_max`**
 
-Cluster age (in years) and its minimum and maximum allowed value from LEGUS. This uses the deterministic SED fitting method presented in [Adamo et al. 2017](https://ui.adsabs.harvard.edu/abs/2017ApJ...841..131A/abstract).
+Cluster age in years and its minimum and maximum allowed value from LEGUS. This uses the deterministic SED fitting method presented in [Adamo et al. 2017](https://ui.adsabs.harvard.edu/abs/2017ApJ...841..131A/abstract).
 
 
 **`mass_msun`, `mass_msun_min`, `mass_msun_max`**
 
-Cluster mass (in solar masses) and its minimum and maximum allowed value from LEGUS using the same SED fitting as `age_yr`. 
+Cluster mass in M<sub>⊙</sub> and its minimum and maximum allowed value from LEGUS using the same SED fitting as `age_yr`. 
 
 
 ### Fit Parameters
@@ -150,7 +149,7 @@ Axis ratio q, defined as the ratio of the minor to major axis, such that 0 < q �
 
 **`position_angle`, `position_angle_e-`, `position_angle_e+`**
 
-Position angle θ.
+Position angle θ, in radians. Note that since the profile is assumed to be axisymmetric, 0 ≤ θ < π.
 
 
 **`power_law_slope`, `power_law_slope_e-`, `power_law_slope_e+`**
@@ -206,12 +205,12 @@ The cluster effective radius, or more precisely the projected half light radius,
 
 **`r_eff_pc`, `r_eff_pc_e-`, `r_eff_pc_e+`**
 
-The cluster effective radius, or more precisely the projected half light radius, in units of parsecs. The galaxy distances in this table were used to convert from arcseconds to parsecs.
+The cluster effective radius, or more precisely the projected half light radius, in units of parsecs. The galaxy distances in this table were used to convert from arcseconds to parsecs. The uncertainty here includes the uncertainty in galaxy distance. 
 
 
 ### Derived Properties
 
-We also calculate some quantities that use both the mass and radius. For the errors on these quantities, we symmetrize both the mass and radius errors, then propagate them analytically. Note that the errors are on the log space quantity, so the error range given here should be interpreted as log<sub>10</sub>(`quantity`) ± `quantity_log_err`. 
+We also calculate some quantities that use both the mass and radius. For the errors on these quantities, we symmetrize both the mass and radius errors, then propagate them analytically. We use R<sub>eff</sub> in pc, so these uncertainties include the uncertainty in galaxy distance. Note that the errors are on the log space quantity, so the error range given here should be interpreted as log<sub>10</sub>(`quantity`) ± `quantity_log_err`. 
 
 **`crossing_time_yr`, `crossing_time_log_err`**
 

@@ -100,7 +100,7 @@ __template__r_eff_pc__template__
 
 ### Derived Properties
 
-We also calculate some quantities that use both the mass and radius. For the errors on these quantities, we symmetrize both the mass and radius errors, then propagate them analytically. Note that the errors are on the log space quantity, so the error range given here should be interpreted as log<sub>10</sub>(`quantity`) ± `quantity_log_err`. 
+We also calculate some quantities that use both the mass and radius. For the errors on these quantities, we symmetrize both the mass and radius errors, then propagate them analytically. We use R<sub>eff</sub> in pc, so these uncertainties include the uncertainty in galaxy distance. Note that the errors are on the log space quantity, so the error range given here should be interpreted as log<sub>10</sub>(`quantity`) ± `quantity_log_err`. 
 
 __template__crossing_time__template__
 

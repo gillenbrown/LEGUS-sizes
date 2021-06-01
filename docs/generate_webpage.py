@@ -108,16 +108,18 @@ descriptions = {
     "id": "The cluster ID assigned by LEGUS. This was done on a field-by-field basis.",
     "galaxy": "The galaxy the cluster belongs to. NGC 5194 and NGC 5195 are separated "
     "manually (see Figure 1 of the paper). ",
-    "distance": "Distance to the galaxy and its error. We use the TRGB distances to "
-    "all LEGUS galaxies provided by "
+    "distance": "Distance to the galaxy and its error, in Mpc. We use the TRGB "
+    "distances to all LEGUS galaxies provided by "
     "[Sabbi et al. 2018]"
     "(https://ui.adsabs.harvard.edu/abs/2018ApJS..235...23S/abstract)"
     ", except for NGC 1566. See the end of Section 2.4 for more on distances used.",
-    "galaxy_props": "Stellar masses, star formation rates, and  specific star "
+    "galaxy_props": "Stellar masses, star formation rates, and specific star "
     "formation rates of the host galaxy, from "
     "[Calzetti et al. 2015]"
     "(https://ui.adsabs.harvard.edu/abs/2015AJ....149...51C/abstract). "
-    "See the caption of Table 1 for more details.",
+    "See the caption of Table 1 for more details. Stellar masses are in "
+    "M<sub>⊙</sub>, star formation rates are in M<sub>⊙</sub>yr<sup>-1</sup>, and "
+    "specific star formation rates are in yr<sup>-1</sup>.",
     # "SFR is obtained from *GALEX* far-UV corrected for dust attenuation, as described "
     # "in "
     # "[Lee et al. 2009](https://ui.adsabs.harvard.edu/abs/2009ApJ...706..599L/abstract)"
@@ -152,11 +154,11 @@ descriptions = {
     "system (`hybrid`) created by the LEGUS team, where some clusters are inspected "
     "by humans only, some by machine learning only, and some with a machine learning "
     "classification verified by humans.",
-    "age": "Cluster age (in years) and its minimum and maximum allowed value from "
+    "age": "Cluster age in years and its minimum and maximum allowed value from "
     "LEGUS. This uses the deterministic SED fitting method presented in "
     "[Adamo et al. 2017]"
     "(https://ui.adsabs.harvard.edu/abs/2017ApJ...841..131A/abstract).",
-    "mass": "Cluster mass (in solar masses) and its minimum and maximum allowed value "
+    "mass": "Cluster mass in M<sub>⊙</sub> and its minimum and maximum allowed value "
     "from LEGUS using the same SED fitting as `age_yr`. ",
     "xy": "The x/y pixel position. ",
     "mu": "The central pixel value μ<sub>0</sub>, in units of electrons. Note that "
@@ -165,7 +167,8 @@ descriptions = {
     "a": "Scale radius a, in units of pixels.",
     "q": "Axis ratio q, defined as the ratio of the minor to major axis, such that "
     "0 < q ≤ 1.",
-    "theta": "Position angle θ.",
+    "theta": "Position angle θ, in radians. Note that since the profile is assumed "
+    "to be axisymmetric, 0 ≤ θ < π.",
     "eta": "Power law slope η.",
     "bg": "Value of the local background, in units of electrons.",
     "bootstrap": "Number of bootstrap iterations done to calculate errors on "
@@ -197,7 +200,8 @@ descriptions = {
     "paper.",
     "r_eff_pc": "The cluster effective radius, or more precisely the projected "
     "half light radius, in units of parsecs. The galaxy distances in this table were "
-    "used to convert from arcseconds to parsecs.",
+    "used to convert from arcseconds to parsecs. The uncertainty here includes "
+    "the uncertainty in galaxy distance. ",
     "crossing_time": "The cluster crossing time, as defined by "
     "[Gieles & Portegies Zwart 2011]"
     "(https://ui.adsabs.harvard.edu/abs/2011MNRAS.410L...6G/abstract) "
