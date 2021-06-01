@@ -220,11 +220,11 @@ The cluster crossing time, as defined by [Gieles & Portegies Zwart 2011](https:/
 
 **`density`, `density_log_err`**
 
-The cluster average 3D mass density within the half light radius, as defined by Equation 22, in units of M<sub>⊙</sub>pc<sup>-3</sup>.
+The cluster average mass density within the half light radius ρ<sub>h</sub> as defined by Equation 22, in units of M<sub>⊙</sub>pc<sup>-3</sup>.
 
 
 **`surface_density`, `surface_density_log_err`**
 
-The cluster average surface mass density within the half light radius, as defined by Equation 22, in units of M<sub>⊙</sub>pc<sup>-2</sup>.
+The cluster average surface mass density within the half light radius Σ<sub>h</sub> as defined by Equation 22, in units of M<sub>⊙</sub>pc<sup>-2</sup>.
 
 

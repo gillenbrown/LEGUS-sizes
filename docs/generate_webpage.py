@@ -202,10 +202,11 @@ descriptions = {
     "[Gieles & Portegies Zwart 2011]"
     "(https://ui.adsabs.harvard.edu/abs/2011MNRAS.410L...6G/abstract) "
     "(our equation 21). ",
-    "density": "The cluster average 3D mass density within the half light radius, as "
-    "defined by Equation 22, in units of M<sub>⊙</sub>pc<sup>-3</sup>.",
+    "density": "The cluster average mass density within the half light radius "
+    "ρ<sub>h</sub> as defined by Equation 22, in units of "
+    "M<sub>⊙</sub>pc<sup>-3</sup>.",
     "surface_density": "The cluster average surface mass density within the half "
-    "light radius, as defined by Equation 22, in units of "
+    "light radius Σ<sub>h</sub> as defined by Equation 22, in units of "
     "M<sub>⊙</sub>pc<sup>-2</sup>.",
 }
 
