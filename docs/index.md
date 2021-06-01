@@ -19,14 +19,11 @@ from astropy import table
 import matplotlib.pyplot as plt
 import numpy as np
 
-catalog = table.Table.read(
-    "cluster_sizes_brown_gnedin_21.txt",
-    format="ascii.ecsv"
-)
+catalog = table.Table.read("cluster_sizes_brown_gnedin_21.txt", format="ascii.ecsv")
 
 # parse the LEGUS mass errors
-catalog["mass_e-"] = catalog["mass_msun"] - catalog["mass_msun_min"]
-catalog["mass_e+"] = catalog["mass_msun_max"] - catalog["mass_msun"]
+catalog["mass_msun_e-"] = catalog["mass_msun"] - catalog["mass_msun_min"]
+catalog["mass_msun_e+"] = catalog["mass_msun_max"] - catalog["mass_msun"]
 
 # get the clusters with reliable radii and masses.
 mask = catalog["reliable_radius"] & catalog["reliable_mass"]
@@ -40,7 +37,7 @@ ax.errorbar(
     fmt="o",
     markersize=2,
     lw=0.3,
-    xerr=[subset["mass_e-"], subset["mass_e+"]],
+    xerr=[subset["mass_msun_e-"], subset["mass_msun_e+"]],
     yerr=[subset["r_eff_pc_e-"], subset["r_eff_pc_e+"]],
 )
 
@@ -194,7 +191,7 @@ Whether or not we consider this cluster to have a reliable measurement of the ma
 
 ### Effective Radius
 
-Here we include the effective radius and its errors. The errors are marginalized over all other fit parameters. We calculate the effective radius of each bootstrap iteration, then use the percentiles to determine the upper and lower errors. The lower error is the best fit value minus the 16th percentile value, while the upper error is the 84th percentile value minus the best fit value. The errors for R<sub>eff</sub> in pixels and arcseconds only include the uncertainty in radius, while the errors for R<sub>eff</sub> also include the uncertainty in galaxy distance.
+Here we include the effective radius and its errors. The errors are marginalized over all other fit parameters. We calculate the effective radius of each bootstrap iteration, then use the percentiles to determine the upper and lower errors. The lower error is the best fit value minus the 16th percentile value, while the upper error is the 84th percentile value minus the best fit value. The errors in pixels and arcseconds only include the uncertainty in radius, while the errors in parsecs also include the uncertainty in galaxy distance.
 
 **`r_eff_pixels`, `r_eff_pixels_e-`, `r_eff_pixels_e+`**
 
@@ -213,7 +210,7 @@ The cluster effective radius, or more precisely the projected half light radius,
 
 ### Derived Properties
 
-We also calculate some quantities that use both the mass and radius. For the errors on these quantities, we symmetrize both the mass and radius errors, then propagate them analytically. We use R<sub>eff</sub> in pc, so these uncertainties include the uncertainty in galaxy distance. Note that the errors are on the log space quantity, so the error range given here should be interpreted as log<sub>10</sub>(`quantity`) ± `quantity_log_err`. 
+We also calculate some quantities that use both the mass and radius. For the errors on these quantities, we symmetrize both the mass and radius errors, then propagate them analytically. These uncertainties include the uncertainty in galaxy distance. Note that the errors are on the log space quantity, so the error range given here should be interpreted as log<sub>10</sub>(`quantity`) ± `quantity_log_err`. 
 
 **`crossing_time_yr`, `crossing_time_log_err`**
 

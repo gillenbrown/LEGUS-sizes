@@ -9,16 +9,12 @@ import betterplotlib as bpl
 bpl.set_style()
 plot_name = sys.argv[1]
 cat_loc_replace = sys.argv[2]
-# fmt: off
 # end ignore
-catalog = table.Table.read(
-    cat_loc_replace,
-    format="ascii.ecsv"
-)
+catalog = table.Table.read(cat_loc_replace, format="ascii.ecsv")
 
 # parse the LEGUS mass errors
-catalog["mass_e-"] = catalog["mass_msun"] - catalog["mass_msun_min"]
-catalog["mass_e+"] = catalog["mass_msun_max"] - catalog["mass_msun"]
+catalog["mass_msun_e-"] = catalog["mass_msun"] - catalog["mass_msun_min"]
+catalog["mass_msun_e+"] = catalog["mass_msun_max"] - catalog["mass_msun"]
 
 # get the clusters with reliable radii and masses.
 mask = catalog["reliable_radius"] & catalog["reliable_mass"]
@@ -32,7 +28,7 @@ ax.errorbar(
     fmt="o",
     markersize=2,
     lw=0.3,
-    xerr=[subset["mass_e-"], subset["mass_e+"]],
+    xerr=[subset["mass_msun_e-"], subset["mass_msun_e+"]],
     yerr=[subset["r_eff_pc_e-"], subset["r_eff_pc_e+"]],
 )
 
