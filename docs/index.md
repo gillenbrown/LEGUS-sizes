@@ -79,7 +79,7 @@ Distance to the galaxy and its error. We use the TRGB distances to all LEGUS gal
 
 **`galaxy_stellar_mass`, `galaxy_sfr`, `galaxy_ssfr`**
 
-Stellar masses, star formation rates, and  specific star formation rates of the host galaxy, from [Calzetti et al. 2015](https://ui.adsabs.harvard.edu/abs/2015AJ....149...51C/abstract). SFR is obtained from *GALEX* far-UV corrected for dust attenuation, as described in [Lee et al. 2009](https://ui.adsabs.harvard.edu/abs/2009ApJ...706..599L/abstract), and stellar mass from extinction-corrected B-band luminosity and color information, as described in [Bothwell et al. 2009](https://ui.adsabs.harvard.edu/abs/2009MNRAS.400..154B/abstract) and using the mass-to-light ratio models of [Bell & de Jong 2001](https://ui.adsabs.harvard.edu/abs/2001ApJ...550..212B/abstract). 
+Stellar masses, star formation rates, and  specific star formation rates of the host galaxy, from [Calzetti et al. 2015](https://ui.adsabs.harvard.edu/abs/2015AJ....149...51C/abstract). See the caption of Table 1 for more details.
 
 
 ### LEGUS Cluster Properties
@@ -99,7 +99,7 @@ X/Y pixel position of the cluster from the LEGUS catalog.
 
 **`morphology_class`**
 
-Visual classification of the morphology of the clusters by LEGUS team members. Three or more team members visually inspect each cluster candidate, classifying it into one of the following four classes. Class 1 objects are compact and centrally concentrated with a homogeneous color. Class 2 clusters have slightly elongated density profiles and a less symmetric light distribution. Class 3 clusters are likely compact associations, having asymmetric profiles or multiple peaks on top of diffuse underlying wings. Class 4 objects are stars or artifacts. Note that a handful of galaxies have classifications from machine learning. See the `morphology_class_source` attribute to see which galaxies this applies to.
+Visual classification of the morphology of the clusters by LEGUS team members. Three or more team members visually inspect each cluster candidate, classifying it into one of the following four classes. Class 1 objects are compact and centrally concentrated with a homogeneous color. Class 2 clusters have slightly elongated density profiles and a less symmetric light distribution. We do not include Class 3 or 4 objects in this catalog. Note that a handful of galaxies have classifications from machine learning. See the `morphology_class_source` attribute to see which galaxies this applies to.
 
 
 **`morphology_class_source`**
@@ -181,7 +181,7 @@ Our metric to evaluate the fit quality, defined in Equation 16. It uses the cumu
 
 **`reliable_radius`**
 
-Whether or not this cluster radius is deemed to be reliable. To be reliable, a cluster must not have a failed fit (see above), and must not be in the worst 10th percentile of `prof_diff`. See Section 2.6 for more on this. Our analysis in the paper only uses clusters deemed to be reliable.
+Whether or not this cluster radius is deemed to be reliable. To be reliable, a cluster must not have a failed fit (see above), and must not be in the worst 10th percentile of `prof_diff_reff`. See Section 2.6 for more on this. Our analysis in the paper only uses clusters deemed to be reliable.
 
 
 **`reliable_mass`**

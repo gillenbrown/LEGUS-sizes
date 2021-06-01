@@ -117,16 +117,17 @@ descriptions = {
     "formation rates of the host galaxy, from "
     "[Calzetti et al. 2015]"
     "(https://ui.adsabs.harvard.edu/abs/2015AJ....149...51C/abstract). "
-    "SFR is obtained from *GALEX* far-UV corrected for dust attenuation, as described "
-    "in "
-    "[Lee et al. 2009](https://ui.adsabs.harvard.edu/abs/2009ApJ...706..599L/abstract)"
-    ", and stellar mass from extinction-corrected B-band luminosity and color "
-    "information, as described in "
-    "[Bothwell et al. 2009]"
-    "(https://ui.adsabs.harvard.edu/abs/2009MNRAS.400..154B/abstract) "
-    "and using the mass-to-light ratio models of "
-    "[Bell & de Jong 2001]"
-    "(https://ui.adsabs.harvard.edu/abs/2001ApJ...550..212B/abstract). ",
+    "See the caption of Table 1 for more details.",
+    # "SFR is obtained from *GALEX* far-UV corrected for dust attenuation, as described "
+    # "in "
+    # "[Lee et al. 2009](https://ui.adsabs.harvard.edu/abs/2009ApJ...706..599L/abstract)"
+    # ", and stellar mass from extinction-corrected B-band luminosity and color "
+    # "information, as described in "
+    # "[Bothwell et al. 2009]"
+    # "(https://ui.adsabs.harvard.edu/abs/2009MNRAS.400..154B/abstract) "
+    # "and using the mass-to-light ratio models of "
+    # "[Bell & de Jong 2001]"
+    # "(https://ui.adsabs.harvard.edu/abs/2001ApJ...550..212B/abstract). ",
     # "pixel_scale": "Pixel scale for the image. All are nearly 39.62 mas/pixel.",
     "ra_dec": "Right ascension and declination from the LEGUS catalog.",
     "xy_legus": "X/Y pixel position of the cluster from the LEGUS catalog.",
@@ -138,15 +139,13 @@ descriptions = {
     "classifying it into one of the following four classes. Class 1 objects are "
     "compact and centrally concentrated with a homogeneous color. Class 2 clusters "
     "have slightly elongated density profiles and a less symmetric light distribution. "
-    "Class 3 clusters are likely compact associations, having asymmetric profiles or "
-    "multiple peaks on top of diffuse underlying wings. Class 4 objects are stars or "
-    "artifacts. Note that a handful of galaxies have classifications from machine "
-    "learning. See the `morphology_class_source` attribute to see which galaxies this "
-    "applies to.",
+    "We do not include Class 3 or 4 objects in this catalog. Note that a handful of "
+    "galaxies have classifications from machine learning. See the "
+    "`morphology_class_source` attribute to see which galaxies this applies to.",
     "morphology_source": "The source of the classification of the morphology in the "
     "`morphology` attribute. When available, we use the mode of the classifications "
     "from multiple team members, called `human_mode` in this column. Additionally, "
-    "machine learning classifications (`ml`) are available for several galaxies "
+    "machine learning classifications (`ml`) are available for several galaxies. "
     "For NGC 5194 and NGC 5195, we use the human classifications for clusters where "
     "those are available, and supplement with machine learning classifications for "
     "clusters not inspected by humans. In NGC 1566, we use the hybrid classification "
@@ -158,7 +157,7 @@ descriptions = {
     "[Adamo et al. 2017]"
     "(https://ui.adsabs.harvard.edu/abs/2017ApJ...841..131A/abstract).",
     "mass": "Cluster mass (in solar masses) and its minimum and maximum allowed value "
-    "from LEGUS using the same SED fitting as `age`. ",
+    "from LEGUS using the same SED fitting as `age_yr`. ",
     "xy": "The x/y pixel position. ",
     "mu": "The central pixel value μ<sub>0</sub>, in units of electrons. Note that "
     "this is the peak pixel value of the raw profile before convolution with the PSF "
@@ -183,8 +182,8 @@ descriptions = {
     "is reliable (Section 2.6).",
     "reliable_radius": "Whether or not this cluster radius is deemed to be reliable. "
     "To be reliable, a cluster must not have a failed fit (see above), and must not "
-    "be in the worst 10th percentile of `prof_diff`. See Section 2.6 for more on this. "
-    "Our analysis in the paper only uses clusters deemed to be reliable.",
+    "be in the worst 10th percentile of `prof_diff_reff`. See Section 2.6 for more "
+    "on this. Our analysis in the paper only uses clusters deemed to be reliable.",
     "reliable_mass": "Whether or not we consider this cluster to have a reliable "
     "measurement of the mass. This relies on a consideration of the Q statistic "
     "(see Section 3.3 for more on this). For any analysis using masses or ages, we "
