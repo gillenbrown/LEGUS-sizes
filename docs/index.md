@@ -191,7 +191,7 @@ Whether or not we consider this cluster to have a reliable measurement of the ma
 
 ### Effective Radius
 
-Here we include the effective radius and its errors. The errors are marginalized over all other fit parameters. We calculate the effective radius of each bootstrap iteration, then use the percentiles to determine the upper and lower errors. The lower error is the best fit value minus the 16th percentile value, while the upper error is the 84th percentile value minus the best fit value. The errors in pixels and arcseconds only include the uncertainty in radius, while the errors in parsecs also include the uncertainty in galaxy distance.
+Here we include the effective radius and its errors. The errors are marginalized over all other fit parameters. We calculate the effective radius of each bootstrap iteration, then use the percentiles to determine the upper and lower errors. The lower error is the best fit value minus the 16th percentile value, while the upper error is the 84th percentile value minus the best fit value. The errors for R<sub>eff</sub> in pixels and arcseconds only include the uncertainty in radius, while the errors for R<sub>eff</sub> in parsecs also include the uncertainty in galaxy distance.
 
 **`r_eff_pixels`, `r_eff_pixels_e-`, `r_eff_pixels_e+`**
 
