@@ -27,7 +27,7 @@ sys.path.append(str(code_home_dir / "pipeline"))
 import utils
 
 # define the directory where everything is stored
-data_path = code_home_dir / "analysis" / "krumholz_review_data"
+data_path = code_home_dir / "analysis" / "cluster_review" / "data"
 
 # ======================================================================================
 # M31 open clusters

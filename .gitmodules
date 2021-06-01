@@ -1,0 +1,3 @@
+[submodule "analysis/cluster_review"]
+	path = analysis/cluster_review
+	url = https://bitbucket.org/krumholz/cluster_review.git
