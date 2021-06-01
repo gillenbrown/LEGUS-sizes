@@ -25,3 +25,6 @@ mcmc_chain*.h5
 __pycache__
 *.ipynb_checkpoints*
 pipeline/extra_cluster_data/
+
+# scripts for copying data to/from shangrila
+copy*.sh
