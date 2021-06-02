@@ -206,8 +206,11 @@ for col in dist_cols:
     for row in fits_catalog:
         low, hi = np.percentile(row[col], [15.85, 84.15])
         med = row[col + "_best"]
-        row[col + "_e+"] = hi - med
-        row[col + "_e-"] = med - low
+        # if the best fit value is outside the error range, set the error to zero. This
+        # rarely happens, but does sometimes if the best fit value is just outside the
+        # error range determined by bootstrapping.
+        row[col + "_e+"] = max(hi - med, 0)
+        row[col + "_e-"] = max(med - low, 0)
 
 # ======================================================================================
 #

@@ -308,6 +308,11 @@ for field in np.unique(catalog["field"]):
     assert len(np.unique(catalog["galaxy_distance_mpc"][mask])) == 1
     assert len(np.unique(catalog["galaxy_distance_mpc_err"][mask])) == 1
 
+# verify that errors are always non-negative
+for col in catalog.colnames:
+    if col.endswith("_e-") or col.endswith("_e+"):
+        assert np.min(catalog[col]) >= 0
+
 # ======================================================================================
 #
 # write the catalog!
