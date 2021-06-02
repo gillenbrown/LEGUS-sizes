@@ -2,7 +2,7 @@
 
 This page summarizes the cluster catalogs generated in Brown & Gnedin 2021. The catalog includes the radii, all EFF fit parameters, densities, errors on all these parameters, and a few key LEGUS properties such as mass and age. All data needed to replicate plots 10-17 is included in this catalog. Any references below to equations or figures are from our paper.
 
-The catalog can easily be downloaded with `wget`: 
+The catalog can be downloaded with `wget`: 
 ```
 wget https://raw.githubusercontent.com/gillenbrown/LEGUS-sizes/master/cluster_sizes_brown_gnedin_21.txt
 ```
@@ -69,7 +69,7 @@ The cluster ID assigned by LEGUS. This was done on a field-by-field basis.
 
 **`galaxy`**
 
-The galaxy the cluster belongs to. NGC 5194 and NGC 5195 are separated manually (see Figure 1 of the paper). 
+The galaxy the cluster belongs to. NGC 5194 and NGC 5195 are separated manually (see Figure 1). 
 
 
 **`galaxy_distance_mpc`, `galaxy_distance_mpc_err`**
@@ -99,12 +99,12 @@ X/Y pixel position of the cluster from the LEGUS catalog.
 
 **`morphology_class`**
 
-Visual classification of the morphology of the clusters by LEGUS team members. Three or more team members visually inspect each cluster candidate, classifying it into one of the following four classes. Class 1 objects are compact and centrally concentrated with a homogeneous color. Class 2 clusters have slightly elongated density profiles and a less symmetric light distribution. We do not include Class 3 or 4 objects in this catalog. Note that a handful of galaxies have classifications from machine learning. See the `morphology_class_source` attribute to see which galaxies this applies to.
+Classification of the morphology of the clusters by LEGUS. Class 1 objects are compact and centrally concentrated with a homogeneous color. Class 2 clusters have slightly elongated density profiles and a less symmetric light distribution. We do not include Class 3 (compact associations) or Class 4 (stars or artifacts) objects in this catalog.
 
 
 **`morphology_class_source`**
 
-The source of the classification of the morphology in the `morphology` attribute. When available, we use the mode of the classifications from multiple team members, called `human_mode` in this column. Additionally, machine learning classifications (`ml`) are available for several galaxies. For NGC 5194 and NGC 5195, we use the human classifications for clusters where those are available, and supplement with machine learning classifications for clusters not inspected by humans. In NGC 1566, we use the hybrid classification system (`hybrid`) created by the LEGUS team, where some clusters are inspected by humans only, some by machine learning only, and some with a machine learning classification verified by humans.
+The source of the classification of the morphology in the `morphology` attribute. When available, we use the mode of the classifications from multiple LEGUS team members, called `human_mode` in this column. Additionally, machine learning classifications (`ml`) are available for several galaxies. For NGC 5194 and NGC 5195, we use the human classifications for clusters where those are available, and supplement with machine learning classifications for clusters not inspected by humans. In NGC 1566, we use the hybrid classification system (`hybrid`) created by the LEGUS team, where some clusters are inspected by humans only, some by machine learning only, and some with a machine learning classification verified by humans.
 
 
 **`age_yr`, `age_yr_min`, `age_yr_max`**
@@ -176,12 +176,12 @@ Whether a given cluster is identified as having a failed radius fit. We define t
 
 **`fit_quality_metric`**
 
-Our metric to evaluate the fit quality, defined in Equation 16. It uses the cumulative light profile to estimate the half-light radius of the cluster non-parametrically, then compares the enclosed light of the model and data within this radius. This value is the fractional error of the enclosed light of the model. We use this quantity to determine whether the radius fit is reliable (Section 2.6).
+Our metric to evaluate the fit quality, defined in Equation 16. It uses the cumulative light profile to estimate the half-light radius of the cluster non-parametrically, then compares the enclosed light of the model and data within this radius. This value is the fractional error of the enclosed light of the model.
 
 
 **`reliable_radius`**
 
-Whether or not this cluster radius is deemed to be reliable. To be reliable, a cluster must not have a failed fit (see above), and must not be in the worst 10th percentile of `fit_quality_metric`. See Section 2.6 for more on this. Our analysis in the paper only uses clusters deemed to be reliable.
+Whether or not this cluster radius is deemed to be reliable. To be reliable, a cluster must not have a failed fit (see above), and must not be in the worst 10th percentile of `fit_quality_metric` among clusters with successful fits. See Section 2.6 for more on this. Our analysis in the paper only uses clusters deemed to be reliable.
 
 
 **`reliable_mass`**
@@ -191,21 +191,21 @@ Whether or not we consider this cluster to have a reliable measurement of the ma
 
 ### Effective Radius
 
-Here we include the effective radius and its errors. The errors are marginalized over all other fit parameters. We calculate the effective radius of each bootstrap iteration, then use the percentiles to determine the upper and lower errors. The lower error is the best fit value minus the 16th percentile value, while the upper error is the 84th percentile value minus the best fit value. The errors for R<sub>eff</sub> in pixels and arcseconds only include the uncertainty in radius, while the errors for R<sub>eff</sub> in parsecs also include the uncertainty in galaxy distance.
+Here we include the effective radius R<sub>eff</sub> (the projected half light radius) and its errors. See Section 2.5 for more on how this is calculated. The errors are marginalized over all other fit parameters. We calculate the effective radius of each bootstrap iteration, then use the percentiles to determine the upper and lower errors. The lower error is the best fit R<sub>eff</sub> minus the 16th percentile R<sub>eff</sub>, while the upper error is the 84th percentile R<sub>eff</sub> minus the best fit R<sub>eff</sub>. The errors for R<sub>eff</sub> in pixels and arcseconds only include the uncertainty in radius, while the errors for R<sub>eff</sub> in parsecs also include the uncertainty in galaxy distance.
 
 **`r_eff_pixels`, `r_eff_pixels_e-`, `r_eff_pixels_e+`**
 
-The cluster effective radius, or more precisely the projected half light radius, in units of pixels. See Section 2.5 for more on how this is calculated.
+The cluster effective radius in units of pixels. 
 
 
 **`r_eff_arcsec`, `r_eff_arcsec_e-`, `r_eff_arcsec_e+`**
 
-The cluster effective radius, or more precisely the projected half light radius, in units of arcseconds. We provide this to make it easier for future users (i.e. you) to modify the galaxy distance estimates assumed in this paper.
+The cluster effective radius in units of arcseconds. We provide this to make it easier for future users (i.e. you) to modify the galaxy distance estimates assumed in our paper if so desired.
 
 
 **`r_eff_pc`, `r_eff_pc_e-`, `r_eff_pc_e+`**
 
-The cluster effective radius, or more precisely the projected half light radius, in units of parsecs. The galaxy distances in this table were used to convert from arcseconds to parsecs. The uncertainty here includes the uncertainty in galaxy distance. 
+The cluster effective radius in units of parsecs. The galaxy distances in this table were used to convert from arcseconds to parsecs. The uncertainty here includes the uncertainty in galaxy distance. 
 
 
 ### Derived Properties

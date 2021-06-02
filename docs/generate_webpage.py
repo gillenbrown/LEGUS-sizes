@@ -107,7 +107,7 @@ descriptions = {
     "field contains multiple galaxies (NGC 5194 and NGC 5195).",
     "id": "The cluster ID assigned by LEGUS. This was done on a field-by-field basis.",
     "galaxy": "The galaxy the cluster belongs to. NGC 5194 and NGC 5195 are separated "
-    "manually (see Figure 1 of the paper). ",
+    "manually (see Figure 1). ",
     "distance": "Distance to the galaxy and its error, in Mpc. We use the TRGB "
     "distances to all LEGUS galaxies provided by "
     "[Sabbi et al. 2018]"
@@ -136,24 +136,21 @@ descriptions = {
     # "ci": "Concentration Index (CI), defined as the which is the magnitude difference "
     # "between apertures of radius 1 pixel and 3 pixels. A cut was used to separate "
     # "stars from clusters.",
-    "morphology": "Visual classification of the morphology of the clusters by LEGUS "
-    "team members. Three or more team members visually inspect each cluster candidate, "
-    "classifying it into one of the following four classes. Class 1 objects are "
-    "compact and centrally concentrated with a homogeneous color. Class 2 clusters "
-    "have slightly elongated density profiles and a less symmetric light distribution. "
-    "We do not include Class 3 or 4 objects in this catalog. Note that a handful of "
-    "galaxies have classifications from machine learning. See the "
-    "`morphology_class_source` attribute to see which galaxies this applies to.",
+    "morphology": "Classification of the morphology of the clusters by LEGUS. Class 1 "
+    "objects are compact and centrally concentrated with a homogeneous color. Class 2 "
+    "clusters have slightly elongated density profiles and a less symmetric light "
+    "distribution. We do not include Class 3 (compact associations) or Class 4 "
+    "(stars or artifacts) objects in this catalog.",
     "morphology_source": "The source of the classification of the morphology in the "
     "`morphology` attribute. When available, we use the mode of the classifications "
-    "from multiple team members, called `human_mode` in this column. Additionally, "
-    "machine learning classifications (`ml`) are available for several galaxies. "
-    "For NGC 5194 and NGC 5195, we use the human classifications for clusters where "
-    "those are available, and supplement with machine learning classifications for "
-    "clusters not inspected by humans. In NGC 1566, we use the hybrid classification "
-    "system (`hybrid`) created by the LEGUS team, where some clusters are inspected "
-    "by humans only, some by machine learning only, and some with a machine learning "
-    "classification verified by humans.",
+    "from multiple LEGUS team members, called `human_mode` in this column. "
+    "Additionally, machine learning classifications (`ml`) are available for several "
+    "galaxies. For NGC 5194 and NGC 5195, we use the human classifications for "
+    "clusters where those are available, and supplement with machine learning "
+    "classifications for clusters not inspected by humans. In NGC 1566, we use the "
+    "hybrid classification system (`hybrid`) created by the LEGUS team, where some "
+    "clusters are inspected by humans only, some by machine learning only, and some "
+    "with a machine learning classification verified by humans.",
     "age": "Cluster age in years and its minimum and maximum allowed value from "
     "LEGUS. This uses the deterministic SED fitting method presented in "
     "[Adamo et al. 2017]"
@@ -181,27 +178,23 @@ descriptions = {
     "It uses the cumulative light profile to estimate the half-light radius of the "
     "cluster non-parametrically, then compares the enclosed light of the model and "
     "data within this radius. This value is the fractional error of the enclosed "
-    "light of the model. We use this quantity to determine whether the radius fit "
-    "is reliable (Section 2.6).",
+    "light of the model.",
     "reliable_radius": "Whether or not this cluster radius is deemed to be reliable. "
     "To be reliable, a cluster must not have a failed fit (see above), and must not "
-    "be in the worst 10th percentile of `fit_quality_metric`. See Section 2.6 for more "
-    "on this. Our analysis in the paper only uses clusters deemed to be reliable.",
+    "be in the worst 10th percentile of `fit_quality_metric` among clusters with "
+    "successful fits. See Section 2.6 for more on this. Our analysis in the paper "
+    "only uses clusters deemed to be reliable.",
     "reliable_mass": "Whether or not we consider this cluster to have a reliable "
     "measurement of the mass. This relies on a consideration of the Q statistic "
     "(see Section 3.3 for more on this). For any analysis using masses or ages, we "
     "only consider clusters with reliable masses.",
-    "r_eff_pix": "The cluster effective radius, or more precisely the projected "
-    "half light radius, in units of pixels. See Section 2.5 for more on how this is "
-    "calculated.",
-    "r_eff_arcsec": "The cluster effective radius, or more precisely the projected "
-    "half light radius, in units of arcseconds. We provide this to make it easier for "
-    "future users (i.e. you) to modify the galaxy distance estimates assumed in this "
-    "paper.",
-    "r_eff_pc": "The cluster effective radius, or more precisely the projected "
-    "half light radius, in units of parsecs. The galaxy distances in this table were "
-    "used to convert from arcseconds to parsecs. The uncertainty here includes "
-    "the uncertainty in galaxy distance. ",
+    "r_eff_pix": "The cluster effective radius in units of pixels. ",
+    "r_eff_arcsec": "The cluster effective radius in units of arcseconds. We provide "
+    "this to make it easier for future users (i.e. you) to modify the galaxy distance "
+    "estimates assumed in our paper if so desired.",
+    "r_eff_pc": "The cluster effective radius in units of parsecs. The galaxy "
+    "distances in this table were used to convert from arcseconds to parsecs. The "
+    "uncertainty here includes the uncertainty in galaxy distance. ",
     "crossing_time": "The cluster crossing time, as defined by "
     "[Gieles & Portegies Zwart 2011]"
     "(https://ui.adsabs.harvard.edu/abs/2011MNRAS.410L...6G/abstract) "

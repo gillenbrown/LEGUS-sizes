@@ -2,7 +2,7 @@
 
 This page summarizes the cluster catalogs generated in Brown & Gnedin 2021. The catalog includes the radii, all EFF fit parameters, densities, errors on all these parameters, and a few key LEGUS properties such as mass and age. All data needed to replicate plots 10-17 is included in this catalog. Any references below to equations or figures are from our paper.
 
-The catalog can easily be downloaded with `wget`: 
+The catalog can be downloaded with `wget`: 
 ```
 wget https://raw.githubusercontent.com/gillenbrown/LEGUS-sizes/master/cluster_sizes_brown_gnedin_21.txt
 ```
@@ -90,7 +90,7 @@ __template__reliable_mass__template__
 
 ### Effective Radius
 
-Here we include the effective radius and its errors. The errors are marginalized over all other fit parameters. We calculate the effective radius of each bootstrap iteration, then use the percentiles to determine the upper and lower errors. The lower error is the best fit value minus the 16th percentile value, while the upper error is the 84th percentile value minus the best fit value. The errors for R<sub>eff</sub> in pixels and arcseconds only include the uncertainty in radius, while the errors for R<sub>eff</sub> in parsecs also include the uncertainty in galaxy distance.
+Here we include the effective radius R<sub>eff</sub> (the projected half light radius) and its errors. See Section 2.5 for more on how this is calculated. The errors are marginalized over all other fit parameters. We calculate the effective radius of each bootstrap iteration, then use the percentiles to determine the upper and lower errors. The lower error is the best fit R<sub>eff</sub> minus the 16th percentile R<sub>eff</sub>, while the upper error is the 84th percentile R<sub>eff</sub> minus the best fit R<sub>eff</sub>. The errors for R<sub>eff</sub> in pixels and arcseconds only include the uncertainty in radius, while the errors for R<sub>eff</sub> in parsecs also include the uncertainty in galaxy distance.
 
 __template__r_eff_pix__template__
 
