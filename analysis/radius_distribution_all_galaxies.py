@@ -147,8 +147,6 @@ print(f"Peak of stacked distribution: {r_peak_stack:.3f}pc")
 
 # Have a separate plot of the peak values
 fig_peak, ax_peak = bpl.subplots()
-# track peak values for galaxies above a certain count
-r_10, r_100 = [], []
 # also track how many galaxies have a p-value above a given threshold
 n_min = 50
 n_p_05, n_p_01 = 0, 0
@@ -202,10 +200,6 @@ for idx, galaxy in enumerate(sorted_galaxies):
         )
     else:
         ax_peak.scatter([peak_r], len(cat), c=bpl.color_cycle[0])
-    if len(cat) > 10:
-        r_10.append(peak_r)
-    if len(cat) > 100:
-        r_100.append(peak_r)
 
     # KL is done elementwise, then we integrate
     kl_values = special.kl_div(stacked_pdf, cat_pdf)
@@ -232,25 +226,3 @@ fig.savefig(plot_name)
 
 print(f"{n_p_01} galaxies with {n_min} clusters have P > 0.01")
 print(f"{n_p_05} galaxies with {n_min} clusters have P > 0.05")
-
-# ======================================================================================
-#
-# plot the distribution of r_peaks
-#
-# ======================================================================================
-std_10 = np.std(r_10)
-std_100 = np.std(r_100)
-ax_peak.axvline(r_peak_stack, ls="--")
-ax_peak.axhline(10, ls=":")
-ax_peak.axhline(100, ls=":")
-ax_peak.add_labels("$R_{peak}$ [pc]", "Number of Clusters")
-ax_peak.set_yscale("log")
-ax_peak.set_limits(1, 7.5, 1, 3000)
-ax_peak.easy_add_text(
-    "$\sigma_{100} = $"
-    + f"{std_100:.3f} pc, {100 * std_100 / r_peak_stack:.1f}%\n"
-    + "$\sigma_{10} = $"
-    + f"{std_10:.3f} pc, {100 * std_10 / r_peak_stack:.1f}%\n",
-    "upper right",
-)
-fig_peak.savefig(plot_name.parent / "r_peak.png")
