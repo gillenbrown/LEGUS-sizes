@@ -207,6 +207,7 @@ outputs = $(psf_demo_image) $(psf_comp_plots) \
           $(mass_radius_legus_agesplit_plot)  \
           $(mass_radius_legus_mw_external_plot) $(mass_radius_table) \
           $(toy_model_plot) \
+          $(artificial_comparison) \
           $(webpage)
 
 
@@ -235,7 +236,8 @@ $(catalogs): $(catalog_script)
 # make the final list.
 # The star lists require the catalogs, as we need to exclude anything that's
 # one of the clusters from our selection of stars.
-# To do this we use SECONDEXPANSION, and turn the star list into a catalog name
+# To do this we use SECONDEXPANSION, and turn the star list into a catalog name. We'll
+# use SECONDEXPANSION throughout, but only need to define it once
 .SECONDEXPANSION:
 $(v1_star_lists): %: | $(v1_star_list_script) $$(dir %)$$(cat)
 	python $(v1_star_list_script) $@ $(dir $@)$(cat) $(psf_pixel_size)
@@ -245,22 +247,18 @@ $(v1_star_lists): %: | $(v1_star_list_script) $$(dir %)$$(cat)
 # don't want any unimportant future changes to make me redo all the star
 # selection, since it's tedious. If I need to remake these, just delete the
 # files
-.SECONDEXPANSION:
 $(psf_star_lists): %: | $$(dir %)$$(star_prelim)
 	python $(psf_star_list_script) $@ $(dir $@)$(star_prelim) $(psf_pixel_size)
 
 # Then we use these star lists to automatically generate the PSFs.
-.SECONDEXPANSION:
 $(psfs_my): %: $(psf_creation_script) $$(dir %)$$(star_psf)
 	python $(psf_creation_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) my
 
 # I also did a comparison to PSFs from the star lists selected by LEGUS.
-.SECONDEXPANSION:
 $(psfs_legus): %: $(psf_creation_script)
 	python $(psf_creation_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) legus
 
 # A plot comparing the psfs
-.SECONDEXPANSION:
 $(psf_comp_plots): %: $$(dir %)$$(psf_legus) $$(dir %)$$(psf_my) $$(dir %)$$(star_psf) $(psf_comparison_script)
 	python $(psf_comparison_script) $@ $(psf_oversampling_factor) $(psf_pixel_size)
 
@@ -284,24 +282,20 @@ $(masks): %: $(mask_script) $$(dir %)$$(cat) $$(dir %)$$(sigma_image)
 
 # Then we can actually do the fitting. This rule here does the full fitting method on
 # all clusters.
-.SECONDEXPANSION:
 $(fits): %: $(fitting_script) $(fit_utils) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask) $$(dir %)$$(cat)
 	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(dir $@)$(cat) $(fit_region_size)
 
 # We also do a fitting method similar to R17 for a more direct comparison. This is only
 # done on NGC 1313 and NGC 628.
-.SECONDEXPANSION:
 $(fits_ryon): %: $(fitting_script) $(fit_utils) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask) $$(dir %)$$(cat)
 	python $(fitting_script) $@ $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(dir $@)$(cat) $(fit_region_size) ryon_like
 
 # Add the derived properties to these catalogs, such as effective radius and density.
-.SECONDEXPANSION:
 $(final_cats): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask)
 	python $(final_catalog_script) $@ $(dir $@)$(fit) $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(fit_region_size)
 
 # We also have a R17 like version of the derived properties that use the same distances
 # as used in R17.
-.SECONDEXPANSION:
 $(final_cats_ryon): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit_ryon) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask)
 	python $(final_catalog_script) $@ $(dir $@)$(fit_ryon) $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(fit_region_size) ryon_like
 
