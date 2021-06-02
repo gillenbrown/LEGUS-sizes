@@ -98,7 +98,6 @@ mass_radius_utils_external_data = $(mass_radius_dir)mass_radius_utils_external_d
 mass_radius_legus_full_script = $(mass_radius_dir)mass_radius_legus_full.py
 mass_radius_legus_young_script = $(mass_radius_dir)mass_radius_legus_young.py
 mass_radius_legus_agesplit_script = $(mass_radius_dir)mass_radius_legus_agesplit.py
-mass_radius_legus_ssfrsplit_script = $(mass_radius_dir)mass_radius_legus_ssfrsplit.py
 mass_radius_legus_mw_script = $(mass_radius_dir)mass_radius_legus_mw.py
 mass_radius_legus_external_script = $(mass_radius_dir)mass_radius_legus_external.py
 mass_radius_legus_mw_external_script = $(mass_radius_dir)mass_radius_legus_mw_external.py
@@ -198,8 +197,6 @@ mass_radius_legus_young_plot = $(local_plots_dir)mass_radius_legus_young.pdf
 mass_radius_legus_young_txt = $(mass_size_tables_dir)legus_young_table.txt
 mass_radius_legus_agesplit_plot = $(local_plots_dir)mass_radius_legus_agesplit.pdf
 mass_radius_legus_agesplit_txt = $(mass_size_tables_dir)legus_agesplit_table.txt
-mass_radius_legus_ssfrsplit_plot = $(local_plots_dir)mass_radius_legus_ssfrsplit.pdf
-mass_radius_legus_ssfrsplit_txt = $(mass_size_tables_dir)legus_ssfrsplit_table.txt
 mass_radius_legus_mw_txt = $(mass_size_tables_dir)legus_mw_table.txt
 mass_radius_legus_external_txt = $(mass_size_tables_dir)legus_external_table.txt
 mass_radius_legus_mw_external_plot = $(local_plots_dir)mass_radius_legus_mw_external.pdf
@@ -218,7 +215,7 @@ outputs = $(psf_demo_image) $(psf_comp_plots) \
           $(crossing_time_plot) $(bound_fraction_plot) \
           $(density_plot) $(density_fits_txt) \
           $(mass_radius_legus_full_plot) $(mass_radius_legus_young_plot) \
-          $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_ssfrsplit_plot) \
+          $(mass_radius_legus_agesplit_plot)  \
           $(mass_radius_legus_mw_external_plot) $(mass_radius_table) \
           $(toy_model_plot) \
           $(artificial_comparison) \
@@ -385,9 +382,6 @@ $(mass_radius_legus_young_plot) $(mass_radius_legus_young_txt) &: $(public_catal
 
 $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_agesplit_txt) &: $(public_catalog) $(mass_radius_legus_agesplit_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_plotting)
 	python $(mass_radius_legus_agesplit_script) $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_agesplit_txt) $(public_catalog)
-
-$(mass_radius_legus_ssfrsplit_plot) $(mass_radius_legus_ssfrsplit_txt) &: $(public_catalog) $(mass_radius_legus_ssfrsplit_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_plotting)
-	python $(mass_radius_legus_ssfrsplit_script) $(mass_radius_legus_ssfrsplit_plot) $(mass_radius_legus_ssfrsplit_txt) $(public_catalog)
 
 $(mass_radius_legus_mw_txt) &: $(public_catalog) $(mass_radius_legus_mw_script) $(mass_radius_utils) $(mass_radius_utils_mle_fitting) $(mass_radius_utils_external_data)
 	python $(mass_radius_legus_mw_script) $(mass_radius_legus_mw_txt) $(public_catalog)
