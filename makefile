@@ -80,7 +80,6 @@ example_mrr_plot_script = $(docs_dir)example_plot.py
 webpage_script = $(docs_dir)generate_webpage.py
 # analysis
 comparison_script = $(analysis_dir)ryon_comparison.py
-radii_def_plot_script = $(analysis_dir)radii_def_comp_plot.py
 radius_dist_script = $(analysis_dir)radius_distribution.py
 radius_dist_all_galaxies_script = $(analysis_dir)radius_distribution_all_galaxies.py
 stacked_distribution_script = $(analysis_dir)stacked_distribution.py
@@ -221,6 +220,7 @@ outputs = $(galaxy_table) $(public_catalog) \
           $(mass_radius_legus_full_plot) $(mass_radius_legus_young_plot) \
           $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_ssfrsplit_plot) \
           $(mass_radius_legus_mw_external_plot) $(mass_radius_table) \
+          $(artificial_comparison) \
           $(webpage)
 
 
