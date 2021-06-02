@@ -64,19 +64,12 @@ groups = {
     "galaxy_props": ["galaxy_stellar_mass", "galaxy_sfr", "galaxy_ssfr"],
     # "pixel_scale": ["pixel_scale"],
     "ra_dec": ["RA", "Dec"],
-    "xy_legus": ["x_pix_single", "y_pix_single"],
+    "xy_legus": ["x_legus", "y_legus"],
     "morphology": ["morphology_class"],
     "morphology_source": ["morphology_class_source"],
     "age": ["age_yr", "age_yr_min", "age_yr_max"],
     "mass": ["mass_msun", "mass_msun_min", "mass_msun_max"],
-    "xy": [
-        "x_fitted",
-        "x_fitted_e-",
-        "x_fitted_e+",
-        "y_fitted",
-        "y_fitted_e-",
-        "y_fitted_e+",
-    ],
+    "xy": ["x", "x_e-", "x_e+", "y", "y_e-", "y_e+"],
     "mu": ["mu_0", "mu_0_e-", "mu_0_e+"],
     "a": ["scale_radius_pixels", "scale_radius_pixels_e-", "scale_radius_pixels_e+"],
     "q": ["axis_ratio", "axis_ratio_e-", "axis_ratio_e+"],
@@ -132,7 +125,8 @@ descriptions = {
     # "(https://ui.adsabs.harvard.edu/abs/2001ApJ...550..212B/abstract). ",
     # "pixel_scale": "Pixel scale for the image. All are nearly 39.62 mas/pixel.",
     "ra_dec": "Right ascension and declination from the LEGUS catalog.",
-    "xy_legus": "X/Y pixel position of the cluster from the LEGUS catalog.",
+    "xy_legus": "X/Y pixel position of the cluster in the field from the LEGUS "
+    "catalog.",
     # "ci": "Concentration Index (CI), defined as the which is the magnitude difference "
     # "between apertures of radius 1 pixel and 3 pixels. A cut was used to separate "
     # "stars from clusters.",
@@ -157,7 +151,8 @@ descriptions = {
     "(https://ui.adsabs.harvard.edu/abs/2017ApJ...841..131A/abstract).",
     "mass": "Cluster mass in M<sub>⊙</sub> and its minimum and maximum allowed value "
     "from LEGUS using the same SED fitting as `age_yr`. ",
-    "xy": "The x/y pixel position. ",
+    "xy": "The x/y pixel position. This is left as a free parameter in the fit, so "
+    "it may be slightly different than the LEGUS center. ",
     "mu": "The central pixel value μ<sub>0</sub>, in units of electrons. Note that "
     "this is the peak pixel value of the raw profile before convolution with the PSF "
     "and rebinning (see Equation 8), so it may not be directly useful.",

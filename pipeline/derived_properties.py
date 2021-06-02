@@ -1017,6 +1017,11 @@ for col in fits_catalog.colnames:
     if "_best" in col:
         fits_catalog.rename_column(col, col.replace("_best", ""))
 
+# Make my x/y be the new holder of the simple x/y column names. I'll remove the
+# "fitted" suffix, since it's ugly
+for col in fits_catalog.colnames:
+    if "_fitted" in col:
+        fits_catalog.rename_column(col, col.replace("_fitted", ""))
 
 # ======================================================================================
 #

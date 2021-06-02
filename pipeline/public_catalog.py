@@ -192,8 +192,10 @@ catalog.remove_columns(
     ]
 )
 
-# rename the quality metric
+# rename a few columns
 catalog.rename_column("profile_diff_reff", "fit_quality_metric")
+catalog.rename_column("x_pix_single", "x_legus")
+catalog.rename_column("y_pix_single", "y_legus")
 
 # set the order for the leftover columns
 new_col_order = [
@@ -207,8 +209,8 @@ new_col_order = [
     "galaxy_ssfr",
     "RA",
     "Dec",
-    "x_pix_single",
-    "y_pix_single",
+    "x_legus",
+    "y_legus",
     "morphology_class",
     "morphology_class_source",
     "age_yr",
@@ -217,12 +219,12 @@ new_col_order = [
     "mass_msun",
     "mass_msun_min",
     "mass_msun_max",
-    "x_fitted",
-    "x_fitted_e-",
-    "x_fitted_e+",
-    "y_fitted",
-    "y_fitted_e-",
-    "y_fitted_e+",
+    "x",
+    "x_e-",
+    "x_e+",
+    "y",
+    "y_e-",
+    "y_e+",
     "mu_0",
     "mu_0_e-",
     "mu_0_e+",

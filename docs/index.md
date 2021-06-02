@@ -92,9 +92,9 @@ These properties come from the LEGUS catalogs. If using quantities from those pa
 Right ascension and declination from the LEGUS catalog.
 
 
-**`x_pix_single`, `y_pix_single`**
+**`x_legus`, `y_legus`**
 
-X/Y pixel position of the cluster from the LEGUS catalog.
+X/Y pixel position of the cluster in the field from the LEGUS catalog.
 
 
 **`morphology_class`**
@@ -127,9 +127,9 @@ We generalize this (Equations 2-4) to include ellipticity by including an axis r
 
 The errors on these parameters are marginalized over all other parameters. The lower error is simply the best fit value of that parameter minus the 16th percentile of the parameter's distribution for all bootstrap iterations. Similarly, the upper error is the 84th percentile of the bootstrap distribution minus the best fit value.
 
-**`x_fitted`, `x_fitted_e-`, `x_fitted_e+`, `y_fitted`, `y_fitted_e-`, `y_fitted_e+`**
+**`x`, `x_e-`, `x_e+`, `y`, `y_e-`, `y_e+`**
 
-The x/y pixel position. 
+The x/y pixel position. This is left as a free parameter in the fit, so it may be slightly different than the LEGUS center. 
 
 
 **`mu_0`, `mu_0_e-`, `mu_0_e+`**
