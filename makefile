@@ -21,18 +21,7 @@
 # basic setup
 #
 # ======================================================================================
-# Figure out what machine we're on. This is set up for my personal machines, you will
-# need to configure for yourself.
-hostname = $(shell hostname)
-# Then match this to my machines.
-# findstring returns the matching part of the string. If it's not empty when
-# we try to find the shangrila hostname, we know we're on shangrila
-ifneq (,$(findstring shangrila,$(hostname)))
-    data_home = /u/home/gillenb/code/mine/LEGUS-sizes/data
-endif
-ifneq (,$(findstring gillenb-mbp,$(hostname)))
-    data_home = /Users/gillenb/code/legus_sizes/data
-endif
+data_home = $(shell pwd)/data
 # This directory should have nothing but directories with data
 # We'll do this complicated line that just gets all directories inside data_home
 all_data_dirs = $(sort $(dir $(wildcard $(data_home)/*/)))
@@ -218,7 +207,6 @@ outputs = $(psf_demo_image) $(psf_comp_plots) \
           $(mass_radius_legus_agesplit_plot)  \
           $(mass_radius_legus_mw_external_plot) $(mass_radius_table) \
           $(toy_model_plot) \
-          $(artificial_comparison) \
           $(webpage)
 
 
