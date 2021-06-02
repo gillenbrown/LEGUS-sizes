@@ -182,7 +182,7 @@ def fit_mass_size_relation(
     param_history = [[] for _ in range(n_variables)]
     param_std_last = [np.inf for _ in range(n_variables)]
 
-    converge_criteria = 0.01  # fractional change in std required for convergence
+    converge_criteria = 0.002  # fractional change in std required for convergence
     converged = [False for _ in range(n_variables)]
     check_spacing = 20  # how many iterations between checking the std
     iteration = 0
