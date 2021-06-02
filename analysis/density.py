@@ -3,7 +3,8 @@ density.py - Create a plot showing the density of clusters.
 
 This takes the following parameters:
 - Path to save the plot
-- Then the paths to all the final catalogs.
+- Path to save the table containing the lognormal fits
+- Path to the public catalog
 """
 
 import sys

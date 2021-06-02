@@ -1,10 +1,10 @@
 """
-all_fields_hist.py - Create a histogram showing the distribution of effective radii in
-all fields.
+radius_distribution_all_galaxies.py - Create a histogram showing the distribution
+of effective radii with all galaxies separate.
 
 This takes the following parameters:
-- Path to save the plots
-- Then the paths to all the final catalogs.
+- Path to save the plot
+- Path to the public catalog
 """
 
 import sys

@@ -3,7 +3,9 @@ fit_quality.py - Make a plot investigating the fit quality
 
 This takes the following parameters
 - Path where this plot will be saved
-- All the completed catalogs
+- The name of the run
+- All the completed catalogs (not the public catalog, since we have some quantities
+  that we want to investigate here that won't be in that catalog)
 """
 import sys
 from pathlib import Path

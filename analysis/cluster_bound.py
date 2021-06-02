@@ -1,10 +1,10 @@
 """
-dynamical_age.py - Create two plots showing the dynamical state of clusters
+cluster_bound.py - Create two plots showing the dynamical state of clusters
 
 This takes the following parameters:
 - Path to save the plot comparing crossing time to age
 - Path to save the plot showing the mass dependence of the bound fraction
-- All the catalogs
+- The public catalog
 """
 
 import sys

@@ -4,6 +4,7 @@ age_toy_model.py - Create a toy model for the age evolution of the effective rad
 This takes the following parameters:
 - Path to save the plot
 - Path to the file containing the best fit mass-radius relation split by age
+- The public catalog
 """
 
 import sys

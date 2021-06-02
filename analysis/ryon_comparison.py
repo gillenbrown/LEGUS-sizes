@@ -1,3 +1,11 @@
+"""
+ryon_comparison.py - Creates the comparison to Ryon et al. 2017
+
+This takes the following parameters
+- Path to save the plot
+- Path to the public catalog
+- Path to the Ryon-like catalogs
+"""
 import sys
 from pathlib import Path
 

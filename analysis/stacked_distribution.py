@@ -1,10 +1,10 @@
 """
-all_fields_hist.py - Create a histogram showing the distribution of effective radii in
-all fields.
+stacked_distribution.py - Find an analytic distribution that fits the radius
+distribution
 
 This takes the following parameters:
-- Path to save the plots
-- Then the paths to all the final catalogs.
+- Path to save the plot
+- Path to the public catalog
 """
 
 import sys

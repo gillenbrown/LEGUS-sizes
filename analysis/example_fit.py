@@ -1,5 +1,12 @@
 """
 example_fit.py - Plot an example showing a fitted cluster
+
+This takes the following parameters:
+- Path to save the plot
+- PSF oversampling factor
+- The width of the PSF snapshot
+- cluster snapshot size
+- Path to the public catalog
 """
 import sys
 from pathlib import Path

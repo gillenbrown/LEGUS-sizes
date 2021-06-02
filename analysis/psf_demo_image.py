@@ -1,5 +1,10 @@
 """
 psf_demo_image.py - Make the image of the PSFs that will go in the paper
+
+Takes the following parameters:
+- Path to save the plot
+- Oversampling factor used for the PSF
+- paths to all the PSFs
 """
 import sys
 from pathlib import Path

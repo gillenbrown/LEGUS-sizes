@@ -1,6 +1,12 @@
 """
 artificial_comparison.py
 Compare the results of the artificial cluster test to the true results
+
+This takes the following parameters:
+- Path to save the plot
+- Path to the output catalog with fitted radii
+- Path to the PSF
+- oversampling factor used in the PSF.
 """
 
 import sys
