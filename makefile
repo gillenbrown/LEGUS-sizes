@@ -81,7 +81,6 @@ webpage_script = $(docs_dir)generate_webpage.py
 # analysis
 comparison_script = $(analysis_dir)ryon_comparison.py
 radii_def_plot_script = $(analysis_dir)radii_def_comp_plot.py
-parameters_dist_script = $(analysis_dir)parameter_distribution.py
 radius_dist_script = $(analysis_dir)radius_distribution.py
 radius_dist_all_galaxies_script = $(analysis_dir)radius_distribution_all_galaxies.py
 stacked_distribution_script = $(analysis_dir)stacked_distribution.py
@@ -183,7 +182,6 @@ example_mrr_plot = $(docs_dir)example_mrr.png
 webpage = $(docs_dir)/index.md
 psf_demo_image = $(local_plots_dir)psf_demo_$(psf_type)_stars_$(psf_pixel_size)_pixels_$(psf_oversampling_factor)x_oversampled.pdf
 comparison_plot = $(local_plots_dir)comparison_plot.pdf
-param_dist_plot = $(local_plots_dir)parameter_distribution_size.pdf
 radius_dist_plot = $(local_plots_dir)radius_distribution.pdf
 radius_dist_all_galaxies_plot = $(local_plots_dir)radius_distribution_all_galaxies.pdf
 stacked_distribution_plot = $(local_plots_dir)stacked_distribution.pdf
@@ -214,7 +212,7 @@ artificial_comparison = $(local_plots_dir)artificial_tests.pdf
 # then combine everything together
 outputs = $(galaxy_table) $(public_catalog) \
           $(psf_demo_image) $(psf_comp_plots) \
-          $(comparison_plot) $(param_dist_plot) \
+          $(comparison_plot) \
           $(radius_dist_plot) $(radius_dist_all_galaxies_plot) \
           $(stacked_distribution_plot) \
           $(crossing_time_plot) $(bound_fraction_plot) \
@@ -223,7 +221,6 @@ outputs = $(galaxy_table) $(public_catalog) \
           $(mass_radius_legus_full_plot) $(mass_radius_legus_young_plot) \
           $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_ssfrsplit_plot) \
           $(mass_radius_legus_mw_external_plot) $(mass_radius_table) \
-          $(artificial_comparison) \
           $(webpage)
 
 
@@ -335,9 +332,6 @@ $(public_catalog): $(public_catalog_script) $(final_cats)
 # --------------------------------------------------------------------------------------
 #  Analysis
 # --------------------------------------------------------------------------------------
-$(param_dist_plot): $(parameters_dist_script) $(public_catalog)
-	python $(parameters_dist_script) $@ $(public_catalog)
-
 # Make the comparisons to Ryon+17's results (Figure 9)
 $(comparison_plot): $(comparison_script) $(public_catalog) $(final_cats_ryon)
 	python $(comparison_script) $@ $(public_catalog) $(final_cats_ryon)
