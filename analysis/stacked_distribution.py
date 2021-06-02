@@ -24,22 +24,22 @@ plot_name = Path(sys.argv[1])
 #
 # ======================================================================================
 # Here we stack everything except for a few outliers which we exclude
-big_cat = table.Table.read(sys.argv[2], format="ascii.ecsv")
-mask_not_1566 = big_cat["galaxy"] != "ngc1566"
-mask_not_7793 = big_cat["galaxy"] != "ngc7793"
-big_cat = big_cat[np.logical_and(mask_not_1566, mask_not_7793)]
+catalog = table.Table.read(sys.argv[2], format="ascii.ecsv")
+mask_not_1566 = catalog["galaxy"] != "ngc1566"
+mask_not_7793 = catalog["galaxy"] != "ngc7793"
+catalog = catalog[np.logical_and(mask_not_1566, mask_not_7793)]
 
 # restrict to the clusters with reliable radii
-big_cat = big_cat[big_cat["reliable_radius"]]
+catalog = catalog[catalog["reliable_radius"]]
 
 # calculate the mean error in log space, will be used for the KDE smothing
-r_eff = big_cat["r_eff_pc"]
+r_eff = catalog["r_eff_pc"]
 log_r_eff = np.log10(r_eff)
-log_err_lo = log_r_eff - np.log10(r_eff - big_cat["r_eff_pc_e-"])
-log_err_hi = np.log10(r_eff + big_cat["r_eff_pc_e+"]) - log_r_eff
+log_err_lo = log_r_eff - np.log10(r_eff - catalog["r_eff_pc_e-"])
+log_err_hi = np.log10(r_eff + catalog["r_eff_pc_e+"]) - log_r_eff
 
-big_cat["r_eff_log"] = log_r_eff
-big_cat["r_eff_log_err"] = 0.5 * (log_err_lo + log_err_hi)
+catalog["r_eff_log"] = log_r_eff
+catalog["r_eff_log_err"] = 0.5 * (log_err_lo + log_err_hi)
 
 
 # ======================================================================================
@@ -64,8 +64,8 @@ def kde(r_eff_grid, log_r_eff, log_r_eff_err):
 pdf_radii = np.logspace(-1, 1.5, 300)
 pdf_stacked = kde(
     pdf_radii,
-    big_cat["r_eff_log"],
-    big_cat["r_eff_log_err"],
+    catalog["r_eff_log"],
+    catalog["r_eff_log_err"],
 )
 # ======================================================================================
 #
@@ -141,7 +141,7 @@ ax.plot(
     pdf_stacked,
     lw=4,
     zorder=15,
-    label=f"Observed, N={len(big_cat)}",
+    label=f"Observed, N={len(catalog)}",
 )
 # then plot the fits
 for fit in fits:

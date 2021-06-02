@@ -31,24 +31,24 @@ from mass_radius_utils_plotting import age_colors
 # ======================================================================================
 time_comp_plot_name = Path(sys.argv[1]).resolve()
 mass_dependence_plot_name = Path(sys.argv[2]).resolve()
-big_catalog = table.Table.read(sys.argv[3], format="ascii.ecsv")
+catalog = table.Table.read(sys.argv[3], format="ascii.ecsv")
 
 # restrict to clusters with good masses and radii
-mask = np.logical_and(big_catalog["reliable_radius"], big_catalog["reliable_mass"])
-big_catalog = big_catalog[mask]
+mask = np.logical_and(catalog["reliable_radius"], catalog["reliable_mass"])
+catalog = catalog[mask]
 
 # then determine which clusters are bound
-big_catalog["bound"] = big_catalog["age_yr"] > big_catalog["crossing_time_yr"]
-print("bound fraction all", np.sum(big_catalog["bound"]) / len(big_catalog))
-massive_mask = big_catalog["mass_msun"] > 5000
+catalog["bound"] = catalog["age_yr"] > catalog["crossing_time_yr"]
+print("bound fraction all", np.sum(catalog["bound"]) / len(catalog))
+massive_mask = catalog["mass_msun"] > 5000
 print(
     "bound fraction M > 5000",
-    np.sum(big_catalog["bound"][massive_mask]) / len(big_catalog[massive_mask]),
+    np.sum(catalog["bound"][massive_mask]) / len(catalog[massive_mask]),
 )
-old_mask = big_catalog["age_yr"] >= 1e7
+old_mask = catalog["age_yr"] >= 1e7
 print(
     "bound fraction age > 1e7",
-    np.sum(big_catalog["bound"][old_mask]) / len(big_catalog[old_mask]),
+    np.sum(catalog["bound"][old_mask]) / len(catalog[old_mask]),
 )
 
 # ======================================================================================
@@ -68,14 +68,14 @@ cmap_colors = ["#f58231", "#FFAC71", "#8BA4FD", "#4363d8"]
 cmap = colors.ListedColormap(colors=cmap_colors, name="")
 norm = colors.LogNorm(vmin=1e3, vmax=1e5)
 mappable = cm.ScalarMappable(cmap=cmap, norm=norm)
-mass_colors = mappable.to_rgba(big_catalog["mass_msun"])
+mass_colors = mappable.to_rgba(catalog["mass_msun"])
 # perturb the ages slightly for plotting purposes. Copy them to avoid messing up
 # later analysis
-plot_ages = big_catalog["age_yr"].copy()
+plot_ages = catalog["age_yr"].copy()
 plot_ages *= np.random.normal(1, 0.15, len(plot_ages))
 
 # then plot and set some limits
-ax.scatter(plot_ages, big_catalog["crossing_time_yr"], s=7, alpha=1, c=mass_colors)
+ax.scatter(plot_ages, catalog["crossing_time_yr"], s=7, alpha=1, c=mass_colors)
 ax.add_labels("Age [yr]", "Crossing Time [yr]")
 ax.set_xscale("log")
 ax.set_yscale("log")
@@ -99,14 +99,14 @@ fig.savefig(time_comp_plot_name)
 # plot bound fraction vs mass
 #
 # ======================================================================================
-mask_all = big_catalog["age_yr"] > 0
-mask_young = big_catalog["age_yr"] < 1e7
-mask_med = np.logical_and(big_catalog["age_yr"] >= 1e7, big_catalog["age_yr"] < 1e8)
-mask_old = np.logical_and(big_catalog["age_yr"] >= 1e8, big_catalog["age_yr"] < 1e9)
+mask_all = catalog["age_yr"] > 0
+mask_young = catalog["age_yr"] < 1e7
+mask_med = np.logical_and(catalog["age_yr"] >= 1e7, catalog["age_yr"] < 1e8)
+mask_old = np.logical_and(catalog["age_yr"] >= 1e8, catalog["age_yr"] < 1e9)
 
 
 def bound_fraction(mask):
-    this_subset = big_catalog[mask]
+    this_subset = catalog[mask]
     mass_bins = np.logspace(2, 6, 13)
     # then figure out which clusters are in the mass bins
     bound_fractions = []

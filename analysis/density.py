@@ -35,21 +35,21 @@ import mass_radius_utils as mru
 # ======================================================================================
 plot_name = Path(sys.argv[1]).resolve()
 fits_output_name = Path(sys.argv[2]).resolve()
-big_catalog = table.Table.read(sys.argv[3], format="ascii.ecsv")
+catalog = table.Table.read(sys.argv[3], format="ascii.ecsv")
 
 # restrict to clusters with good masses and radii
-good_mask = np.logical_and(big_catalog["reliable_radius"], big_catalog["reliable_mass"])
-big_catalog = big_catalog[good_mask]
+good_mask = np.logical_and(catalog["reliable_radius"], catalog["reliable_mass"])
+catalog = catalog[good_mask]
 
 # ======================================================================================
 #
 # Get the quantities we'll need for the plot
 #
 # ======================================================================================
-density_3d = big_catalog["density"]
-density_3d_log_err = big_catalog["density_log_err"]
-density_2d = big_catalog["surface_density"]
-density_2d_log_err = big_catalog["surface_density_log_err"]
+density_3d = catalog["density"]
+density_3d_log_err = catalog["density_log_err"]
+density_2d = catalog["surface_density"]
+density_2d_log_err = catalog["surface_density_log_err"]
 
 # turn these errors into linear space for plotting
 density_3d_err_lo = density_3d - 10 ** (np.log10(density_3d) - density_3d_log_err)
@@ -59,12 +59,12 @@ density_2d_err_lo = density_2d - 10 ** (np.log10(density_2d) - density_2d_log_er
 density_2d_err_hi = 10 ** (np.log10(density_2d) + density_2d_log_err) - density_2d
 
 # then mass
-mass = big_catalog["mass_msun"]
-m_err_lo = big_catalog["mass_msun"] - big_catalog["mass_msun_min"]
-m_err_hi = big_catalog["mass_msun_max"] - big_catalog["mass_msun"]
+mass = catalog["mass_msun"]
+m_err_lo = catalog["mass_msun"] - catalog["mass_msun_min"]
+m_err_hi = catalog["mass_msun_max"] - catalog["mass_msun"]
 
 # also set up the masks for age
-age = big_catalog["age_yr"]
+age = catalog["age_yr"]
 mask_young = age < 1e7
 mask_med = np.logical_and(age >= 1e7, age < 1e8)
 mask_old = np.logical_and(age >= 1e8, age < 1e9)

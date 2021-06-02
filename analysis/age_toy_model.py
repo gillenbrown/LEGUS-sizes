@@ -34,12 +34,12 @@ fit_table_loc = Path(sys.argv[2])
 # handle catalogs
 #
 # ======================================================================================
-big_catalog = mru.make_big_table(sys.argv[3])
+catalog = mru.make_big_table(sys.argv[3])
 # Filter out clusters older than 1 Gyr
-mask = big_catalog["age_yr"] < 1e9
-mass_obs = mru.get_my_masses(big_catalog, mask)[0] * u.Msun
-r_eff_obs = mru.get_my_radii(big_catalog, mask)[0] * u.pc
-age_obs = mru.get_my_ages(big_catalog, mask)[0] * u.yr
+mask = catalog["age_yr"] < 1e9
+mass_obs = mru.get_my_masses(catalog, mask)[0] * u.Msun
+r_eff_obs = mru.get_my_radii(catalog, mask)[0] * u.pc
+age_obs = mru.get_my_ages(catalog, mask)[0] * u.yr
 
 # Then do several splits by age
 mask_young = age_obs < 1e7 * u.yr
