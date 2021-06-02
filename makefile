@@ -108,7 +108,8 @@ cluster_fit_dirs = $(foreach dir,$(my_dirs),$(dir)cluster_fit_plots)
 cluster_plot_dirs = $(foreach dir,$(my_dirs),$(dir)plots)
 local_plots_dir = ./outputs_$(run_name)/
 mass_size_tables_dir = $(local_plots_dir)sub_fit_tables/
-all_my_dirs = $(my_dirs) $(cluster_fit_dirs) $(cluster_plot_dirs) $(local_plots_dir) $(mass_size_tables_dir)
+fit_quality_dir = $(local_plots_dir)fit_quality/
+all_my_dirs = $(my_dirs) $(cluster_fit_dirs) $(cluster_plot_dirs) $(local_plots_dir) $(mass_size_tables_dir) $(fit_quality_dir)
 
 # ======================================================================================
 #
@@ -178,7 +179,7 @@ density_plot = $(local_plots_dir)density.pdf
 density_fits_txt = $(local_plots_dir)density_fits.txt
 toy_model_plot = $(local_plots_dir)age_toy_model.pdf
 example_fit_plot = $(local_plots_dir)example_fit.pdf
-fit_quality_plot = $(local_plots_dir)fit_quality.pdf
+fit_quality_plot = $(fit_quality_dir)fit_quality.png
 # lots of mass size versions, all done separately
 mass_radius_legus_full_plot = $(local_plots_dir)mass_radius_legus_full.pdf
 mass_radius_legus_full_txt = $(mass_size_tables_dir)legus_full_table.txt
