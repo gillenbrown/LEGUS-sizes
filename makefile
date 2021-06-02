@@ -209,17 +209,18 @@ mass_radius_table = $(local_plots_dir)mass_radius_fits_table.txt
 # Also do a comparison of the artificial star tests
 artificial_comparison = $(local_plots_dir)artificial_tests.pdf
 # then combine everything together
-outputs = $(galaxy_table) $(public_catalog) \
-          $(psf_demo_image) $(psf_comp_plots) \
+outputs = $(psf_demo_image) $(psf_comp_plots) \
+          $(fit_quality_plot) $(example_fit_plot) \
+          $(galaxy_table) $(public_catalog) \
           $(comparison_plot) \
           $(radius_dist_plot) $(radius_dist_all_galaxies_plot) \
           $(stacked_distribution_plot) \
           $(crossing_time_plot) $(bound_fraction_plot) \
           $(density_plot) $(density_fits_txt) \
-          $(fit_quality_plot) $(toy_model_plot) $(example_fit_plot) \
           $(mass_radius_legus_full_plot) $(mass_radius_legus_young_plot) \
           $(mass_radius_legus_agesplit_plot) $(mass_radius_legus_ssfrsplit_plot) \
           $(mass_radius_legus_mw_external_plot) $(mass_radius_table) \
+          $(toy_model_plot) \
           $(artificial_comparison) \
           $(webpage)
 
@@ -319,9 +320,17 @@ $(final_cats): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit) $$(dir %
 $(final_cats_ryon): %: $(final_catalog_script) $(fit_utils) $$(dir %)$$(fit_ryon) $$(dir %)$$(fit_psf) $$(dir %)$$(sigma_image) $$(dir %)$$(mask)
 	python $(final_catalog_script) $@ $(dir $@)$(fit_ryon) $(dir $@)$(fit_psf) $(psf_oversampling_factor) $(dir $@)$(sigma_image) $(dir $@)$(mask) $(fit_region_size) ryon_like
 
+# --------------------------------------------------------------------------------------
+#  fit checking and exmamples
+# --------------------------------------------------------------------------------------
 # one plot that uses some debugging quantities that we don't want in the public catalog
 $(fit_quality_plot): $(fit_quality_script) $(final_cats)
 	python $(fit_quality_script) $@ $(run_name) $(final_cats)
+
+# Make an example of the cluster fit process (Figure 3)
+$(example_fit_plot): $(public_catalog) $(example_plot_script)
+	python $(example_plot_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) $(fit_region_size) $(public_catalog)
+
 
 # --------------------------------------------------------------------------------------
 #  create the public catalog, which is used in the rest of the analysis
@@ -332,6 +341,10 @@ $(public_catalog): $(public_catalog_script) $(final_cats)
 # --------------------------------------------------------------------------------------
 #  Analysis
 # --------------------------------------------------------------------------------------
+# Make Table 1 showing galaxy properties
+$(galaxy_table): $(public_catalog) $(galaxy_table_script)
+	python $(galaxy_table_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) $(psf_type) $(public_catalog)
+
 # Make the comparisons to Ryon+17's results (Figure 9)
 $(comparison_plot): $(comparison_script) $(public_catalog) $(final_cats_ryon)
 	python $(comparison_script) $@ $(public_catalog) $(final_cats_ryon)
@@ -360,14 +373,6 @@ $(density_plot) $(density_fits_txt) &: $(public_catalog) $(density_script) $(mas
 # Make the toy model of cluster evolution (Figure 17)
 $(toy_model_plot): $(toy_model_script) $(mass_radius_table) $(mass_radius_utils_plotting) $(public_catalog)
 	python $(toy_model_script) $@ $(mass_radius_table) $(public_catalog)
-
-# Make an example of the cluster fit process (Figure 3)
-$(example_fit_plot): $(public_catalog) $(example_plot_script)
-	python $(example_plot_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) $(fit_region_size) $(public_catalog)
-
-# Make Table 1 showing galaxy properties
-$(galaxy_table): $(public_catalog) $(galaxy_table_script)
-	python $(galaxy_table_script) $@ $(psf_oversampling_factor) $(psf_pixel_size) $(psf_type) $(public_catalog)
 
 # Various mass-radius relation plots. There are several versions here, but they will be
 # the versions shown in Table 2 and Figures 11, 12, and 13.
