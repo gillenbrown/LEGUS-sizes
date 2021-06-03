@@ -1,6 +1,6 @@
 # Cluster Catalog
 
-This page summarizes the cluster catalogs generated in Brown & Gnedin 2021. The catalog includes the radii, all EFF fit parameters, densities, errors on all these parameters, and a few key LEGUS properties such as mass and age. All data needed to replicate plots 10-17 is included in this catalog. Any references below to equations or figures are from our paper.
+This page summarizes the cluster catalogs generated in Brown & Gnedin 2021. The catalog includes the radii, all EFF fit parameters, densities, uncertainties on all these parameters, and a few key LEGUS properties such as mass and age. All data needed to replicate plots 10-17 is included in this catalog. Any references below to equations or figures are from our paper.
 
 The catalog can be downloaded with `wget`: 
 ```
@@ -54,13 +54,13 @@ __template__mass__template__
 
 ### Fit Parameters
 
-The catalog includes all the fit parameters and their errors. The EFF profile takes the basic form:
+The catalog includes all the fit parameters and their uncertainties. The EFF profile takes the basic form:
 
 ![EFF profile](eff.png)
 
 We generalize this (Equations 2-4) to include ellipticity by including an axis ratio and position angle. 
 
-The errors on these parameters are marginalized over all other parameters. The lower error is simply the best fit value of that parameter minus the 16th percentile of the parameter's distribution for all bootstrap iterations. Similarly, the upper error is the 84th percentile of the bootstrap distribution minus the best fit value.
+The uncertainties on these parameters are marginalized over all other parameters. The lower uncertainty is simply the best fit value of that parameter minus the 16th percentile of the parameter's distribution for all bootstrap iterations. Similarly, the upper uncertainty is the 84th percentile of the bootstrap distribution minus the best fit value.
 
 __template__xy__template__
 
@@ -90,7 +90,7 @@ __template__reliable_mass__template__
 
 ### Effective Radius
 
-Here we include the effective radius R<sub>eff</sub> (the projected half light radius) and its errors. See Section 2.5 for more on how this is calculated. The errors are marginalized over all other fit parameters. We calculate the effective radius of each bootstrap iteration, then use the percentiles to determine the upper and lower errors. The lower error is the best fit R<sub>eff</sub> minus the 16th percentile R<sub>eff</sub>, while the upper error is the 84th percentile R<sub>eff</sub> minus the best fit R<sub>eff</sub>. The errors for R<sub>eff</sub> in pixels and arcseconds only include the uncertainty in radius, while the errors for R<sub>eff</sub> in parsecs also include the uncertainty in galaxy distance.
+Here we include the effective radius R<sub>eff</sub> (the projected half light radius) and its uncertainties. See Section 2.5 for more on how this is calculated. The uncertainties are marginalized over all other fit parameters. We calculate the effective radius of each bootstrap iteration, then use the percentiles to determine the upper and lower uncertainties. The lower uncertainty is the best fit R<sub>eff</sub> minus the 16th percentile R<sub>eff</sub>, while the upper uncertainty is the 84th percentile R<sub>eff</sub> minus the best fit R<sub>eff</sub>. The uncertainties for R<sub>eff</sub> in pixels and arcseconds only include the uncertainty in radius, while the uncertainties for R<sub>eff</sub> in parsecs also include the uncertainty in galaxy distance.
 
 __template__r_eff_pix__template__
 
@@ -100,7 +100,7 @@ __template__r_eff_pc__template__
 
 ### Derived Properties
 
-We also calculate some quantities that use both the mass and radius. For the errors on these quantities, we symmetrize both the mass and radius errors, then propagate them analytically. These uncertainties include the uncertainty in galaxy distance. Note that the errors are on the log space quantity, so the error range given here should be interpreted as log<sub>10</sub>(`quantity`) ± `quantity_log_err`. 
+We also calculate some quantities that use both the mass and radius. For the uncertainties on these quantities, we symmetrize both the mass and radius uncertainties, then propagate them analytically. These uncertainties include the uncertainty in galaxy distance. Note that the uncertainties are on the log space quantity, so the range given here should be interpreted as log<sub>10</sub>(`quantity`) ± `quantity_log_err`. 
 
 __template__crossing_time__template__
 

@@ -101,7 +101,7 @@ descriptions = {
     "id": "The cluster ID assigned by LEGUS. This was done on a field-by-field basis.",
     "galaxy": "The galaxy the cluster belongs to. NGC 5194 and NGC 5195 are separated "
     "manually (see Figure 1). ",
-    "distance": "Distance to the galaxy and its error, in Mpc. We use the TRGB "
+    "distance": "Distance to the galaxy and its uncertainty, in Mpc. We use the TRGB "
     "distances to all LEGUS galaxies provided by "
     "[Sabbi et al. 2018]"
     "(https://ui.adsabs.harvard.edu/abs/2018ApJS..235...23S/abstract)"
@@ -163,7 +163,7 @@ descriptions = {
     "to be axisymmetric, 0 ≤ θ < π.",
     "eta": "Power law slope η.",
     "bg": "Value of the local background, in units of electrons.",
-    "bootstrap": "Number of bootstrap iterations done to calculate errors on "
+    "bootstrap": "Number of bootstrap iterations done to calculate uncertainties on "
     "fit parameters.",
     "fit_failure": "Whether a given cluster is identified as having a failed radius "
     "fit. We define this as as a scale radius a < 0.1 pixels, a > 15 pixels, or an "
@@ -172,7 +172,7 @@ descriptions = {
     "prof_diff": "Our metric to evaluate the fit quality, defined in Equation 16. "
     "It uses the cumulative light profile to estimate the half-light radius of the "
     "cluster non-parametrically, then compares the enclosed light of the model and "
-    "data within this radius. This value is the fractional error of the enclosed "
+    "data within this radius. This value is the fractional uncertainty of the enclosed "
     "light of the model.",
     "reliable_radius": "Whether or not this cluster radius is deemed to be reliable. "
     "To be reliable, a cluster must not have a failed fit (see above), and must not "
