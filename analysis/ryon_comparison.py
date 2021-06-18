@@ -137,36 +137,35 @@ matches["ngc628-c"] = symmetric_match(
 #
 # ======================================================================================
 for field, cat in matches.items():
-    cat["mask_ryon"] = cat["Eta"] >= 1.3
+    # We'll use the same mask for all comparisons so that the same clusters are in
+    # all panels. This requires Ryon's eta > 1.3, my eta > 1.3, and that there is a
+    # good fit for both my run and my Ryon-like run.
+    cat["mask"] = np.logical_and.reduce(
+        [
+            cat["Eta"] >= 1.3,
+            cat["eta_ryonlike"] >= 1.3,
+            cat["reliable_radius_ryonlike"],
+            cat["reliable_radius_full"],
+        ]
+    )
     # section 4.1 of Ryon+17 lists the number of clusters that pass the eta cut:
     # NGC1313-e: 14
     # NGC1313-w: 45
     # NGC628-c: 107
     # NGC628-e: 27
-    # using print statements here I get the same thing
-
-    # for my Ryon-like comparison, I need eta>1.3 and a good fit
-    cat["mask_ryonlike"] = np.logical_and(
-        cat["reliable_radius_ryonlike"], cat["eta_ryonlike"] >= 1.3
+    # print the number of successfull clusters
+    print(
+        f"{field} - Ryon {np.sum(cat['Eta'] >= 1.3)}, "
+        f"me {np.sum(cat['reliable_radius_full'])}"
     )
 
-    # for my full method, I only need the good radius
-    cat["mask_full"] = cat["reliable_radius_full"]
-
-    # print the number of successfull clusters
-    print(f"{field} - Ryon {np.sum(cat['mask_ryon'])}, me {np.sum(cat['mask_full'])}")
-
-    # then we'll make the combinations to use in the comparisons
-    cat["mask_ryon_ryonlike"] = np.logical_and(cat["mask_ryon"], cat["mask_ryonlike"])
-    cat["mask_ryonlike_full"] = np.logical_and(cat["mask_ryonlike"], cat["mask_full"])
-    cat["mask_ryon_full"] = np.logical_and(cat["mask_ryon"], cat["mask_full"])
 
 # ======================================================================================
 #
 # Calculate RMS
 #
 # ======================================================================================
-def rms(suffix_1, suffix_2, mask_col_name, print_threshold=1000):
+def rms(suffix_1, suffix_2, print_threshold=1000):
     # the print_threshold parameter can be used to find clusters that deviate strongly.
     # If 0.1 is passed, it will print all clusters that deviate by more than 10%
     sum_squares = 0
@@ -174,7 +173,7 @@ def rms(suffix_1, suffix_2, mask_col_name, print_threshold=1000):
 
     for field, cat in matches.items():
         for row in cat:
-            if row[mask_col_name]:
+            if row["mask"]:
                 r_eff_1 = row[f"r_eff_{suffix_1}"]
                 r_eff_2 = row[f"r_eff_{suffix_2}"]
 
@@ -241,14 +240,13 @@ labels = {
 }
 # In the left panel, we compare my Ryon-like (x) to Ryon's results (y). Then in the
 # right panel I compare my two methods. I wrote this to be flexible though.
-for ax, x_suffix, y_suffix, mask_col_name in zip(
+for ax, x_suffix, y_suffix in zip(
     axs,
-    ["ryonlike", "ryonlike"],
     ["ryon", "full"],
-    ["mask_ryon_ryonlike", "mask_ryonlike_full"],
+    ["ryonlike", "ryonlike"],
 ):
     for field, cat in matches.items():
-        mask = cat[mask_col_name]
+        mask = cat["mask"]
 
         c = colors[field]
 
@@ -266,7 +264,7 @@ for ax, x_suffix, y_suffix, mask_col_name in zip(
             zorder=2,
         )
 
-    print(y_suffix, rms(x_suffix, y_suffix, mask_col_name))
+    print(x_suffix, rms(x_suffix, y_suffix))
 
     ax.set_yscale("log")
     ax.set_xscale("log")
