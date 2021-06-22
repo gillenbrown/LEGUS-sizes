@@ -218,6 +218,7 @@ ax_r.axhline(1, ls=":", lw=3)
 # line showing the PSF.
 ax_r.plot([psf_r_eff, psf_r_eff], [2, 100], ls="--", lw=3, c=bpl.almost_black)
 ax_c.plot([psf_r_eff, psf_r_eff], [0.019, 0.04], ls="--", lw=3, c=bpl.almost_black)
+ax_c.add_text(psf_r_eff, 0.04, "PSF Size", va="bottom", ha="center", fontsize=17)
 
 # fake symbols for legend
 ax_c.errorbar(

@@ -11,7 +11,7 @@ from scipy import spatial, optimize
 import numpy as np
 
 # set random seed for reproducibility
-np.random.seed(123)
+np.random.seed(41)
 
 # ======================================================================================
 #
