@@ -35,6 +35,7 @@ def dummy_legus():
 funcs = [
     dummy_legus,
     mru_d.get_m31_open_clusters,
+    mru_d.get_m82_sscs_cuevas_otahola,
     mru_d.get_m83_clusters,
 ]
 

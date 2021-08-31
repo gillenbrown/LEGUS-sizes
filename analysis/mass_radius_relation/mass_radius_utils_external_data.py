@@ -27,15 +27,16 @@ sys.path.append(str(code_home_dir / "pipeline"))
 import utils
 
 # define the directory where everything is stored
-data_path = code_home_dir / "analysis" / "cluster_review" / "data"
+data_path_krumholz = code_home_dir / "analysis" / "cluster_review" / "data"
+data_path_other = code_home_dir / "analysis" / "mass_radius_relation" / "other_data"
 
 # ======================================================================================
 # M31 open clusters
 # ======================================================================================
 def get_m31_open_clusters(max_age=1e9):
     # M31 data. Masses and radii are in separate files.
-    johnson_12_table = fits.open(data_path / "johnson2012_m31.fits")
-    fouesneau_14_table = fits.open(data_path / "fouesneau2014_m31.fits")
+    johnson_12_table = fits.open(data_path_krumholz / "johnson2012_m31.fits")
+    fouesneau_14_table = fits.open(data_path_krumholz / "fouesneau2014_m31.fits")
     # get the ids in both catalogs
     johnson_12_id = johnson_12_table[1].data["PCID"]
     fouesneau_14_id = fouesneau_14_table[1].data["PCID"]
@@ -96,7 +97,7 @@ def get_m31_open_clusters(max_age=1e9):
 # Then the MW Open Clusters
 # ======================================================================================
 def get_mw_open_clusters(max_age=1e9):
-    kharchenko_13_table = fits.open(data_path / "kharchenko2013_mw.fits")
+    kharchenko_13_table = fits.open(data_path_krumholz / "kharchenko2013_mw.fits")
     kharchenko_13_mw_obj_type = kharchenko_13_table[1].data["Type"]
     kharchenko_mw_dist = kharchenko_13_table[1].data["d"]
     kharchenko_mw_log_age = kharchenko_13_table[1].data["logt"]
@@ -128,7 +129,7 @@ def get_mw_open_clusters(max_age=1e9):
     # plane, which is not exactly true (z0 ~= 25 pc), but the error
     # associated with this approximation is small compared to the
     # uncertainty in the distance to the Galctic Centre
-    kingtab = table.Table.read(data_path / "kingtab.txt", format="ascii")
+    kingtab = table.Table.read(data_path_krumholz / "kingtab.txt", format="ascii")
     kharchenko_logc = np.log10(kharchenko_mw_rt / kharchenko_mw_rc)
     r_eff = kharchenko_mw_rc * np.interp(
         kharchenko_logc, kingtab.columns["logc"], kingtab.columns["xh2d"]
@@ -169,7 +170,7 @@ def get_mw_open_clusters(max_age=1e9):
 # Then the Ryon et al 15 M83 clusters
 # ======================================================================================
 def get_m83_clusters(max_age=1e9):
-    hdulist = fits.open(data_path / "ryon2015_m83.fits")
+    hdulist = fits.open(data_path_krumholz / "ryon2015_m83.fits")
     data = hdulist[1].data
     # Restrict to the clusters for which r_h is reliable, and which aren't too old
     mask = np.logical_and(data["eta"] > 1.3, data["logAge"] < np.log10(max_age))
@@ -197,7 +198,9 @@ def get_m83_clusters(max_age=1e9):
 def get_mw_ymc_krumholz_19_clusters():
     # Young massive clusters in the Milky Way from our compilation
     data = table.Table.read(
-        data_path / "mw_ymc_compilation.txt", format="ascii.basic", delimiter="\s"
+        data_path_krumholz / "mw_ymc_compilation.txt",
+        format="ascii.basic",
+        delimiter="\s",
     )
     mass_log = data["log_M"]
     r_eff = data["rh"]
@@ -224,7 +227,7 @@ def get_mw_ymc_krumholz_19_clusters():
     return mass, mass_err_lo, mass_err_hi, r_eff, r_eff_err, r_eff_err
 
 
-def get_m82_sscs():
+def get_m82_sscs_mccrady_graham():
     # M82 super star clusters from McCrady & Graham (2007, ApJ, 663, 844);
     # Note that these have high masses (all above 1e5), so none of these are included
     # in the fit
@@ -256,3 +259,30 @@ def get_ngc253_sscs():
     r_eff_err = 0.3 * np.ones(len(mass))
     mass_err = np.zeros(len(mass))
     return mass, mass_err, mass_err, r_eff, r_eff_err, r_eff_err
+
+
+def get_m82_sscs_cuevas_otahola():
+    # M82 SSCs from Cuevas-Otahola et al 2021, MNRAS, 500, 4422
+    # Note that I commented out one row in the table, where the lower radius limit
+    # is negative.
+    data = table.Table.read(
+        data_path_other / "cuevas_otahola_table_1.dat", format="ascii"
+    )
+
+    # get the mass. The catalog has log M values.
+    log_m = data["M"]
+    log_m_err_lo = data["M_minus"]
+    log_m_err_hi = data["M_plus"]
+    # some errors are zero. Make those nonzero, but with a small value.
+    log_m_err_hi = np.maximum(0.01, log_m_err_hi)
+    # transform into linear space
+    m = 10 ** log_m
+    m_err_lo = m - 10 ** (log_m - log_m_err_lo)
+    m_err_hi = 10 ** (log_m + log_m_err_hi) - m
+
+    # get radius. This is not in log.
+    r_eff = data["R_h"]
+    r_eff_err_lo = data["Rh_minus"]
+    r_eff_err_hi = data["Rh_plus"]
+
+    return m, m_err_lo, m_err_hi, r_eff, r_eff_err_lo, r_eff_err_hi

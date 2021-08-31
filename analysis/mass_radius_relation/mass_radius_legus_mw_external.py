@@ -50,14 +50,16 @@ for func, label, color in zip(
         mru_d.get_mw_open_clusters,
         mru_d.get_mw_ymc_krumholz_19_clusters,
         mru_d.get_m31_open_clusters,
+        mru_d.get_m82_sscs_cuevas_otahola,
         mru_d.get_m83_clusters,
     ],
-    ["LEGUS", "MW OCs", "MW YMCs", "M31", "M83"],
+    ["LEGUS", "MW OCs", "MW YMCs", "M31", "M82", "M83"],
     [
         bpl.color_cycle[0],
         bpl.color_cycle[2],
         bpl.color_cycle[3],
         bpl.color_cycle[4],
+        bpl.color_cycle[5],  # update color once LMC data included
         bpl.color_cycle[6],
     ],
 ):
@@ -83,8 +85,8 @@ for func, label, color in zip(
     label += f": N = {len(m)}"
 
     # Plot it. Have less common datasets have larger points.
-    # (20 for small datasets, 3 for large)
-    size = 3 + 17 * (len(m) < 20)
+    # (20 for small datasets, 10 for medium, 3 for large)
+    size = 3 + 7 * (len(m) < 100) + 10 * (len(m) < 20)
     mru_p.plot_mass_size_dataset_scatter(
         ax, m_plot, m_el_plot, m_eh_plot, r, r_el, r_eh, color, label, size=size
     )
