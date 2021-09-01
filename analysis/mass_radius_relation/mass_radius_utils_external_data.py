@@ -286,3 +286,62 @@ def get_m82_sscs_cuevas_otahola():
     r_eff_err_hi = data["Rh_plus"]
 
     return m, m_err_lo, m_err_hi, r_eff, r_eff_err_lo, r_eff_err_hi
+
+
+def get_lmc_smc_ocs_mackey_gilmore():
+    # Clusters in the LMC and SMC from Mackey and Gilmore 2003, MNRAS 338, 85
+    # and Mackey and Gilmore 2003, MNRAS, 338, 120.
+    # Note that they did not directly provide R_eff, but did provide a and eta, which
+    # are sufficient to calculate R_eff myself.
+    data = table.Table.read(
+        data_path_other / "mackey_gilmore_lmc_smc.txt", format="ascii.commented_header"
+    )
+
+    # first get the mass, and convert to linear space
+    log_m = data["log_mass"]
+    log_m_err_lo = data["log_mass_err_lo"]
+    log_m_err_hi = data["log_mass_err_hi"]
+    # transform into linear space
+    m = 10 ** log_m
+    m_err_lo = m - 10 ** (log_m - log_m_err_lo)
+    m_err_hi = 10 ** (log_m + log_m_err_hi) - m
+
+    # Then get radius. I need to calculate R_eff myself. I need to do some conversions
+    # first.
+    eta = data["gamma"] / 2.0
+    # There isn't one conversion factor from arcsec to pc, since I have both the LMC
+    # and SMC in the same table.
+    arcsec_to_pc = data["rc_pc"] / data["rc_arcsec"]
+    a_pc = data["a_arcsec"] * arcsec_to_pc
+    # There are low eta values, so I do need to impose a maximum radius. Thankfully
+    # they already provided one.
+    max_radius_pc = data["rm_arcsec"] * arcsec_to_pc
+
+    # I'll copy the function for effective radius using a maximum radius. I'll assume
+    # that the clusters are circular (q=1).
+    def eff_profile_r_eff_with_rmax(eta, a, rmax):
+        """
+        Calculate the effective radius of an EFF profile, assuming a maximum radius.
+
+        :param eta: Power law slope of the EFF profile
+        :param a: Scale radius of the EFF profile, in any units.
+        :param rmax: Maximum radius for the profile, in the same units as a.
+        :return: Effective radius, in the same units as a and rmax
+        """
+        # This is such an ugly formula, put it in a few steps
+        term_1 = 1 + (1 + (rmax / a) ** 2) ** (1 - eta)
+        term_2 = (0.5 * (term_1)) ** (1 / (1 - eta)) - 1
+        return a * np.sqrt(term_2)
+
+    r_eff = eff_profile_r_eff_with_rmax(eta, a_pc, max_radius_pc)
+
+    # For the errors, I cannot replicate their errors, as they did bootstrapping, and
+    # the derived parameter error is marginalized over the other parameters. Simple
+    # error propagation does not work here, as a and eta are not independent. Since
+    # this is a minor point, I'll simply assume that the fractional error on the core
+    # radius (which they did calculate) is the same as the fractional error on the
+    # effective radius.
+    fractional_error = data["rc_pc_err"] / data["rc_pc"]
+    r_eff_err = fractional_error * r_eff
+
+    return m, m_err_lo, m_err_hi, r_eff, r_eff_err, r_eff_err
