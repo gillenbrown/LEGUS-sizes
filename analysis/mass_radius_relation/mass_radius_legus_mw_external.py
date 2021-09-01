@@ -114,7 +114,7 @@ fit, fit_history = mru_mle.fit_mass_size_relation(
 
 mru_p.add_percentile_lines(ax, mass_total, r_eff_total, label_percent_fontsize=14)
 mru_p.plot_best_fit_line(ax, fit, 0.1, 1e5)
-mru_p.format_mass_size_plot(ax, xmin=10, xmax=1e6, legend_fontsize=15.5)
+mru_p.format_mass_size_plot(ax, xmin=10, xmax=1e6, legend_fontsize=13)
 fig.savefig(plot_name)
 mru.write_fit_results(
     fit_out_file, "LEGUS + MW + External Galaxies", fit, fit_history, mass_total
