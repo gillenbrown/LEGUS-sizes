@@ -1,5 +1,5 @@
 # LEGUS-sizes
-This repository holds the code and the catalog used in Brown & Gnedin 2021. The catalog is the `cluster_sizes_brown_gnedin_21.txt` file here. For a detailed description see the webpage: [gillenbrown.github.io/LEGUS-sizes](https://gillenbrown.github.io/LEGUS-sizes).
+This repository holds the code and the catalog used in [Brown & Gnedin 2021](https://ui.adsabs.harvard.edu/abs/2021MNRAS.508.5935B/abstract). The catalog is the `cluster_sizes_brown_gnedin_21.txt` file here. For a detailed description see the webpage: [gillenbrown.github.io/LEGUS-sizes](https://gillenbrown.github.io/LEGUS-sizes).
 
 ## The Code
 This repository holds all the code used in the paper. I used a makefile to automate everything. See that for a detailed outline of how the pipeline and analysis is done. Note that the makefile is structured so that it can be run with parallel make (e.g. `make -j4`). The analysis will be parallelized over the fields.
